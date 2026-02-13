@@ -48,4 +48,7 @@ void evse_set_power_unavailable(evse_ctx_t *ctx);
 // Returns 1 if single phase charging should be forced - faithful to Force_Single_Phase_Charging()
 uint8_t evse_force_single_phase(evse_ctx_t *ctx);
 
+// Check if phase switching is needed on entry to STATE_B - faithful to CheckSwitchingPhases()
+void evse_check_switching_phases(evse_ctx_t *ctx);
+
 #endif // EVSE_STATE_MACHINE_H

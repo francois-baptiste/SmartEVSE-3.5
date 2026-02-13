@@ -78,13 +78,14 @@ void test_charge_delay_stops_at_zero(void) {
     TEST_ASSERT_EQUAL_INT(0, ctx.ChargeDelay);
 }
 
+// Original line 3127-3128: ChargeDelay prevents A→B, goes to B1 instead
 void test_charge_delay_blocks_A_to_B(void) {
     evse_init(&ctx, NULL);
     ctx.AccessStatus = ON;
     ctx.Mode = MODE_NORMAL;
     ctx.ChargeDelay = 5;
     evse_tick_10ms(&ctx, PILOT_9V);
-    TEST_ASSERT_EQUAL_INT(STATE_A, ctx.State);
+    TEST_ASSERT_EQUAL_INT(STATE_B1, ctx.State);
 }
 
 // ---- Temperature protection ----

@@ -130,14 +130,15 @@ void test_ocpp_negative_limit_ignored(void) {
 
 // ---- RFID lock timer ----
 
+// Original line 3090: AccessTimer starts on PILOT_12V (disconnect), not on connect
 void test_access_timer_starts_on_rfid(void) {
     setup_basic();
     ctx.AccessStatus = ON;
     ctx.RFIDReader = 2;
     ctx.AccessTimer = 0;
 
-    // Simulate A->B transition
-    evse_tick_10ms(&ctx, PILOT_9V);
+    // AccessTimer starts when EV disconnects (12V in STATE_A)
+    evse_tick_10ms(&ctx, PILOT_12V);
     TEST_ASSERT_EQUAL_INT(RFIDLOCKTIME, ctx.AccessTimer);
 }
 

@@ -23,6 +23,7 @@ static void setup_master_two_evse(void) {
     ctx.MaxCircuit = 32;
     ctx.MaxMains = 25;
     ctx.ChargeCurrent = 160;
+    ctx.phasesLastUpdateFlag = true;
 
     // Two EVSEs charging
     ctx.BalancedState[0] = STATE_C;
@@ -48,6 +49,7 @@ void test_single_evse_gets_full_current(void) {
     ctx.BalancedState[0] = STATE_C;
     ctx.BalancedMax[0] = 160;
     ctx.Balanced[0] = 160;
+    ctx.phasesLastUpdateFlag = true;
 
     evse_calc_balanced_current(&ctx, 0);
     TEST_ASSERT_EQUAL_INT(160, ctx.IsetBalanced);
@@ -84,16 +86,20 @@ void test_balanced_max_caps_individual(void) {
     TEST_ASSERT_LESS_OR_EQUAL(60, ctx.Balanced[1]);
 }
 
-void test_no_active_evse_returns_early(void) {
+// With no active EVSEs, IsetBalanced IS computed (from Mode/limits) but
+// no distribution occurs. Timers are reset (NoCurrent=0, SolarStopTimer=0).
+void test_no_active_evse_resets_timers(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_NORMAL;
     ctx.LoadBl = 1;
     ctx.BalancedState[0] = STATE_A;
     ctx.BalancedState[1] = STATE_A;
-    int32_t before = ctx.IsetBalanced;
+    ctx.NoCurrent = 5;
+    ctx.SolarStopTimer = 10;
     evse_calc_balanced_current(&ctx, 0);
-    // No active EVSEs, IsetBalanced should not change
-    TEST_ASSERT_EQUAL_INT(before, ctx.IsetBalanced);
+    // No active EVSEs: timers are reset
+    TEST_ASSERT_EQUAL_INT(0, ctx.NoCurrent);
+    TEST_ASSERT_EQUAL_INT(0, ctx.SolarStopTimer);
 }
 
 void test_minimum_current_enforced(void) {
@@ -136,6 +142,7 @@ void test_ocpp_limit_reduces_charge_current(void) {
     ctx.BalancedState[0] = STATE_C;
     ctx.BalancedMax[0] = 160;
     ctx.Balanced[0] = 160;
+    ctx.phasesLastUpdateFlag = true;
 
     evse_calc_balanced_current(&ctx, 0);
     TEST_ASSERT_LESS_OR_EQUAL(100, ctx.ChargeCurrent);
@@ -154,6 +161,7 @@ void test_ocpp_limit_below_min_zeros_current(void) {
     ctx.BalancedState[0] = STATE_C;
     ctx.BalancedMax[0] = 160;
     ctx.Balanced[0] = 160;
+    ctx.phasesLastUpdateFlag = true;
 
     evse_calc_balanced_current(&ctx, 0);
     TEST_ASSERT_EQUAL_INT(0, ctx.ChargeCurrent);
@@ -170,6 +178,7 @@ void test_override_current_takes_precedence(void) {
     ctx.BalancedState[0] = STATE_C;
     ctx.BalancedMax[0] = 160;
     ctx.Balanced[0] = 160;
+    ctx.phasesLastUpdateFlag = true;
 
     evse_calc_balanced_current(&ctx, 0);
     TEST_ASSERT_EQUAL_INT(80, ctx.ChargeCurrent);
@@ -184,6 +193,7 @@ void test_shortage_increments_nocurrent(void) {
     ctx.MainsMeterImeasured = 250;  // Very high load
     ctx.MaxMains = 10;              // Very low limit
     ctx.IsetBalanced = 50;          // Not enough for 2 EVSEs at MinCurrent
+    ctx.phasesLastUpdateFlag = true;
 
     evse_calc_balanced_current(&ctx, 0);
     // NoCurrent should increment due to shortage
@@ -226,6 +236,7 @@ void test_grid_relay_limits_current(void) {
     ctx.BalancedMax[0] = 320;
     ctx.Balanced[0] = 320;
     ctx.IsetBalanced = 320;
+    ctx.phasesLastUpdateFlag = true;
 
     evse_calc_balanced_current(&ctx, 0);
     // Grid relay should cap at GridRelayMaxSumMains / phases
@@ -261,7 +272,7 @@ int main(void) {
     RUN_TEST(test_two_evse_equal_distribution);
     RUN_TEST(test_two_evse_respects_max_circuit);
     RUN_TEST(test_balanced_max_caps_individual);
-    RUN_TEST(test_no_active_evse_returns_early);
+    RUN_TEST(test_no_active_evse_resets_timers);
     RUN_TEST(test_minimum_current_enforced);
     RUN_TEST(test_mod1_new_evse_recalculates);
     RUN_TEST(test_ocpp_limit_reduces_charge_current);

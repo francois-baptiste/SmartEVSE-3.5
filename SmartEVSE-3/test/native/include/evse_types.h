@@ -52,6 +52,7 @@
 #define PILOT_9V     9
 #define PILOT_6V     6
 #define PILOT_DIODE  5
+#define PILOT_SHORT  3
 #define PILOT_NOK    1
 
 // ---- Phase switching states (from main.h Switch_Phase_t) ----
@@ -178,6 +179,8 @@ typedef struct {
     EnableC2_t EnableC2;
     uint8_t Nr_Of_Phases_Charging;
     uint8_t Switching_Phases_C2;
+    bool    phasesLastUpdateFlag;   // Set when new mains meter measurements arrive
+    bool    LimitedByMaxSumMains;   // Tracks when MaxSumMains is the limiting factor
 
     // --- Modem ---
     uint8_t ModemStage;
@@ -185,6 +188,9 @@ typedef struct {
     uint8_t ToModemDoneStateTimer;
     uint8_t LeaveModemDoneStateTimer;
     uint8_t LeaveModemDeniedStateTimer;
+    int8_t  DisconnectTimeCounter;       // Modem disconnect recovery (-1=disabled)
+    char    RequiredEVCCID[32];          // Required EV CC ID for modem auth
+    char    EVCCID[32];                  // Actual EV CC ID received from modem
 
     // --- Solar config ---
     uint16_t StartCurrent;

@@ -72,6 +72,7 @@ void test_smart_mode_slow_increase(void) {
     ctx.MainsMeterType = 1;
     ctx.MainsMeterImeasured = 100;  // Low usage
     ctx.MaxMains = 25;
+    ctx.phasesLastUpdateFlag = true;  // Measurements updated
     int32_t initial = ctx.IsetBalanced;
     evse_calc_balanced_current(&ctx, 0);
     // Smart mode increases slowly (Idifference/4)
@@ -86,6 +87,7 @@ void test_smart_mode_fast_decrease(void) {
     ctx.IsetBalanced = 200;         // Currently set high
     ctx.MaxMains = 10;              // Low limit
     ctx.MainsMeterImeasured = 250;  // Way over limit -> negative Idifference
+    ctx.phasesLastUpdateFlag = true;
     evse_calc_balanced_current(&ctx, 0);
     // Should decrease rapidly (full Idifference, not /4)
     TEST_ASSERT_TRUE(ctx.IsetBalanced < 200);
@@ -125,6 +127,8 @@ void test_solar_fine_grained_increase(void) {
     ctx.Isum = -20;  // 2A export surplus
     ctx.IsetBalanced = 100;
     ctx.MainsMeterImeasured = 50;
+    ctx.phasesLastUpdateFlag = true;
+    ctx.Node[0].IntTimer = SOLARSTARTTIME;  // Past solar startup phase
     evse_calc_balanced_current(&ctx, 0);
     // Solar should increase by small steps
     TEST_ASSERT_TRUE(ctx.IsetBalanced >= 100);
@@ -139,6 +143,8 @@ void test_solar_rapid_decrease_on_import(void) {
     ctx.Isum = 50;  // 5A import, over threshold
     ctx.IsetBalanced = 100;
     ctx.MainsMeterImeasured = 50;
+    ctx.phasesLastUpdateFlag = true;
+    ctx.Node[0].IntTimer = SOLARSTARTTIME;  // Past solar startup phase
     evse_calc_balanced_current(&ctx, 0);
     // Solar should decrease quickly
     TEST_ASSERT_TRUE(ctx.IsetBalanced < 100);
@@ -153,6 +159,8 @@ void test_solar_import_current_offset(void) {
     ctx.Isum = 20;  // 2A import - within allowance
     ctx.IsetBalanced = 100;
     ctx.MainsMeterImeasured = 50;
+    ctx.phasesLastUpdateFlag = true;
+    ctx.Node[0].IntTimer = SOLARSTARTTIME;  // Past solar startup phase
     evse_calc_balanced_current(&ctx, 0);
     // IsumImport = 20 - 30 = -10, should increase
     TEST_ASSERT_TRUE(ctx.IsetBalanced >= 100);

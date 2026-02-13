@@ -116,8 +116,15 @@ void evse_init(evse_ctx_t *ctx, evse_hal_t *hal) {
     ctx->Nr_Of_Phases_Charging = 3;
     ctx->Switching_Phases_C2 = NO_SWITCH;
 
+    // Phase switching measurement gating
+    ctx->phasesLastUpdateFlag = true;    // Start as true for first calculation
+    ctx->LimitedByMaxSumMains = false;
+
     // Modem
     ctx->ModemStage = 0;
+    ctx->DisconnectTimeCounter = -1;     // Disabled
+    ctx->RequiredEVCCID[0] = '\0';
+    ctx->EVCCID[0] = '\0';
 
     // Solar config
     ctx->StartCurrent = START_CURRENT;
@@ -157,6 +164,45 @@ uint8_t evse_force_single_phase(evse_ctx_t *ctx) {
         case ALWAYS_ON:   return 0;  // 3P
         default:          return 0;
     }
+}
+
+// ---- Check switching phases (faithful to CheckSwitchingPhases() in main.cpp:542-575) ----
+static void check_switching_phases(evse_ctx_t *ctx) {
+    if (ctx->EnableC2 != AUTO_C2 || ctx->Mode == MODE_SOLAR) {
+        if (evse_force_single_phase(ctx)) {
+            if (ctx->Nr_Of_Phases_Charging != 1) {
+                if (ctx->State != STATE_A) {
+                    ctx->Switching_Phases_C2 = GOING_TO_SWITCH_1P;
+                } else {
+                    ctx->Nr_Of_Phases_Charging = 1;
+                }
+            } else {
+                ctx->Switching_Phases_C2 = NO_SWITCH;
+            }
+        } else {
+            if (ctx->Nr_Of_Phases_Charging != 3) {
+                if (ctx->State != STATE_A) {
+                    ctx->Switching_Phases_C2 = GOING_TO_SWITCH_3P;
+                } else {
+                    ctx->Nr_Of_Phases_Charging = 3;
+                }
+            } else {
+                ctx->Switching_Phases_C2 = NO_SWITCH;
+            }
+        }
+    } else if (ctx->Mode == MODE_SMART) {
+        // SMART mode with CONTACT 2 set to AUTO: go back to 3P
+        if (ctx->Nr_Of_Phases_Charging != 3) {
+            ctx->Switching_Phases_C2 = GOING_TO_SWITCH_3P;
+        } else {
+            ctx->Switching_Phases_C2 = NO_SWITCH;
+        }
+    }
+}
+
+// Public wrapper for CheckSwitchingPhases
+void evse_check_switching_phases(evse_ctx_t *ctx) {
+    check_switching_phases(ctx);
 }
 
 // ---- Error management ----
@@ -264,8 +310,9 @@ void evse_set_state(evse_ctx_t *ctx, uint8_t new_state) {
             break;
 
         case STATE_B:
-            // CheckSwitchingPhases simplified
+            check_switching_phases(ctx);                 // line 863
             record_pilot(ctx, true);                     // PILOT_CONNECTED
+            ctx->DisconnectTimeCounter = -1;             // line 866
             record_contactor1(ctx, false);
             record_contactor2(ctx, false);
             break;
@@ -374,28 +421,21 @@ int evse_is_current_available(evse_ctx_t *ctx) {
 
 // ---- Current distribution ----
 // Faithful to CalcBalancedCurrent() in main.cpp:1148-1526
-// Simplified but covers Normal, Smart, Solar logic
 void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
     uint8_t n, ActiveEVSE = 0;
     int32_t TotalCurrent = 0;
-    int32_t ActiveMax __attribute__((unused)) = 0;
+    int32_t ActiveMax = 0;
     int32_t Baseload, Baseload_EV;
+    int32_t Idifference;
+    int32_t IsumImport = 0;
+    bool LimitedByMaxSumMains = false;
+    char CurrentSet[NR_EVSES] = {0};
 
-    // Phase 1: Count active EVSEs, compute totals (line 1148-1156)
-    for (n = 0; n < NR_EVSES; n++) {
-        if (ctx->BalancedState[n] == STATE_C) {
-            ActiveEVSE++;
-            ActiveMax += ctx->BalancedMax[n];
-            TotalCurrent += ctx->Balanced[n];
-        }
-    }
-    if (ActiveEVSE == 0) return;
-
-    // Phase 2: Determine ChargeCurrent (line 1158-1179)
-    ctx->ChargeCurrent = ctx->MaxCurrent * 10;
-    if (ctx->MaxCurrent > ctx->MaxCapacity && ctx->MaxCapacity)
+    // ---- Phase 1: ChargeCurrent (lines 1158-1179) ----
+    if (ctx->BalancedState[0] == STATE_C && ctx->MaxCurrent > ctx->MaxCapacity && ctx->MaxCapacity)
         ctx->ChargeCurrent = ctx->MaxCapacity * 10;
-    ctx->BalancedMax[0] = ctx->ChargeCurrent;
+    else
+        ctx->ChargeCurrent = ctx->MaxCurrent * 10;
 
     // Apply OCPP limit (line 1163-1175)
     if (ctx->OcppMode && !ctx->LoadBl && ctx->OcppCurrentLimit >= 0.0f) {
@@ -412,202 +452,339 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
     if (ctx->OverrideCurrent)
         ctx->ChargeCurrent = ctx->OverrideCurrent;
 
-    // Phase 3: Calculate IsetBalanced based on mode (lines 1198-1305)
-    Baseload = ctx->MainsMeterImeasured - TotalCurrent;
+    ctx->BalancedMax[0] = ctx->ChargeCurrent;
+
+    // ---- Phase 2: Count active EVSEs (lines 1183-1187) ----
+    for (n = 0; n < NR_EVSES; n++) {
+        if (ctx->BalancedState[n] == STATE_C) {
+            ActiveEVSE++;
+            ActiveMax += ctx->BalancedMax[n];
+            TotalCurrent += ctx->Balanced[n];
+        }
+    }
+
     Baseload_EV = ctx->EVMeterImeasured - TotalCurrent;
     if (Baseload_EV < 0) Baseload_EV = 0;
+    Baseload = ctx->MainsMeterImeasured - TotalCurrent;
 
+    int saveActiveEVSE = ActiveEVSE;
+
+    // ---- Phase 3: Calculate IsetBalanced (lines 1198-1305) ----
     if (ctx->Mode == MODE_NORMAL) {
-        // Normal mode (line 1198-1210)
-        if (ctx->LoadBl == 1) {
+        // Normal mode (lines 1198-1210)
+        if (ctx->LoadBl == 1)
             ctx->IsetBalanced = (ctx->MaxCircuit * 10) - Baseload_EV;
-        } else {
+        else
             ctx->IsetBalanced = ctx->ChargeCurrent;
-        }
-    } else if (mod && ActiveEVSE) {
-        // New EVSE joining - recalculate from scratch (line 1233-1248)
-        int32_t from_mains = (ctx->MaxMains * 10) - Baseload;
-        int32_t from_circuit = (ctx->MaxCircuit * 10) - Baseload_EV;
-        ctx->IsetBalanced = min_int(from_mains, from_circuit);
 
-        if (ctx->MaxSumMains) {
-            int32_t from_sum = ((int32_t)(ctx->MaxSumMains * 10) - ctx->Isum) / 3;
-            ctx->IsetBalanced = min_int(ctx->IsetBalanced, from_sum);
+        if (ctx->Nr_Of_Phases_Charging != 3) {
+            ctx->Switching_Phases_C2 = GOING_TO_SWITCH_3P;  // line 1207
         }
     } else {
-        // Ongoing regulation for Smart/Solar (lines 1251-1304)
-        int32_t Idifference;
+        // Smart/Solar mode
 
-        if (ctx->MainsMeterType) {
-            Idifference = (ctx->MaxMains * 10) - ctx->MainsMeterImeasured;
-        } else {
-            Idifference = 0;
-        }
-
-        if (ctx->LoadBl == 1 || (ctx->LoadBl == 0 && ctx->EVMeterType)) {
-            int32_t circuit_diff = (ctx->MaxCircuit * 10) - ctx->EVMeterImeasured;
-            Idifference = min_int(Idifference, circuit_diff);
-        }
-
-        if (ctx->MaxSumMains) {
-            int32_t sum_excess = (ctx->MaxSumMains * 10) - ctx->Isum;
-            Idifference = sum_excess;
-        }
-
-        if (ctx->Mode == MODE_SMART) {
-            // Smart mode: slow increase, fast decrease (lines 1294-1304)
-            if (Idifference > 0)
-                ctx->IsetBalanced += (Idifference / 4);
-            else
-                ctx->IsetBalanced += Idifference;
-        } else {
-            // Solar mode: fine-grained regulation (lines 1268-1293)
-            int32_t IsumImport = ctx->Isum - (10 * ctx->ImportCurrent);
-
-            if (IsumImport < 0) {
-                if (IsumImport < -10 && Idifference > 10)
-                    ctx->IsetBalanced += 5;
-                else
-                    ctx->IsetBalanced += 1;
-            } else if (IsumImport > 0) {
-                if (IsumImport > 20)
-                    ctx->IsetBalanced -= (IsumImport / 2);
-                else if (IsumImport > 10)
-                    ctx->IsetBalanced -= 5;
-                else if (IsumImport > 3)
-                    ctx->IsetBalanced -= 1;
-            }
-        }
-    }
-
-    // Phase 4: Guard rails (lines 1307-1323)
-    if (ctx->MainsMeterType && ctx->Mode != MODE_NORMAL) {
-        int32_t mains_limit = (ctx->MaxMains * 10) - Baseload;
-        if (ctx->IsetBalanced > mains_limit)
-            ctx->IsetBalanced = mains_limit;
-    }
-    if (((ctx->LoadBl == 0 && ctx->EVMeterType && ctx->Mode != MODE_NORMAL) || ctx->LoadBl == 1)) {
-        int32_t circuit_limit = (ctx->MaxCircuit * 10) - Baseload_EV;
-        if (ctx->IsetBalanced > circuit_limit)
-            ctx->IsetBalanced = circuit_limit;
-    }
-    if (ctx->GridRelayOpen) {
-        uint8_t phases = ctx->Nr_Of_Phases_Charging ? ctx->Nr_Of_Phases_Charging : 1;
-        int32_t relay_limit = (ctx->GridRelayMaxSumMains * 10) / phases;
-        if (ctx->IsetBalanced > relay_limit)
-            ctx->IsetBalanced = relay_limit;
-    }
-
-    // Clamp to minimum 0
-    if (ctx->IsetBalanced < 0) ctx->IsetBalanced = 0;
-
-    // Phase 5: Shortage detection (lines 1328-1440)
-    bool hardShortage = (ctx->IsetBalanced < (int32_t)(ActiveEVSE * ctx->MinCurrent * 10));
-
-    if (hardShortage && ctx->Mode != MODE_NORMAL) {
-        ctx->NoCurrent++;
-    } else {
-        ctx->NoCurrent = 0;
-    }
-
-    // Phase 6: Distribution (lines 1442-1495)
-    int32_t MaxBalanced = ctx->IsetBalanced;
-    uint8_t remaining = ActiveEVSE;
-    bool CurrentSet[NR_EVSES] = {false};
-
-    // Clamp total to ChargeCurrent if single EVSE and not load balancing
-    if (ActiveEVSE == 1 && ctx->LoadBl == 0) {
-        if (MaxBalanced > ctx->ChargeCurrent)
-            MaxBalanced = ctx->ChargeCurrent;
-    }
-
-    // First pass: assign EVSEs limited by their max
-    if (remaining > 0) {
-        int32_t avg = MaxBalanced / remaining;
-        bool changed = true;
-        while (changed) {
-            changed = false;
-            for (n = 0; n < NR_EVSES; n++) {
-                if (ctx->BalancedState[n] == STATE_C && !CurrentSet[n]) {
-                    if (avg >= (int32_t)ctx->BalancedMax[n] && ctx->BalancedMax[n] > 0) {
-                        ctx->Balanced[n] = ctx->BalancedMax[n];
-                        CurrentSet[n] = true;
-                        remaining--;
-                        MaxBalanced -= ctx->Balanced[n];
-                        if (remaining > 0) avg = MaxBalanced / remaining;
-                        changed = true;
-                    }
+        // Solar B-state phase determination (lines 1212-1231)
+        if (ctx->Mode == MODE_SOLAR && ctx->State == STATE_B) {
+            if (ctx->EnableC2 == AUTO_C2) {
+                if (-ctx->Isum >= (int32_t)(30 * ctx->MinCurrent + 30)) {
+                    if (ctx->Nr_Of_Phases_Charging != 3)
+                        ctx->Switching_Phases_C2 = GOING_TO_SWITCH_3P;
+                } else {
+                    if (ctx->Nr_Of_Phases_Charging != 1)
+                        ctx->Switching_Phases_C2 = GOING_TO_SWITCH_1P;
                 }
             }
         }
-    }
 
-    // Second pass: distribute remaining equally
-    for (n = 0; n < NR_EVSES; n++) {
-        if (ctx->BalancedState[n] == STATE_C && !CurrentSet[n]) {
-            if (remaining > 0) {
-                ctx->Balanced[n] = MaxBalanced / remaining;
-                remaining--;
-                MaxBalanced -= ctx->Balanced[n];
+        // Calculate Idifference (lines 1235-1250)
+        if ((ctx->LoadBl == 0 && ctx->EVMeterType) || (ctx->LoadBl == 1 && ctx->EVMeterType))
+            Idifference = min_int((ctx->MaxMains * 10) - ctx->MainsMeterImeasured,
+                                  (ctx->MaxCircuit * 10) - ctx->EVMeterImeasured);
+        else
+            Idifference = (ctx->MaxMains * 10) - ctx->MainsMeterImeasured;
+
+        int32_t ExcessMaxSumMains = ((int32_t)(ctx->MaxSumMains * 10) - ctx->Isum);
+        if (ctx->MaxSumMains) {
+            Idifference = ExcessMaxSumMains;
+            if (ExcessMaxSumMains < 0) {
+                LimitedByMaxSumMains = true;
             } else {
-                ctx->Balanced[n] = 0;
+                LimitedByMaxSumMains = false;
+                ctx->MaxSumMainsTimer = 0;
             }
-            CurrentSet[n] = true;
+        }
+
+        // Ongoing regulation (lines 1252-1265)
+        if (!mod) {
+            if (ctx->phasesLastUpdateFlag) {
+                if (Idifference > 0) {
+                    if (ctx->Mode == MODE_SMART)
+                        ctx->IsetBalanced += (Idifference / 4);
+                    // Solar increase is handled below
+                } else {
+                    ctx->IsetBalanced += Idifference;    // Immediately decrease (Smart and Solar)
+                }
+            }
+            if (ctx->IsetBalanced < 0) ctx->IsetBalanced = 0;
+            if (ctx->IsetBalanced > 800) ctx->IsetBalanced = 800;  // Hard limit 80A (line 1264)
+        }
+
+        // Solar fine-grained regulation (lines 1268-1293)
+        if (ctx->Mode == MODE_SOLAR) {
+            IsumImport = ctx->Isum - (10 * ctx->ImportCurrent);
+            if (ActiveEVSE > 0 && Idifference > 0) {
+                if (ctx->phasesLastUpdateFlag) {
+                    if (IsumImport < 0) {
+                        if (IsumImport < -10 && Idifference > 10)
+                            ctx->IsetBalanced += 5;
+                        else
+                            ctx->IsetBalanced += 1;
+                    } else if (IsumImport > 0) {
+                        if (IsumImport > 20)
+                            ctx->IsetBalanced -= (IsumImport / 2);
+                        else if (IsumImport > 10)
+                            ctx->IsetBalanced -= 5;
+                        else if (IsumImport > 3)
+                            ctx->IsetBalanced -= 1;
+                    }
+                }
+            }
+        } else {
+            // Smart mode: new EVSE joining (lines 1296-1303)
+            if (mod && ActiveEVSE) {
+                ctx->IsetBalanced = min_int((ctx->MaxMains * 10) - Baseload,
+                                            (ctx->MaxCircuit * 10) - Baseload_EV);
+                if (ctx->MaxSumMains)
+                    ctx->IsetBalanced = min_int(ctx->IsetBalanced,
+                                                ((int32_t)(ctx->MaxSumMains * 10) - ctx->Isum) / 3);
+            }
         }
     }
 
-    // Ensure minimum current per EVSE
-    for (n = 0; n < NR_EVSES; n++) {
-        if (ctx->BalancedState[n] == STATE_C) {
-            if (ctx->Balanced[n] > 0 && ctx->Balanced[n] < ctx->MinCurrent * 10)
-                ctx->Balanced[n] = ctx->MinCurrent * 10;
+    // ---- Phase 4: Guard rails (lines 1307-1323) ----
+    if (ctx->MainsMeterType && ctx->Mode != MODE_NORMAL)
+        ctx->IsetBalanced = min_int(ctx->IsetBalanced, (ctx->MaxMains * 10) - Baseload);
+    if (((ctx->LoadBl == 0 && ctx->EVMeterType && ctx->Mode != MODE_NORMAL) || ctx->LoadBl == 1))
+        ctx->IsetBalanced = min_int(ctx->IsetBalanced, (ctx->MaxCircuit * 10) - Baseload_EV);
+    if (ctx->GridRelayOpen) {
+        int phases = evse_force_single_phase(ctx) ? 1 : 3;  // line 1320
+        ctx->IsetBalanced = min_int(ctx->IsetBalanced,
+                                    (ctx->GridRelayMaxSumMains * 10) / phases);
+    }
+
+    // ---- Phase 5: Shortage detection and distribution (lines 1328-1495) ----
+    if (ActiveEVSE && (ctx->phasesLastUpdateFlag || ctx->Mode == MODE_NORMAL)) {
+
+        if (ctx->IsetBalanced < (int32_t)(ActiveEVSE * ctx->MinCurrent * 10)) {
+            // ---- Shortage of power (lines 1332-1440) ----
+            ctx->IsetBalanced = ActiveEVSE * ctx->MinCurrent * 10;  // line 1336
+
+            // Solar shortage: 3P→1P switching (lines 1337-1370)
+            if (ctx->Mode == MODE_SOLAR) {
+                if (ActiveEVSE && IsumImport > 0 &&
+                    (ctx->Isum > (int32_t)((ActiveEVSE * ctx->MinCurrent * ctx->Nr_Of_Phases_Charging
+                                             - ctx->StartCurrent) * 10) ||
+                     (ctx->Nr_Of_Phases_Charging > 1 && ctx->EnableC2 == AUTO_C2))) {
+
+                    if (ctx->Nr_Of_Phases_Charging > 1 && ctx->EnableC2 == AUTO_C2 &&
+                        ctx->State == STATE_C) {
+                        // Start solar stop timer for 3P→1P switch
+                        if (ctx->SolarStopTimer == 0) {
+                            if (IsumImport < (int32_t)(10 * ctx->MinCurrent))
+                                ctx->SolarStopTimer = ctx->StopTime * 60;
+                            if (ctx->SolarStopTimer == 0)
+                                ctx->SolarStopTimer = 30;
+                        }
+                        if (ctx->SolarStopTimer <= 2) {
+                            ctx->Switching_Phases_C2 = GOING_TO_SWITCH_1P;
+                            evse_set_state(ctx, STATE_C1);
+                            ctx->SolarStopTimer = 0;
+                        }
+                    } else {
+                        if (ctx->SolarStopTimer == 0)
+                            ctx->SolarStopTimer = ctx->StopTime * 60;
+                    }
+                } else {
+                    ctx->SolarStopTimer = 0;
+                }
+            }
+
+            // Check for HARD shortage (lines 1376-1398)
+            bool hardShortage = false;
+            if (ctx->MainsMeterType && ctx->Mode != MODE_NORMAL) {
+                if (ctx->IsetBalanced > (int32_t)((ctx->MaxMains * 10) - Baseload))
+                    hardShortage = true;
+            }
+            if (((ctx->LoadBl == 0 && ctx->EVMeterType && ctx->Mode != MODE_NORMAL) || ctx->LoadBl == 1) &&
+                (ctx->IsetBalanced > (int32_t)((ctx->MaxCircuit * 10) - Baseload_EV)))
+                hardShortage = true;
+            if (!ctx->MaxSumMainsTime && LimitedByMaxSumMains)
+                hardShortage = true;
+
+            if (hardShortage && ctx->Switching_Phases_C2 != GOING_TO_SWITCH_1P) {
+                ctx->NoCurrent++;
+            } else {
+                // Soft shortage - start MaxSumMains timer if needed (lines 1394-1397)
+                if (LimitedByMaxSumMains && ctx->MaxSumMainsTime) {
+                    if (ctx->MaxSumMainsTimer == 0)
+                        ctx->MaxSumMainsTimer = ctx->MaxSumMainsTime * 60;
+                }
+            }
+
+        } else {
+            // ---- No shortage (lines 1399-1440) ----
+
+            // Solar 1P→3P upgrade (lines 1404-1432)
+            if (ctx->Mode == MODE_SOLAR && ctx->Nr_Of_Phases_Charging == 1 &&
+                ctx->EnableC2 == AUTO_C2 &&
+                ctx->IsetBalanced + 8 >= (int32_t)(ctx->MaxCurrent * 10) &&
+                ctx->State == STATE_C) {
+
+                int spareCurrent = (3 * ((int)ctx->MinCurrent + 1) - (int)ctx->MaxCurrent);
+                if (spareCurrent < 0) spareCurrent = 3;
+                if (-ctx->Isum > (10 * spareCurrent)) {
+                    if (ctx->SolarStopTimer == 0) ctx->SolarStopTimer = 63;
+                    if (ctx->SolarStopTimer <= 3) {
+                        ctx->Switching_Phases_C2 = GOING_TO_SWITCH_3P;
+                        evse_set_state(ctx, STATE_C1);
+                        ctx->SolarStopTimer = 0;
+                    }
+                } else {
+                    ctx->SolarStopTimer = 0;
+                }
+            } else {
+                ctx->SolarStopTimer = 0;
+                ctx->MaxSumMainsTimer = 0;
+                ctx->NoCurrent = 0;
+            }
+        }
+
+        // ---- Distribution (lines 1442-1495) ----
+        if (ctx->IsetBalanced > ActiveMax) ctx->IsetBalanced = ActiveMax;  // line 1444
+        int32_t MaxBalanced = ctx->IsetBalanced;
+
+        // First pass: cap EVSEs at their max or solar startup min
+        n = 0;
+        while (n < NR_EVSES && ActiveEVSE) {
+            int32_t Average = MaxBalanced / ActiveEVSE;
+            if ((ctx->BalancedState[n] == STATE_C) && (!CurrentSet[n])) {
+                // Solar startup: force MinCurrent (lines 1457-1465)
+                if (ctx->Mode == MODE_SOLAR && ctx->Node[n].IntTimer < SOLARSTARTTIME) {
+                    ctx->Balanced[n] = ctx->MinCurrent * 10;
+                    CurrentSet[n] = 1;
+                    ActiveEVSE--;
+                    MaxBalanced -= ctx->Balanced[n];
+                    ctx->IsetBalanced = TotalCurrent;
+                    n = 0;
+                    continue;
+                } else if (Average >= (int32_t)ctx->BalancedMax[n]) {
+                    ctx->Balanced[n] = ctx->BalancedMax[n];
+                    CurrentSet[n] = 1;
+                    ActiveEVSE--;
+                    MaxBalanced -= ctx->Balanced[n];
+                    n = 0;
+                    continue;
+                }
+            }
+            n++;
+        }
+
+        // Second pass: distribute remaining equally (lines 1484-1494)
+        n = 0;
+        while (n < NR_EVSES && ActiveEVSE) {
+            if ((ctx->BalancedState[n] == STATE_C) && (!CurrentSet[n])) {
+                ctx->Balanced[n] = MaxBalanced / ActiveEVSE;
+                CurrentSet[n] = 1;
+                ActiveEVSE--;
+                MaxBalanced -= ctx->Balanced[n];
+            }
+            n++;
         }
     }
+
+    // No active EVSEs: reset timers (lines 1497-1502)
+    if (!saveActiveEVSE) {
+        ctx->SolarStopTimer = 0;
+        ctx->MaxSumMainsTimer = 0;
+        ctx->NoCurrent = 0;
+    }
+
+    // Reset measurement flag (line 1505)
+    ctx->phasesLastUpdateFlag = false;
 }
 
 // ---- Main 10ms state machine tick ----
 // Faithful to Timer10ms_singlerun() in main.cpp:3002-3275
 void evse_tick_10ms(evse_ctx_t *ctx, uint8_t pilot) {
 
-    // ---- STATE_A handling (lines 3079-3136) ----
-    if (ctx->State == STATE_A) {
-        if (pilot == PILOT_9V &&
-            ctx->State != STATE_MODEM_REQUEST && ctx->State != STATE_MODEM_WAIT && ctx->State != STATE_MODEM_DONE) {
+    // ---- STATE_A / STATE_COMM_B / STATE_B1 handling (lines 3079-3130) ----
+    // Original combines these three states in one handler
+    if (ctx->State == STATE_A || ctx->State == STATE_COMM_B || ctx->State == STATE_B1) {
 
-            if (pilot == PILOT_9V && ctx->ErrorFlags == NO_ERROR &&
-                ctx->ChargeDelay == 0 && ctx->AccessStatus == ON) {
-
-                // Check modem stage
-                if (ctx->ModemStage == 0 && ctx->RFIDReader == 0) {
-                    // Skip modem for now in test model (no modem hardware)
-                }
-
-                // Check current availability (line 3115-3126)
-                if (evse_is_current_available(ctx)) {
-                    ctx->MaxCapacity = ctx->MaxCapacity ? ctx->MaxCapacity : ctx->MaxCurrent;
-                    ctx->BalancedMax[0] = ctx->MaxCapacity * 10;
-                    ctx->Balanced[0] = ctx->ChargeCurrent ? ctx->ChargeCurrent : ctx->MaxCurrent * 10;
-                    evse_set_state(ctx, STATE_B);
-
-                    // Set PWM for the charge current
-                    uint32_t duty = evse_current_to_duty(ctx->Balanced[0]);
-                    record_cp_duty(ctx, duty);
-
-                    // Start AccessTimer if RFID enabled (line 3090)
-                    if ((ctx->RFIDReader == 2 || ctx->RFIDReader == 1) &&
-                        ctx->AccessTimer == 0 && ctx->AccessStatus == ON) {
-                        ctx->AccessTimer = RFIDLOCKTIME;
-                    }
-                } else {
-                    evse_set_error_flags(ctx, LESS_6A);
-                }
-            } else {
-                // Can't transition - set error if conditions not met
-                if (ctx->ErrorFlags != NO_ERROR || ctx->ChargeDelay != 0 || ctx->AccessStatus != ON) {
-                    // Stay in STATE_A
-                }
+        if (ctx->PilotDisconnected) {
+            // Pilot is floating, don't check voltage (line 3082-3086)
+            if (ctx->PilotDisconnectTime == 0) {
+                record_pilot(ctx, true);
+                ctx->PilotDisconnected = false;
             }
+        } else if (pilot == PILOT_12V) {
+            // RFID lock timer start (line 3090)
+            if ((ctx->RFIDReader == 2 || ctx->RFIDReader == 1) &&
+                ctx->AccessTimer == 0 && ctx->AccessStatus == ON) {
+                ctx->AccessTimer = RFIDLOCKTIME;
+            }
+            // Reset to STATE_A if stuck in COMM_B or B1 (line 3092)
+            if (ctx->State != STATE_A) evse_set_state(ctx, STATE_A);
+            ctx->ChargeDelay = 0;
+        } else if (pilot == PILOT_9V && ctx->ErrorFlags == NO_ERROR &&
+                   ctx->ChargeDelay == 0 && ctx->AccessStatus == ON &&
+                   ctx->State != STATE_COMM_B) {
+            // A→B transition (lines 3095-3126)
+            ctx->DiodeCheck = 0;
+
+            // Set ChargeCurrent based on MaxCapacity (line 3107-3108)
+            if (ctx->MaxCurrent > ctx->MaxCapacity && ctx->MaxCapacity)
+                ctx->ChargeCurrent = ctx->MaxCapacity * 10;
+            else
+                ctx->ChargeCurrent = ctx->MinCurrent * 10;
+
+            // Node sends COMM_B to master (line 3111-3112)
+            if (ctx->LoadBl > 1) {
+                evse_set_state(ctx, STATE_COMM_B);
+            // Master or standalone (lines 3114-3126)
+            } else if (evse_is_current_available(ctx)) {
+                ctx->BalancedMax[0] = ctx->MaxCapacity * 10;
+                ctx->Balanced[0] = ctx->ChargeCurrent;
+
+                // Modem stage check (lines 3119-3123)
+                if (ctx->ModemStage == 0) {
+                    evse_set_state(ctx, STATE_MODEM_REQUEST);
+                } else {
+                    evse_set_state(ctx, STATE_B);
+                }
+
+                ctx->ActivationMode = 30;               // Line 3124: timeout to enter STATE_C
+                ctx->AccessTimer = 0;                    // Line 3125
+
+                // Set PWM for the charge current
+                uint32_t duty = evse_current_to_duty(ctx->Balanced[0]);
+                record_cp_duty(ctx, duty);
+            } else {
+                evse_set_error_flags(ctx, LESS_6A);
+            }
+        } else if (pilot == PILOT_9V && ctx->State != STATE_B1 &&
+                   ctx->State != STATE_COMM_B && ctx->AccessStatus == ON) {
+            // Errors or ChargeDelay prevent full transition, go to B1 (line 3127-3128)
+            evse_set_state(ctx, STATE_B1);
         }
+        return;
+    }
+
+    // ---- STATE_COMM_B_OK handling (lines 3132-3136) ----
+    if (ctx->State == STATE_COMM_B_OK) {
+        evse_set_state(ctx, STATE_B);
+        ctx->ActivationMode = 30;
+        ctx->AccessTimer = 0;
         return;
     }
 
@@ -657,22 +834,13 @@ void evse_tick_10ms(evse_ctx_t *ctx, uint8_t pilot) {
         return;
     }
 
-    // ---- STATE_C1 handling (lines 3199-3233) ----
+    // ---- STATE_C1 handling (lines 3199-3217) ----
+    // Note: C1Timer countdown is in tick_1s, not tick_10ms (matches original Timer1S lines 1616-1625)
     if (ctx->State == STATE_C1) {
         if (pilot == PILOT_12V) {
             evse_set_state(ctx, STATE_A);
         } else if (pilot == PILOT_9V) {
-            evse_set_state(ctx, STATE_B);
-        } else {
-            // C1Timer countdown — force contactor off
-            if (ctx->C1Timer > 0) {
-                ctx->C1Timer--;
-            }
-            if (ctx->C1Timer == 0) {
-                record_contactor1(ctx, false);
-                record_contactor2(ctx, false);
-                evse_set_state(ctx, STATE_B1);
-            }
+            evse_set_state(ctx, STATE_B1);           // Original line 3212: STATE_B1, not STATE_B
         }
         return;
     }
@@ -680,36 +848,39 @@ void evse_tick_10ms(evse_ctx_t *ctx, uint8_t pilot) {
     // ---- STATE_C handling (lines 3236-3261) ----
     if (ctx->State == STATE_C) {
         if (pilot == PILOT_12V) {
-            evse_set_state(ctx, STATE_A);
+            evse_set_state(ctx, STATE_A);               // Disconnected
         } else if (pilot == PILOT_9V) {
-            // EV signals it wants to stop
-            evse_set_state(ctx, STATE_C1);
-        }
-        // While in STATE_C, current regulation happens via ModbusRequestLoop / calc
-        return;
-    }
-
-    // ---- STATE_B1 handling ----
-    if (ctx->State == STATE_B1) {
-        if (pilot == PILOT_12V) {
-            evse_set_state(ctx, STATE_A);
-        } else if (pilot == PILOT_9V) {
-            // Pilot reconnect after delay
-            if (ctx->PilotDisconnectTime == 0 && !ctx->PilotDisconnected) {
-                // Can potentially go back to STATE_B
-                if (ctx->ErrorFlags == NO_ERROR && ctx->ChargeDelay == 0 && ctx->AccessStatus == ON) {
-                    evse_set_state(ctx, STATE_B);
-                }
+            evse_set_state(ctx, STATE_B);               // Original line 3244: back to STATE_B
+            ctx->DiodeCheck = 0;
+        } else if (pilot == PILOT_SHORT) {
+            ctx->StateTimer++;                           // Original line 3250: debounce 500ms
+            if (ctx->StateTimer > 50) {
+                ctx->StateTimer = 0;
+                evse_set_state(ctx, STATE_B);
+                ctx->DiodeCheck = 0;
             }
+        } else {
+            ctx->StateTimer = 0;                         // Original line 3259: reset on normal pilot
         }
         return;
     }
 
-    // ---- STATE_ACTSTART handling ----
+    // ---- STATE_ACTSTART handling (lines 3220-3223) ----
     if (ctx->State == STATE_ACTSTART) {
+        if (ctx->ActivationTimer == 0) {
+            evse_set_state(ctx, STATE_B);
+            ctx->ActivationMode = 255;               // Disable ActivationMode
+        }
         if (pilot == PILOT_12V) {
             evse_set_state(ctx, STATE_A);
         }
+        return;
+    }
+
+    // ---- STATE_COMM_C_OK handling (lines 3225-3232) ----
+    if (ctx->State == STATE_COMM_C_OK) {
+        ctx->DiodeCheck = 0;
+        evse_set_state(ctx, STATE_C);
         return;
     }
 
@@ -724,8 +895,79 @@ void evse_tick_10ms(evse_ctx_t *ctx, uint8_t pilot) {
 }
 
 // ---- 1-second timer tick ----
-// Faithful to Timer1S in main.cpp:1529-1830 (key parts)
+// Faithful to Timer1S_singlerun() in main.cpp:1529-1830
 void evse_tick_1s(evse_ctx_t *ctx) {
+
+    // ActivationMode countdown (lines 1541-1543)
+    if (ctx->ActivationMode && ctx->ActivationMode != 255) {
+        ctx->ActivationMode--;
+    }
+
+    // ActivationTimer countdown (line 1546)
+    if (ctx->ActivationTimer) ctx->ActivationTimer--;
+
+    // Modem timers (lines 1548-1611)
+    if (ctx->State == STATE_MODEM_REQUEST) {
+        if (ctx->ToModemWaitStateTimer > 0) {
+            ctx->ToModemWaitStateTimer--;
+        } else {
+            evse_set_state(ctx, STATE_MODEM_WAIT);
+        }
+    }
+    if (ctx->State == STATE_MODEM_WAIT) {
+        if (ctx->ToModemDoneStateTimer > 0) {
+            ctx->ToModemDoneStateTimer--;
+        }
+        if (ctx->ToModemDoneStateTimer == 0) {
+            evse_set_state(ctx, STATE_MODEM_DONE);
+        }
+    }
+    if (ctx->State == STATE_MODEM_DONE) {
+        if (ctx->LeaveModemDoneStateTimer > 0) {
+            ctx->LeaveModemDoneStateTimer--;
+        }
+        if (ctx->LeaveModemDoneStateTimer == 0) {
+            // EVCCID validation (lines 1585-1598)
+            record_cp_duty(ctx, 1024);                      // Reset CP (line 1581)
+            record_pilot(ctx, false);                        // PILOT_DISCONNECTED (line 1582)
+            if (ctx->RequiredEVCCID[0] == '\0' ||
+                strcmp(ctx->RequiredEVCCID, ctx->EVCCID) == 0) {
+                ctx->ModemStage = 1;                         // Skip modem next time
+                evse_set_state(ctx, STATE_B);
+            } else {
+                ctx->ModemStage = 0;
+                ctx->LeaveModemDeniedStateTimer = 60;
+                evse_set_state(ctx, STATE_MODEM_DENIED);
+            }
+        }
+    }
+    if (ctx->State == STATE_MODEM_DENIED) {
+        if (ctx->LeaveModemDeniedStateTimer > 0) {
+            ctx->LeaveModemDeniedStateTimer--;
+        }
+        if (ctx->LeaveModemDeniedStateTimer == 0) {
+            evse_set_state(ctx, STATE_A);
+            record_pilot(ctx, true);                         // PILOT_CONNECTED (line 1608)
+        }
+    }
+
+    // C1Timer countdown (lines 1616-1625) — belongs in tick_1s, NOT tick_10ms
+    if (ctx->State == STATE_C1) {
+        if (ctx->C1Timer > 0) {
+            ctx->C1Timer--;
+        } else {
+            evse_set_state(ctx, STATE_B1);
+        }
+    }
+
+    // SolarStopTimer countdown (lines 1670-1679)
+    if (ctx->SolarStopTimer > 0) {
+        ctx->SolarStopTimer--;
+        if (ctx->SolarStopTimer == 0) {
+            if (ctx->State == STATE_C) evse_set_state(ctx, STATE_C1);
+            evse_set_error_flags(ctx, LESS_6A);
+        }
+    }
 
     // Pilot disconnect timer (line 1682)
     if (ctx->PilotDisconnectTime > 0) {
@@ -778,7 +1020,7 @@ void evse_tick_1s(evse_ctx_t *ctx) {
         evse_clear_error_flags(ctx, LESS_6A);
     }
 
-    // MainsMeter timeout (lines 1733-1755)
+    // MainsMeter timeout (lines 1732-1755)
     if (ctx->MainsMeterType && ctx->LoadBl < 2) {
         if (ctx->MainsMeterTimeout == 0 && !(ctx->ErrorFlags & CT_NOCOMM) && ctx->Mode != MODE_NORMAL) {
             evse_set_error_flags(ctx, CT_NOCOMM);
@@ -797,7 +1039,7 @@ void evse_tick_1s(evse_ctx_t *ctx) {
         ctx->MainsMeterTimeout = COMM_TIMEOUT;
     }
 
-    // EVMeter timeout (lines 1758-1765)
+    // EVMeter timeout (lines 1758-1766)
     if (ctx->EVMeterType) {
         if (ctx->EVMeterTimeout == 0 && !(ctx->ErrorFlags & EV_NOCOMM) && ctx->Mode != MODE_NORMAL) {
             evse_set_error_flags(ctx, EV_NOCOMM);
@@ -825,37 +1067,10 @@ void evse_tick_1s(evse_ctx_t *ctx) {
         evse_set_power_unavailable(ctx);
     }
 
-    // Modem timers (lines 1548-1611)
-    if (ctx->State == STATE_MODEM_REQUEST) {
-        if (ctx->ToModemWaitStateTimer > 0) {
-            ctx->ToModemWaitStateTimer--;
-        } else {
-            evse_set_state(ctx, STATE_MODEM_WAIT);
-        }
-    }
-    if (ctx->State == STATE_MODEM_WAIT) {
-        if (ctx->ToModemDoneStateTimer > 0) {
-            ctx->ToModemDoneStateTimer--;
-        }
-        if (ctx->ToModemDoneStateTimer == 0) {
-            evse_set_state(ctx, STATE_MODEM_DONE);
-        }
-    }
-    if (ctx->State == STATE_MODEM_DONE) {
-        if (ctx->LeaveModemDoneStateTimer > 0) {
-            ctx->LeaveModemDoneStateTimer--;
-        }
-        if (ctx->LeaveModemDoneStateTimer == 0) {
-            ctx->ModemStage = 1;  // Skip modem next time
-            evse_set_state(ctx, STATE_B);
-        }
-    }
-    if (ctx->State == STATE_MODEM_DENIED) {
-        if (ctx->LeaveModemDeniedStateTimer > 0) {
-            ctx->LeaveModemDeniedStateTimer--;
-        }
-        if (ctx->LeaveModemDeniedStateTimer == 0) {
-            evse_set_state(ctx, STATE_A);
-        }
+    // LESS_6A active: enforce power unavailable + charge delay (lines 1780-1787)
+    if (ctx->ErrorFlags & LESS_6A) {
+        evse_set_power_unavailable(ctx);
+        if (ctx->ChargeDelay == 0)
+            ctx->ChargeDelay = CHARGEDELAY;
     }
 }
