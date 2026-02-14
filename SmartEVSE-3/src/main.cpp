@@ -1572,11 +1572,6 @@ void CheckSerialComm(void) {
     char *ret;
 
     len = ReadESPdata(SerialBuf);
-/*    char prnt[256];
-    memcpy(prnt, SerialBuf, len);
-    for (char *p = prnt; *p; p++) if (*p == '\n') *p = ';'; //replace \n by ;
-    prnt[len]='\0'; //terminate NULL
-    printf("@MSG: ReadESPdata[%u]=%s.\n", len, prnt);*/
     RxRdy1 = 0;
 #ifndef WCH_VERSION
 #define WCH_VERSION 0 //if WCH_VERSION not defined compile time, 0 means this firmware will be overwritten by any other version; it will be re-flashed every boot
@@ -2111,9 +2106,6 @@ void SendConfigToCH32() {
     Serial1.printf("@EMPDivisor:%u\n", EMConfig[EM_CUSTOM].PDivisor);
     Serial1.printf("@EMERegister:%u\n", EMConfig[EM_CUSTOM].ERegister);
     Serial1.printf("@EMEDivisor:%u\n", EMConfig[EM_CUSTOM].EDivisor);
-/*    uint8_t tmp;
-    Serial1.printf("@EMDataType:%u\n", tmp); EMConfig[EM_CUSTOM].DataType = (mb_datatype) tmp;
-    */
     Serial1.printf("@EMDataType:%u\n", EMConfig[EM_CUSTOM].DataType);
     Serial1.printf("@EMFunction:%u\n", EMConfig[EM_CUSTOM].Function);
 #if MODEM
