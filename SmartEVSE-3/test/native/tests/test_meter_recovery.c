@@ -20,6 +20,14 @@ static evse_ctx_t ctx;
 
 /* ---- CT_NOCOMM set then restored ---- */
 
+/*
+ * @feature Meter Timeout & Recovery
+ * @req REQ-METER-001
+ * @scenario CT_NOCOMM error is set on timeout and cleared when communication restores
+ * @given EVSE is in Smart mode standalone with MainsMeterType=1 and MainsMeterTimeout=0
+ * @when A 1-second tick sets CT_NOCOMM, then MainsMeterTimeout is restored to 5 and another tick occurs
+ * @then CT_NOCOMM is set after the first tick and cleared after the second tick
+ */
 void test_ct_nocomm_set_then_restored(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_SMART;
@@ -40,6 +48,14 @@ void test_ct_nocomm_set_then_restored(void) {
 
 /* ---- EV_NOCOMM set then restored ---- */
 
+/*
+ * @feature Meter Timeout & Recovery
+ * @req REQ-METER-002
+ * @scenario EV_NOCOMM error is set on timeout and cleared when communication restores
+ * @given EVSE is in Smart mode with EVMeterType=1 and EVMeterTimeout=0
+ * @when A 1-second tick sets EV_NOCOMM, then EVMeterTimeout is restored to 10 and another tick occurs
+ * @then EV_NOCOMM is set after the first tick and cleared after the second tick
+ */
 void test_ev_nocomm_set_then_restored(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_SMART;
@@ -58,6 +74,14 @@ void test_ev_nocomm_set_then_restored(void) {
 
 /* ---- Both CT_NOCOMM and EV_NOCOMM simultaneously ---- */
 
+/*
+ * @feature Meter Timeout & Recovery
+ * @req REQ-METER-003
+ * @scenario Both CT_NOCOMM and EV_NOCOMM can be set simultaneously and recover independently
+ * @given EVSE is in Smart mode with both MainsMeterTimeout=0 and EVMeterTimeout=0
+ * @when Both timeouts expire, then mains meter is restored first, then EV meter is restored
+ * @then Each NOCOMM flag is set and cleared independently as its respective meter recovers
+ */
 void test_both_ct_and_ev_nocomm_simultaneously(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_SMART;
@@ -91,6 +115,14 @@ void test_both_ct_and_ev_nocomm_simultaneously(void) {
 
 /* ---- Timeout during STATE_C triggers power unavailable ---- */
 
+/*
+ * @feature Meter Timeout & Recovery
+ * @req REQ-METER-004
+ * @scenario Mains meter timeout during STATE_C triggers transition to STATE_C1
+ * @given EVSE is in Smart mode standalone in STATE_C with high mains load and MainsMeterTimeout=0
+ * @when A 1-second tick occurs
+ * @then CT_NOCOMM is set and EVSE transitions from STATE_C to STATE_C1 (charging suspended)
+ */
 void test_mains_timeout_during_state_c(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_SMART;
@@ -110,6 +142,14 @@ void test_mains_timeout_during_state_c(void) {
     TEST_ASSERT_EQUAL_INT(STATE_C1, ctx.State);
 }
 
+/*
+ * @feature Meter Timeout & Recovery
+ * @req REQ-METER-005
+ * @scenario EV meter timeout during STATE_C triggers transition to STATE_C1
+ * @given EVSE is in Smart mode standalone in STATE_C with EVMeterType=1 and EVMeterTimeout=0
+ * @when A 1-second tick occurs
+ * @then EV_NOCOMM is set and EVSE transitions from STATE_C to STATE_C1 (charging suspended)
+ */
 void test_ev_timeout_during_state_c(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_SMART;
@@ -132,6 +172,14 @@ void test_ev_timeout_during_state_c(void) {
 
 /* ---- MainsMeter timeout on node (LoadBl > 1) ---- */
 
+/*
+ * @feature Meter Timeout & Recovery
+ * @req REQ-METER-006
+ * @scenario MainsMeter timeout on node sets CT_NOCOMM regardless of operating mode
+ * @given EVSE is a node (LoadBl=3) in Normal mode with MainsMeterTimeout=0
+ * @when A 1-second tick occurs
+ * @then CT_NOCOMM is set because nodes do not have the MODE_NORMAL guard for timeout checks
+ */
 void test_mains_timeout_on_node(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_NORMAL;  /* Normal mode */
@@ -145,6 +193,14 @@ void test_mains_timeout_on_node(void) {
     TEST_ASSERT_TRUE((ctx.ErrorFlags & CT_NOCOMM) != 0);
 }
 
+/*
+ * @feature Meter Timeout & Recovery
+ * @req REQ-METER-007
+ * @scenario MainsMeter timeout on standalone in Normal mode does not set CT_NOCOMM
+ * @given EVSE is standalone (LoadBl=0) in MODE_NORMAL with MainsMeterType=1 and MainsMeterTimeout=0
+ * @when A 1-second tick occurs
+ * @then CT_NOCOMM is not set because the MODE_NORMAL guard skips the timeout check for master/standalone
+ */
 void test_mains_timeout_master_normal_mode_ignored(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_NORMAL;
@@ -162,6 +218,14 @@ void test_mains_timeout_master_normal_mode_ignored(void) {
 
 /* ---- EVMeterType=0 keeps resetting timeout ---- */
 
+/*
+ * @feature Meter Timeout & Recovery
+ * @req REQ-METER-008
+ * @scenario No EV meter installed continuously resets EVMeterTimeout to COMM_EVTIMEOUT
+ * @given EVSE has EVMeterType=0 (no EV meter installed) with EVMeterTimeout artificially lowered
+ * @when 1-second ticks occur even with EVMeterTimeout set to 0
+ * @then EVMeterTimeout is always reset to COMM_EVTIMEOUT and EV_NOCOMM is never set
+ */
 void test_no_ev_meter_resets_timeout_continuously(void) {
     evse_init(&ctx, NULL);
     ctx.EVMeterType = 0;
@@ -181,6 +245,14 @@ void test_no_ev_meter_resets_timeout_continuously(void) {
 
 /* ---- No mains meter type and no LoadBl: timeout reset to COMM_TIMEOUT ---- */
 
+/*
+ * @feature Meter Timeout & Recovery
+ * @req REQ-METER-009
+ * @scenario No mains meter type and standalone resets MainsMeterTimeout to COMM_TIMEOUT
+ * @given EVSE has MainsMeterType=0 and LoadBl=0 with MainsMeterTimeout artificially lowered to 3
+ * @when A 1-second tick occurs
+ * @then MainsMeterTimeout is reset to COMM_TIMEOUT because no mains meter is configured
+ */
 void test_no_mains_meter_resets_timeout_continuously(void) {
     evse_init(&ctx, NULL);
     ctx.MainsMeterType = 0;
@@ -194,6 +266,14 @@ void test_no_mains_meter_resets_timeout_continuously(void) {
 
 /* ---- Temperature recovery boundary: exactly at threshold ---- */
 
+/*
+ * @feature Meter Timeout & Recovery
+ * @req REQ-METER-010
+ * @scenario Temperature recovery requires strictly below hysteresis boundary
+ * @given EVSE has TEMP_HIGH error with maxTemp=65 and TempEVSE=55 (exactly at maxTemp-10)
+ * @when A 1-second tick occurs
+ * @then TEMP_HIGH error remains set because recovery requires TempEVSE < (maxTemp - 10), not <=
+ */
 void test_temp_recovery_exactly_at_boundary(void) {
     evse_init(&ctx, NULL);
     ctx.maxTemp = 65;
@@ -205,6 +285,14 @@ void test_temp_recovery_exactly_at_boundary(void) {
     TEST_ASSERT_TRUE((ctx.ErrorFlags & TEMP_HIGH) != 0);
 }
 
+/*
+ * @feature Meter Timeout & Recovery
+ * @req REQ-METER-011
+ * @scenario Temperature recovery clears TEMP_HIGH when one degree below hysteresis boundary
+ * @given EVSE has TEMP_HIGH error with maxTemp=65 and TempEVSE=54 (one below maxTemp-10)
+ * @when A 1-second tick occurs
+ * @then TEMP_HIGH error is cleared because 54 < 55 (maxTemp - 10) satisfies the recovery condition
+ */
 void test_temp_recovery_one_below_boundary(void) {
     evse_init(&ctx, NULL);
     ctx.maxTemp = 65;
@@ -218,6 +306,14 @@ void test_temp_recovery_one_below_boundary(void) {
 
 /* ---- Meter countdown sequence: verify tick-by-tick ---- */
 
+/*
+ * @feature Meter Timeout & Recovery
+ * @req REQ-METER-012
+ * @scenario Mains meter countdown sequence from 3 to 0 then CT_NOCOMM on next tick
+ * @given EVSE is in Smart mode standalone with MainsMeterType=1 and MainsMeterTimeout=3
+ * @when Four consecutive 1-second ticks occur decrementing the timeout
+ * @then CT_NOCOMM remains clear during countdown (3 to 0) and is set on the tick after reaching 0
+ */
 void test_mains_meter_countdown_to_error(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_SMART;

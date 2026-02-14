@@ -41,6 +41,14 @@ static void setup_solar_charging(void) {
 
 /* ---- 3P shortage starts SolarStopTimer ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-001
+ * @scenario 3-phase solar shortage starts SolarStopTimer
+ * @given The EVSE is solar charging on 3 phases with EnableC2=AUTO and high mains load
+ * @when evse_calc_balanced_current is called with large import (Isum=200)
+ * @then SolarStopTimer is set to a value greater than 0
+ */
 void test_solar_3p_shortage_starts_timer(void) {
     setup_solar_charging();
     ctx.EnableC2 = AUTO;
@@ -55,6 +63,14 @@ void test_solar_3p_shortage_starts_timer(void) {
 
 /* ---- SolarStopTimer<=2 triggers 1P switch ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-002
+ * @scenario SolarStopTimer reaching 2 or below triggers 3P to 1P phase switch
+ * @given The EVSE is solar charging on 3 phases with EnableC2=AUTO and SolarStopTimer=2
+ * @when evse_calc_balanced_current is called with ongoing shortage
+ * @then Switching_Phases_C2 is set to GOING_TO_SWITCH_1P
+ */
 void test_solar_3p_timer_triggers_1p_switch(void) {
     setup_solar_charging();
     ctx.EnableC2 = AUTO;
@@ -69,6 +85,14 @@ void test_solar_3p_timer_triggers_1p_switch(void) {
 
 /* ---- 1P surplus starts timer for 3P switch ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-003
+ * @scenario 1-phase solar surplus near MaxCurrent starts timer for 3P upgrade
+ * @given The EVSE is solar charging on 1 phase with IsetBalanced near MaxCurrent and good surplus
+ * @when evse_calc_balanced_current is called with export (Isum=-100)
+ * @then SolarStopTimer is set to 63 (countdown to 3P switch)
+ */
 void test_solar_1p_surplus_starts_timer(void) {
     setup_solar_charging();
     ctx.EnableC2 = AUTO;
@@ -86,6 +110,14 @@ void test_solar_1p_surplus_starts_timer(void) {
 
 /* ---- SolarStopTimer<=3 triggers 3P switch ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-004
+ * @scenario SolarStopTimer reaching 3 or below on 1P triggers switch to 3P
+ * @given The EVSE is solar charging on 1 phase with SolarStopTimer=3 and large surplus
+ * @when evse_calc_balanced_current is called
+ * @then Switching_Phases_C2 is set to GOING_TO_SWITCH_3P
+ */
 void test_solar_1p_timer_triggers_3p_switch(void) {
     setup_solar_charging();
     ctx.EnableC2 = AUTO;
@@ -101,6 +133,14 @@ void test_solar_1p_timer_triggers_3p_switch(void) {
 
 /* ---- Insufficient surplus resets timer ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-005
+ * @scenario Insufficient surplus resets SolarStopTimer to prevent false 3P upgrade
+ * @given The EVSE is solar charging on 1 phase with IsetBalanced well below MaxCurrent
+ * @when evse_calc_balanced_current is called with minimal surplus (Isum=-10)
+ * @then SolarStopTimer is reset to 0
+ */
 void test_solar_insufficient_surplus_resets_timer(void) {
     setup_solar_charging();
     ctx.EnableC2 = AUTO;
@@ -116,6 +156,14 @@ void test_solar_insufficient_surplus_resets_timer(void) {
 
 /* ---- Solar startup forces MinCurrent ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-006
+ * @scenario During solar startup period, EVSE is forced to MinCurrent
+ * @given The EVSE is solar charging with IntTimer below SOLARSTARTTIME (in startup)
+ * @when evse_calc_balanced_current is called
+ * @then Balanced[0] is set to MinCurrent*10 regardless of IsetBalanced
+ */
 void test_solar_startup_forces_mincurrent(void) {
     setup_solar_charging();
     ctx.Node[0].IntTimer = SOLARSTARTTIME - 5;  /* In startup */
@@ -126,6 +174,14 @@ void test_solar_startup_forces_mincurrent(void) {
 
 /* ---- Past startup uses calculated value ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-007
+ * @scenario Past startup period, EVSE uses calculated distribution value
+ * @given The EVSE is solar charging with IntTimer past SOLARSTARTTIME
+ * @when evse_calc_balanced_current is called
+ * @then Balanced[0] uses the calculated value (at least MinCurrent*10)
+ */
 void test_solar_past_startup_uses_calculated(void) {
     setup_solar_charging();
     ctx.Node[0].IntTimer = SOLARSTARTTIME + 1;
@@ -138,6 +194,14 @@ void test_solar_past_startup_uses_calculated(void) {
 
 /* ---- Solar fine increase (small export) ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-008
+ * @scenario Small solar export results in gradual current increase
+ * @given The EVSE is solar charging with small export (Isum=-5)
+ * @when evse_calc_balanced_current is called
+ * @then IsetBalanced increases by at least 1 (fine-grained increase)
+ */
 void test_solar_fine_increase_small(void) {
     setup_solar_charging();
     ctx.Isum = -5;   /* Small export */
@@ -151,6 +215,14 @@ void test_solar_fine_increase_small(void) {
 
 /* ---- Solar fine increase (large export) ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-009
+ * @scenario Large solar export results in larger current increase
+ * @given The EVSE is solar charging with large export (Isum=-50)
+ * @when evse_calc_balanced_current is called
+ * @then IsetBalanced increases by more than the small export case
+ */
 void test_solar_fine_increase_large(void) {
     setup_solar_charging();
     ctx.Isum = -50;  /* Large export */
@@ -164,6 +236,14 @@ void test_solar_fine_increase_large(void) {
 
 /* ---- Solar fine decrease (moderate import) ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-010
+ * @scenario Moderate grid import decreases solar charging current
+ * @given The EVSE is solar charging with IsetBalanced=150 and moderate import (Isum=15)
+ * @when evse_calc_balanced_current is called
+ * @then IsetBalanced decreases below 150
+ */
 void test_solar_fine_decrease_moderate(void) {
     setup_solar_charging();
     ctx.Isum = 15;    /* Moderate import */
@@ -176,6 +256,14 @@ void test_solar_fine_decrease_moderate(void) {
 
 /* ---- Solar fine decrease (aggressive import) ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-011
+ * @scenario Large grid import aggressively decreases solar charging current
+ * @given The EVSE is solar charging with IsetBalanced=200 and large import (Isum=50)
+ * @when evse_calc_balanced_current is called
+ * @then IsetBalanced decreases below 200
+ */
 void test_solar_fine_decrease_aggressive(void) {
     setup_solar_charging();
     ctx.Isum = 50;     /* Large import */
@@ -188,6 +276,14 @@ void test_solar_fine_decrease_aggressive(void) {
 
 /* ---- Solar B-state AUTO determines 1P ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-012
+ * @scenario Solar B-state with AUTO and small surplus determines 1-phase charging
+ * @given The EVSE is in STATE_B with EnableC2=AUTO, 3 phases, and small surplus (Isum=-50)
+ * @when evse_calc_balanced_current is called
+ * @then Switching_Phases_C2 is set to GOING_TO_SWITCH_1P
+ */
 void test_solar_b_state_auto_determines_1p(void) {
     setup_solar_charging();
     ctx.State = STATE_B;
@@ -201,6 +297,14 @@ void test_solar_b_state_auto_determines_1p(void) {
 
 /* ---- Solar B-state AUTO determines 3P ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-013
+ * @scenario Solar B-state with AUTO and large surplus determines 3-phase charging
+ * @given The EVSE is in STATE_B with EnableC2=AUTO, 1 phase, and large surplus (Isum=-500)
+ * @when evse_calc_balanced_current is called
+ * @then Switching_Phases_C2 is set to GOING_TO_SWITCH_3P
+ */
 void test_solar_b_state_auto_determines_3p(void) {
     setup_solar_charging();
     ctx.State = STATE_B;
@@ -214,6 +318,14 @@ void test_solar_b_state_auto_determines_3p(void) {
 
 /* ---- Hard shortage increments NoCurrent ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-014
+ * @scenario Hard current shortage increments NoCurrent counter
+ * @given The EVSE is in MODE_SMART with heavily overloaded mains and low MaxMains
+ * @when evse_calc_balanced_current is called
+ * @then NoCurrent counter is incremented above 0
+ */
 void test_hard_shortage_increments_nocurrent(void) {
     setup_solar_charging();
     ctx.Mode = MODE_SMART;
@@ -227,6 +339,14 @@ void test_hard_shortage_increments_nocurrent(void) {
 
 /* ---- Soft shortage starts MaxSumMains timer ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-015
+ * @scenario Soft shortage (Isum exceeds MaxSumMains) starts MaxSumMains timer
+ * @given The EVSE is in MODE_SMART with Isum exceeding MaxSumMains and MaxSumMainsTime=5
+ * @when evse_calc_balanced_current is called
+ * @then MaxSumMainsTimer is set to MaxSumMainsTime*60 (300 seconds)
+ */
 void test_soft_shortage_starts_maxsummains_timer(void) {
     setup_solar_charging();
     ctx.Mode = MODE_SMART;
@@ -244,6 +364,14 @@ void test_soft_shortage_starts_maxsummains_timer(void) {
 
 /* ---- No shortage clears timers ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-016
+ * @scenario No shortage condition clears SolarStopTimer and NoCurrent
+ * @given The EVSE is in MODE_SMART with low mains load and high MaxMains
+ * @when evse_calc_balanced_current is called with no shortage detected
+ * @then SolarStopTimer and NoCurrent are both reset to 0
+ */
 void test_no_shortage_clears_timers(void) {
     setup_solar_charging();
     ctx.Mode = MODE_SMART;
@@ -259,6 +387,14 @@ void test_no_shortage_clears_timers(void) {
 
 /* ---- IsetBalanced capped at 800 ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-017
+ * @scenario IsetBalanced is capped at 800 (80A maximum)
+ * @given The EVSE is in MODE_SMART with IsetBalanced=900 and large surplus
+ * @when evse_calc_balanced_current is called
+ * @then IsetBalanced does not exceed 800
+ */
 void test_isetbalanced_capped_at_800(void) {
     setup_solar_charging();
     ctx.Mode = MODE_SMART;
@@ -271,6 +407,14 @@ void test_isetbalanced_capped_at_800(void) {
 
 /* ---- Normal mode forces 3P ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-018
+ * @scenario Normal mode forces 3-phase charging regardless of current phase count
+ * @given A standalone EVSE in MODE_NORMAL currently on 1 phase
+ * @when evse_calc_balanced_current is called
+ * @then Switching_Phases_C2 is set to GOING_TO_SWITCH_3P
+ */
 void test_normal_mode_forces_3p(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_NORMAL;
@@ -290,6 +434,14 @@ void test_normal_mode_forces_3p(void) {
 
 /* ---- phasesLastUpdateFlag gates regulation ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-019
+ * @scenario phasesLastUpdateFlag=false prevents IsetBalanced regulation
+ * @given The EVSE is in MODE_SMART with phasesLastUpdateFlag=false and large surplus
+ * @when evse_calc_balanced_current is called
+ * @then IsetBalanced remains unchanged (regulation gated)
+ */
 void test_phases_flag_gates_regulation(void) {
     setup_solar_charging();
     ctx.Mode = MODE_SMART;
@@ -305,6 +457,14 @@ void test_phases_flag_gates_regulation(void) {
 
 /* ---- Multi-EVSE solar startup ---- */
 
+/*
+ * @feature Solar Balancing
+ * @req REQ-SOLAR-020
+ * @scenario Multi-EVSE solar startup: EVSE in startup gets MinCurrent, others get calculated
+ * @given Two EVSEs as master, EVSE 0 in startup (IntTimer < SOLARSTARTTIME), EVSE 1 past startup
+ * @when evse_calc_balanced_current is called
+ * @then EVSE 0 Balanced is set to MinCurrent*10 (startup forcing)
+ */
 void test_multi_evse_solar_startup(void) {
     setup_solar_charging();
     ctx.LoadBl = 1;

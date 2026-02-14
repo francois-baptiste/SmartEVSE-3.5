@@ -38,6 +38,14 @@ static void setup_master_two_evse(void) {
 
 // ---- Distribution tests ----
 
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-001
+ * @scenario Single standalone EVSE receives full MaxCurrent allocation
+ * @given A standalone EVSE (LoadBl=0) in STATE_C with MaxCurrent=16A
+ * @when evse_calc_balanced_current is called
+ * @then IsetBalanced is set to 160 (16A in tenths)
+ */
 void test_single_evse_gets_full_current(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_NORMAL;
@@ -55,6 +63,14 @@ void test_single_evse_gets_full_current(void) {
     TEST_ASSERT_EQUAL_INT(160, ctx.IsetBalanced);
 }
 
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-002
+ * @scenario Two EVSEs receive equal current distribution
+ * @given Two EVSEs are charging as master (LoadBl=1) with equal BalancedMax
+ * @when evse_calc_balanced_current is called
+ * @then Both EVSEs receive equal Balanced current allocations
+ */
 void test_two_evse_equal_distribution(void) {
     setup_master_two_evse();
     ctx.EVMeterImeasured = 160;  // Total measured = 160
@@ -63,6 +79,14 @@ void test_two_evse_equal_distribution(void) {
     TEST_ASSERT_EQUAL_INT(ctx.Balanced[0], ctx.Balanced[1]);
 }
 
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-003
+ * @scenario Two EVSEs respect MaxCircuit total capacity limit
+ * @given Two EVSEs are charging with MaxCircuit=16A total
+ * @when evse_calc_balanced_current is called
+ * @then Each EVSE receives at most half the circuit capacity
+ */
 void test_two_evse_respects_max_circuit(void) {
     setup_master_two_evse();
     ctx.MaxCircuit = 16;  // Only 16A total for circuit
@@ -74,6 +98,14 @@ void test_two_evse_respects_max_circuit(void) {
     TEST_ASSERT_LESS_OR_EQUAL(100, ctx.Balanced[1]);
 }
 
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-004
+ * @scenario Individual EVSE BalancedMax caps its current allocation
+ * @given Two EVSEs are charging with EVSE 1 having BalancedMax=60 (6A)
+ * @when evse_calc_balanced_current is called
+ * @then EVSE 1 Balanced is capped at its BalancedMax of 60
+ */
 void test_balanced_max_caps_individual(void) {
     setup_master_two_evse();
     // Note: BalancedMax[0] (master) gets overwritten by ChargeCurrent inside calc
@@ -86,6 +118,14 @@ void test_balanced_max_caps_individual(void) {
     TEST_ASSERT_LESS_OR_EQUAL(60, ctx.Balanced[1]);
 }
 
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-005
+ * @scenario No active EVSEs resets shortage and solar timers
+ * @given Two EVSEs are both in STATE_A (disconnected) as master
+ * @when evse_calc_balanced_current is called
+ * @then NoCurrent and SolarStopTimer are reset to 0
+ */
 // With no active EVSEs, IsetBalanced IS computed (from Mode/limits) but
 // no distribution occurs. Timers are reset (NoCurrent=0, SolarStopTimer=0).
 void test_no_active_evse_resets_timers(void) {
@@ -102,6 +142,14 @@ void test_no_active_evse_resets_timers(void) {
     TEST_ASSERT_EQUAL_INT(0, ctx.SolarStopTimer);
 }
 
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-006
+ * @scenario Each active EVSE receives at least MinCurrent
+ * @given Two EVSEs are charging with MinCurrent=6A and limited total capacity
+ * @when evse_calc_balanced_current is called
+ * @then Each charging EVSE with non-zero allocation gets at least MinCurrent*10
+ */
 void test_minimum_current_enforced(void) {
     setup_master_two_evse();
     ctx.MinCurrent = 6;
@@ -116,6 +164,14 @@ void test_minimum_current_enforced(void) {
     }
 }
 
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-007
+ * @scenario New EVSE joining (mod=1) triggers full recalculation
+ * @given Two EVSEs in MODE_SMART with existing current distribution
+ * @when evse_calc_balanced_current is called with mod=1 (new EVSE joining)
+ * @then IsetBalanced is recalculated from scratch (different from previous value)
+ */
 void test_mod1_new_evse_recalculates(void) {
     setup_master_two_evse();
     ctx.Mode = MODE_SMART;
@@ -130,6 +186,14 @@ void test_mod1_new_evse_recalculates(void) {
 
 // ---- OCPP current limit ----
 
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-008
+ * @scenario OCPP current limit reduces ChargeCurrent below MaxCurrent
+ * @given A standalone EVSE with OcppCurrentLimit=10A and MaxCurrent=16A
+ * @when evse_calc_balanced_current is called
+ * @then ChargeCurrent is capped at 100 (10A in tenths) or below
+ */
 void test_ocpp_limit_reduces_charge_current(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_NORMAL;
@@ -148,6 +212,14 @@ void test_ocpp_limit_reduces_charge_current(void) {
     TEST_ASSERT_LESS_OR_EQUAL(100, ctx.ChargeCurrent);
 }
 
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-009
+ * @scenario OCPP current limit below MinCurrent zeros out ChargeCurrent
+ * @given A standalone EVSE with OcppCurrentLimit=3A and MinCurrent=6A
+ * @when evse_calc_balanced_current is called
+ * @then ChargeCurrent is set to 0 (below minimum, cannot charge)
+ */
 void test_ocpp_limit_below_min_zeros_current(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_NORMAL;
@@ -167,6 +239,14 @@ void test_ocpp_limit_below_min_zeros_current(void) {
     TEST_ASSERT_EQUAL_INT(0, ctx.ChargeCurrent);
 }
 
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-010
+ * @scenario OverrideCurrent takes precedence over calculated ChargeCurrent
+ * @given A standalone EVSE with OverrideCurrent=80 (8A) and MaxCurrent=16A
+ * @when evse_calc_balanced_current is called
+ * @then ChargeCurrent is set to 80 (override value)
+ */
 void test_override_current_takes_precedence(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_NORMAL;
@@ -186,6 +266,14 @@ void test_override_current_takes_precedence(void) {
 
 // ---- Shortage detection ----
 
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-011
+ * @scenario Current shortage increments NoCurrent counter
+ * @given Two EVSEs in MODE_SMART with mains heavily loaded and low MaxMains
+ * @when evse_calc_balanced_current is called with insufficient capacity
+ * @then NoCurrent counter is incremented above 0
+ */
 void test_shortage_increments_nocurrent(void) {
     setup_master_two_evse();
     ctx.Mode = MODE_SMART;
@@ -202,6 +290,14 @@ void test_shortage_increments_nocurrent(void) {
     }
 }
 
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-012
+ * @scenario No current shortage clears NoCurrent counter
+ * @given Two EVSEs in MODE_SMART with low mains load and high MaxMains
+ * @when evse_calc_balanced_current is called with sufficient capacity
+ * @then NoCurrent counter is cleared to 0
+ */
 void test_no_shortage_clears_nocurrent(void) {
     setup_master_two_evse();
     ctx.Mode = MODE_SMART;
@@ -218,6 +314,14 @@ void test_no_shortage_clears_nocurrent(void) {
 
 // ---- Grid relay ----
 
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-013
+ * @scenario Open grid relay caps IsetBalanced at GridRelayMaxSumMains per phase
+ * @given A standalone EVSE in MODE_SMART with GridRelayOpen=true and 3 phases
+ * @when evse_calc_balanced_current is called
+ * @then IsetBalanced is capped at GridRelayMaxSumMains*10/3
+ */
 void test_grid_relay_limits_current(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_SMART;
@@ -246,6 +350,14 @@ void test_grid_relay_limits_current(void) {
 
 // ---- Node communication state tests ----
 
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-014
+ * @scenario Node EVSE requests COMM_C instead of transitioning directly to STATE_C
+ * @given The EVSE is configured as a node (LoadBl=2) in STATE_B with DiodeCheck passed
+ * @when A 6V pilot signal is sustained for 500ms (vehicle requests charge)
+ * @then The state transitions to STATE_COMM_C (requesting master permission to charge)
+ */
 void test_node_requests_comm_c(void) {
     evse_init(&ctx, NULL);
     ctx.AccessStatus = ON;

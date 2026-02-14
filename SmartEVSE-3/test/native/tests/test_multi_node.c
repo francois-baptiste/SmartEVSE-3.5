@@ -42,6 +42,14 @@ static void setup_master_n_evse(int n) {
 
 /* ---- 4 EVSEs fair distribution ---- */
 
+/*
+ * @feature Multi-Node Load Balancing
+ * @req REQ-MULTI-001
+ * @scenario Four EVSEs receive equal current distribution
+ * @given Master with 4 EVSEs all in STATE_C, MaxCircuit=64A, no EV meter baseload
+ * @when Balanced current is calculated
+ * @then Each EVSE receives 160 deciamps (640 / 4 = 160) with all values equal
+ */
 void test_four_evse_fair_distribution(void) {
     setup_master_n_evse(4);
     ctx.MaxCircuit = 64;    /* 64A total for circuit */
@@ -63,6 +71,14 @@ void test_four_evse_fair_distribution(void) {
 
 /* ---- 4 EVSEs: BalancedMax[0] gets overwritten by ChargeCurrent ---- */
 
+/*
+ * @feature Multi-Node Load Balancing
+ * @req REQ-MULTI-002
+ * @scenario Master EVSE BalancedMax is derived from ChargeCurrent
+ * @given Master with 4 EVSEs all in STATE_C, master ChargeCurrent limited to 200 deciamps (20A)
+ * @when Balanced current is calculated
+ * @then Master EVSE (Balanced[0]) does not exceed its ChargeCurrent limit of 200 deciamps
+ */
 void test_four_evse_master_max_from_chargecurrent(void) {
     setup_master_n_evse(4);
     ctx.ChargeCurrent = 200;  /* Master limited to 20A */
@@ -83,6 +99,14 @@ void test_four_evse_master_max_from_chargecurrent(void) {
 
 /* ---- One EVSE at low max, others share remainder ---- */
 
+/*
+ * @feature Multi-Node Load Balancing
+ * @req REQ-MULTI-003
+ * @scenario One EVSE with low max capacity, remainder shared by others
+ * @given Master with 3 EVSEs in STATE_C, node 1 limited to BalancedMax=60 deciamps (6A)
+ * @when Balanced current is calculated
+ * @then Node 1 receives at most 60 deciamps while nodes 0 and 2 share the remainder equally
+ */
 void test_one_evse_low_max_others_share(void) {
     setup_master_n_evse(3);
     ctx.BalancedMax[1] = 60;    /* Node 1 can only take 6A */
@@ -103,6 +127,14 @@ void test_one_evse_low_max_others_share(void) {
 
 /* ---- Node goes offline: BalancedState changes from C to A ---- */
 
+/*
+ * @feature Multi-Node Load Balancing
+ * @req REQ-MULTI-004
+ * @scenario Node going offline causes redistribution to remaining active nodes
+ * @given Master with 3 EVSEs in STATE_C receiving equal distribution
+ * @when Node 2 goes offline (BalancedState changes to STATE_A) and current is recalculated
+ * @then Remaining active nodes each receive more current than before and offline node gets 0
+ */
 void test_node_goes_offline_redistributes(void) {
     setup_master_n_evse(3);
     ctx.EVMeterImeasured = 0;
@@ -124,6 +156,14 @@ void test_node_goes_offline_redistributes(void) {
 
 /* ---- All nodes at MinCurrent during shortage ---- */
 
+/*
+ * @feature Multi-Node Load Balancing
+ * @req REQ-MULTI-005
+ * @scenario All nodes receive MinCurrent during power shortage
+ * @given Master with 4 EVSEs in STATE_C in Smart mode with very high mains load and low IsetBalanced
+ * @when Balanced current is calculated with insufficient power for all nodes
+ * @then Each EVSE receives exactly 60 deciamps (MinCurrent * 10) as the floor allocation
+ */
 void test_all_nodes_mincurrent_during_shortage(void) {
     setup_master_n_evse(4);
     ctx.Mode = MODE_SMART;
@@ -143,6 +183,14 @@ void test_all_nodes_mincurrent_during_shortage(void) {
 
 /* ---- MaxCircuit limiting with multiple nodes ---- */
 
+/*
+ * @feature Multi-Node Load Balancing
+ * @req REQ-MULTI-006
+ * @scenario MaxCircuit limits total current distribution across all nodes
+ * @given Master with 4 EVSEs in STATE_C in Normal mode with MaxCircuit=24A
+ * @when Balanced current is calculated
+ * @then Total distributed current across all nodes does not exceed 240 deciamps (MaxCircuit * 10)
+ */
 void test_maxcircuit_limits_total_distribution(void) {
     setup_master_n_evse(4);
     ctx.MaxCircuit = 24;  /* Only 24A for entire circuit */
@@ -163,6 +211,14 @@ void test_maxcircuit_limits_total_distribution(void) {
 
 /* ---- MaxCircuit limiting with EV meter ---- */
 
+/*
+ * @feature Multi-Node Load Balancing
+ * @req REQ-MULTI-007
+ * @scenario MaxCircuit accounts for EV meter baseload in distribution
+ * @given Master with 2 EVSEs in STATE_C, MaxCircuit=20A, EV meter measuring 250 deciamps total
+ * @when Balanced current is calculated with EV meter baseload subtracted
+ * @then Total distributed current does not exceed (MaxCircuit * 10) minus baseload
+ */
 void test_maxcircuit_with_ev_meter_baseload(void) {
     setup_master_n_evse(2);
     ctx.MaxCircuit = 20;
@@ -181,6 +237,14 @@ void test_maxcircuit_with_ev_meter_baseload(void) {
 
 /* ---- 6 EVSEs: large cluster fair distribution ---- */
 
+/*
+ * @feature Multi-Node Load Balancing
+ * @req REQ-MULTI-008
+ * @scenario Six EVSEs in large cluster receive fair distribution
+ * @given Master with 6 EVSEs all in STATE_C, MaxCircuit=64A
+ * @when Balanced current is calculated
+ * @then All 6 EVSEs receive equal current within 1 deciamp tolerance (integer division rounding)
+ */
 void test_six_evse_fair_distribution(void) {
     setup_master_n_evse(6);
     ctx.MaxCircuit = 64;
@@ -199,6 +263,14 @@ void test_six_evse_fair_distribution(void) {
 
 /* ---- NoCurrent increments on hard shortage ---- */
 
+/*
+ * @feature Multi-Node Load Balancing
+ * @req REQ-MULTI-009
+ * @scenario NoCurrent counter increments during hard power shortage
+ * @given Master with 4 EVSEs in Smart mode, 50A mains measured against 25A limit, IsetBalanced too low
+ * @when Balanced current is calculated and total MinCurrent demand exceeds available power
+ * @then NoCurrent counter increments above 0 indicating sustained shortage
+ */
 void test_nocurrent_increments_on_hard_shortage(void) {
     setup_master_n_evse(4);
     ctx.Mode = MODE_SMART;
@@ -216,6 +288,14 @@ void test_nocurrent_increments_on_hard_shortage(void) {
 
 /* ---- NoCurrent stays 0 when there is enough power ---- */
 
+/*
+ * @feature Multi-Node Load Balancing
+ * @req REQ-MULTI-010
+ * @scenario NoCurrent counter clears when sufficient power is available
+ * @given Master with 2 EVSEs in Smart mode, low mains load, IsetBalanced=400, NoCurrent previously at 5
+ * @when Balanced current is calculated with plenty of available power
+ * @then NoCurrent counter is cleared to 0
+ */
 void test_nocurrent_zero_when_sufficient(void) {
     setup_master_n_evse(2);
     ctx.Mode = MODE_SMART;
@@ -233,6 +313,14 @@ void test_nocurrent_zero_when_sufficient(void) {
 
 /* ---- Node at STATE_B does not receive current ---- */
 
+/*
+ * @feature Multi-Node Load Balancing
+ * @req REQ-MULTI-011
+ * @scenario Node in STATE_B does not participate in current distribution
+ * @given Master with 3 EVSEs, nodes 0 and 2 in STATE_C, node 1 in STATE_B (waiting)
+ * @when Balanced current is calculated
+ * @then Only active STATE_C nodes (0 and 2) receive distributed current, each getting 320 deciamps
+ */
 void test_state_b_node_gets_no_current(void) {
     setup_master_n_evse(3);
     ctx.BalancedState[1] = STATE_B;  /* Node 1 waiting, not charging */
@@ -250,6 +338,14 @@ void test_state_b_node_gets_no_current(void) {
 
 /* ---- IsetBalanced capped at ActiveMax ---- */
 
+/*
+ * @feature Multi-Node Load Balancing
+ * @req REQ-MULTI-012
+ * @scenario IsetBalanced is capped at the sum of all active node maximums
+ * @given Master with 2 EVSEs in STATE_C, node 1 limited to BalancedMax=80 deciamps (8A)
+ * @when Balanced current is calculated with IsetBalanced exceeding ActiveMax (320+80=400)
+ * @then IsetBalanced is capped to 400, node 0 gets 320 and node 1 gets 80
+ */
 void test_isetbalanced_capped_at_active_max(void) {
     setup_master_n_evse(2);
     ctx.BalancedMax[1] = 80;  /* Node 1 max 8A */

@@ -26,6 +26,14 @@ static void setup_charging_single(void) {
 
 // ---- Normal mode tests ----
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-001
+ * @scenario Normal mode sets IsetBalanced to MaxCurrent
+ * @given EVSE is standalone in STATE_C in Normal mode
+ * @when Balanced current is calculated
+ * @then IsetBalanced equals MaxCurrent * 10 (fixed current allocation)
+ */
 void test_normal_mode_uses_max_current(void) {
     setup_charging_single();
     ctx.Mode = MODE_NORMAL;
@@ -34,6 +42,14 @@ void test_normal_mode_uses_max_current(void) {
     TEST_ASSERT_EQUAL_INT(ctx.MaxCurrent * 10, ctx.IsetBalanced);
 }
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-002
+ * @scenario Normal mode ignores mains meter readings
+ * @given EVSE is standalone in STATE_C in Normal mode with high MainsMeterImeasured=300
+ * @when Balanced current is calculated
+ * @then IsetBalanced remains at MaxCurrent * 10 regardless of mains load
+ */
 void test_normal_mode_ignores_mains(void) {
     setup_charging_single();
     ctx.Mode = MODE_NORMAL;
@@ -43,6 +59,14 @@ void test_normal_mode_ignores_mains(void) {
     TEST_ASSERT_EQUAL_INT(ctx.MaxCurrent * 10, ctx.IsetBalanced);
 }
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-003
+ * @scenario Normal mode respects MaxCapacity as upper bound
+ * @given EVSE is standalone in STATE_C in Normal mode with MaxCapacity=10A and MaxCurrent=16A
+ * @when Balanced current is calculated
+ * @then ChargeCurrent is limited to 100 deciamps (MaxCapacity * 10) instead of MaxCurrent
+ */
 void test_normal_mode_respects_max_capacity(void) {
     setup_charging_single();
     ctx.Mode = MODE_NORMAL;
@@ -54,6 +78,14 @@ void test_normal_mode_respects_max_capacity(void) {
 
 // ---- Smart mode tests ----
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-004
+ * @scenario Smart mode limits current based on MaxMains minus baseload
+ * @given EVSE is standalone in STATE_C in Smart mode with MaxMains=25A and MainsMeterImeasured=200
+ * @when Balanced current is calculated
+ * @then IsetBalanced does not exceed (MaxMains * 10) minus baseload
+ */
 void test_smart_mode_respects_maxmains(void) {
     setup_charging_single();
     ctx.Mode = MODE_SMART;
@@ -66,6 +98,14 @@ void test_smart_mode_respects_maxmains(void) {
     TEST_ASSERT_LESS_OR_EQUAL(expected_limit, ctx.IsetBalanced);
 }
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-005
+ * @scenario Smart mode increases current conservatively (Idifference/4)
+ * @given EVSE is standalone in STATE_C in Smart mode with low mains usage and measurements updated
+ * @when Balanced current is calculated with headroom available
+ * @then IsetBalanced increases from its initial value but conservatively (not full step)
+ */
 void test_smart_mode_slow_increase(void) {
     setup_charging_single();
     ctx.Mode = MODE_SMART;
@@ -80,6 +120,14 @@ void test_smart_mode_slow_increase(void) {
     TEST_ASSERT_TRUE(ctx.IsetBalanced >= initial);
 }
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-006
+ * @scenario Smart mode decreases current rapidly when over mains limit
+ * @given EVSE is standalone in STATE_C in Smart mode with IsetBalanced=200 and mains way over MaxMains=10A
+ * @when Balanced current is calculated with negative Idifference
+ * @then IsetBalanced decreases rapidly (full Idifference, not divided) below the initial 200
+ */
 void test_smart_mode_fast_decrease(void) {
     setup_charging_single();
     ctx.Mode = MODE_SMART;
@@ -95,6 +143,14 @@ void test_smart_mode_fast_decrease(void) {
 
 // ---- Solar mode tests ----
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-007
+ * @scenario Solar mode requires surplus power to make current available
+ * @given EVSE is in Solar mode with StartCurrent=6A and Isum=0 (no surplus)
+ * @when evse_is_current_available is called
+ * @then Returns 0 (unavailable) because there is no solar surplus for charging
+ */
 void test_solar_current_available_requires_surplus(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_SOLAR;
@@ -106,6 +162,14 @@ void test_solar_current_available_requires_surplus(void) {
     TEST_ASSERT_EQUAL_INT(0, result);
 }
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-008
+ * @scenario Solar mode allows charging when sufficient surplus is available
+ * @given EVSE is in Solar mode with StartCurrent=6A and Isum=-80 (8A export surplus)
+ * @when evse_is_current_available is called
+ * @then Returns 1 (available) because export surplus exceeds StartCurrent threshold
+ */
 void test_solar_current_available_with_surplus(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_SOLAR;
@@ -118,6 +182,14 @@ void test_solar_current_available_with_surplus(void) {
     TEST_ASSERT_EQUAL_INT(1, result);
 }
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-009
+ * @scenario Solar mode increases current in small steps when surplus is available
+ * @given EVSE is standalone in STATE_C in Solar mode with 2A export surplus and past solar startup phase
+ * @when Balanced current is calculated
+ * @then IsetBalanced increases from its initial 100 value in fine-grained solar increments
+ */
 void test_solar_fine_grained_increase(void) {
     setup_charging_single();
     ctx.Mode = MODE_SOLAR;
@@ -134,6 +206,14 @@ void test_solar_fine_grained_increase(void) {
     TEST_ASSERT_TRUE(ctx.IsetBalanced >= 100);
 }
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-010
+ * @scenario Solar mode decreases current rapidly when importing from grid
+ * @given EVSE is standalone in STATE_C in Solar mode with Isum=50 (5A import) and IsetBalanced=100
+ * @when Balanced current is calculated with grid import detected
+ * @then IsetBalanced decreases below 100 to reduce grid import quickly
+ */
 void test_solar_rapid_decrease_on_import(void) {
     setup_charging_single();
     ctx.Mode = MODE_SOLAR;
@@ -150,6 +230,14 @@ void test_solar_rapid_decrease_on_import(void) {
     TEST_ASSERT_TRUE(ctx.IsetBalanced < 100);
 }
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-011
+ * @scenario Solar mode ImportCurrent offset allows controlled grid import
+ * @given EVSE is in Solar mode with ImportCurrent=3A allowance and Isum=20 (2A import within allowance)
+ * @when Balanced current is calculated with import within the allowed offset
+ * @then IsetBalanced increases because IsumImport (20 - 30 = -10) indicates effective surplus
+ */
 void test_solar_import_current_offset(void) {
     setup_charging_single();
     ctx.Mode = MODE_SOLAR;
@@ -168,18 +256,42 @@ void test_solar_import_current_offset(void) {
 
 // ---- Phase switching tests ----
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-012
+ * @scenario EnableC2=NOT_PRESENT does not force single phase
+ * @given EVSE has EnableC2 set to NOT_PRESENT (contactor 2 not installed)
+ * @when evse_force_single_phase is called
+ * @then Returns 0 because the phase switching hardware is not present
+ */
 void test_force_single_phase_not_present(void) {
     evse_init(&ctx, NULL);
     ctx.EnableC2 = NOT_PRESENT;
     TEST_ASSERT_EQUAL_INT(0, evse_force_single_phase(&ctx));
 }
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-013
+ * @scenario EnableC2=ALWAYS_OFF forces single phase operation
+ * @given EVSE has EnableC2 set to ALWAYS_OFF (contactor 2 always disabled)
+ * @when evse_force_single_phase is called
+ * @then Returns 1 because the EVSE is configured to always operate in single phase
+ */
 void test_force_single_phase_always_off(void) {
     evse_init(&ctx, NULL);
     ctx.EnableC2 = ALWAYS_OFF;
     TEST_ASSERT_EQUAL_INT(1, evse_force_single_phase(&ctx));
 }
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-014
+ * @scenario EnableC2=SOLAR_OFF forces single phase when in Solar mode
+ * @given EVSE has EnableC2 set to SOLAR_OFF and Mode is MODE_SOLAR
+ * @when evse_force_single_phase is called
+ * @then Returns 1 because SOLAR_OFF disables contactor 2 in solar mode
+ */
 void test_force_single_phase_solar_off_in_solar_mode(void) {
     evse_init(&ctx, NULL);
     ctx.EnableC2 = SOLAR_OFF;
@@ -187,6 +299,14 @@ void test_force_single_phase_solar_off_in_solar_mode(void) {
     TEST_ASSERT_EQUAL_INT(1, evse_force_single_phase(&ctx));
 }
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-015
+ * @scenario EnableC2=SOLAR_OFF does not force single phase in Smart mode
+ * @given EVSE has EnableC2 set to SOLAR_OFF and Mode is MODE_SMART
+ * @when evse_force_single_phase is called
+ * @then Returns 0 because SOLAR_OFF only applies in Solar mode, not Smart mode
+ */
 void test_force_single_phase_solar_off_in_smart_mode(void) {
     evse_init(&ctx, NULL);
     ctx.EnableC2 = SOLAR_OFF;
@@ -194,6 +314,14 @@ void test_force_single_phase_solar_off_in_smart_mode(void) {
     TEST_ASSERT_EQUAL_INT(0, evse_force_single_phase(&ctx));
 }
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-016
+ * @scenario EnableC2=AUTO forces single phase when charging on 1 phase
+ * @given EVSE has EnableC2 set to AUTO and Nr_Of_Phases_Charging=1
+ * @when evse_force_single_phase is called
+ * @then Returns 1 because AUTO mode follows the current phase count
+ */
 void test_force_single_phase_auto_c2_1p(void) {
     evse_init(&ctx, NULL);
     ctx.EnableC2 = AUTO;
@@ -201,6 +329,14 @@ void test_force_single_phase_auto_c2_1p(void) {
     TEST_ASSERT_EQUAL_INT(1, evse_force_single_phase(&ctx));
 }
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-017
+ * @scenario EnableC2=AUTO does not force single phase when charging on 3 phases
+ * @given EVSE has EnableC2 set to AUTO and Nr_Of_Phases_Charging=3
+ * @when evse_force_single_phase is called
+ * @then Returns 0 because AUTO mode allows 3-phase operation when already on 3 phases
+ */
 void test_force_single_phase_auto_c2_3p(void) {
     evse_init(&ctx, NULL);
     ctx.EnableC2 = AUTO;
@@ -208,12 +344,28 @@ void test_force_single_phase_auto_c2_3p(void) {
     TEST_ASSERT_EQUAL_INT(0, evse_force_single_phase(&ctx));
 }
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-018
+ * @scenario EnableC2=ALWAYS_ON does not force single phase
+ * @given EVSE has EnableC2 set to ALWAYS_ON (contactor 2 always enabled for 3-phase)
+ * @when evse_force_single_phase is called
+ * @then Returns 0 because the EVSE is configured to always operate in three phase
+ */
 void test_force_single_phase_always_on(void) {
     evse_init(&ctx, NULL);
     ctx.EnableC2 = ALWAYS_ON;
     TEST_ASSERT_EQUAL_INT(0, evse_force_single_phase(&ctx));
 }
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-019
+ * @scenario STATE_C entry with single phase disables contactor 2
+ * @given EVSE has EnableC2 set to ALWAYS_OFF (force single phase)
+ * @when EVSE transitions to STATE_C
+ * @then Contactor 1 is on, contactor 2 is off, and Nr_Of_Phases_Charging is 1
+ */
 void test_state_C_contactor2_off_when_single_phase(void) {
     evse_init(&ctx, NULL);
     ctx.EnableC2 = ALWAYS_OFF;  // Force single phase
@@ -223,6 +375,14 @@ void test_state_C_contactor2_off_when_single_phase(void) {
     TEST_ASSERT_EQUAL_INT(1, ctx.Nr_Of_Phases_Charging);
 }
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-020
+ * @scenario STATE_C entry with three phase enables both contactors
+ * @given EVSE has EnableC2 set to NOT_PRESENT (default 3-phase behavior)
+ * @when EVSE transitions to STATE_C
+ * @then Both contactor 1 and contactor 2 are on and Nr_Of_Phases_Charging is 3
+ */
 void test_state_C_contactor2_on_when_three_phase(void) {
     evse_init(&ctx, NULL);
     ctx.EnableC2 = NOT_PRESENT;
@@ -232,6 +392,14 @@ void test_state_C_contactor2_on_when_three_phase(void) {
     TEST_ASSERT_EQUAL_INT(3, ctx.Nr_Of_Phases_Charging);
 }
 
+/*
+ * @feature Operating Modes
+ * @req REQ-MODE-021
+ * @scenario Phase switch from 3P to 1P completes on STATE_C entry
+ * @given EVSE has Switching_Phases_C2=GOING_TO_SWITCH_1P and EnableC2=AUTO
+ * @when EVSE transitions to STATE_C
+ * @then Nr_Of_Phases_Charging is set to 1 and Switching_Phases_C2 is cleared to NO_SWITCH
+ */
 void test_phase_switch_going_to_1p(void) {
     evse_init(&ctx, NULL);
     ctx.Switching_Phases_C2 = GOING_TO_SWITCH_1P;

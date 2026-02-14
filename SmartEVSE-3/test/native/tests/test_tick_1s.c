@@ -21,6 +21,14 @@ static void setup_base(void) {
 
 /* ---- SolarStopTimer ---- */
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-001
+ * @scenario SolarStopTimer decrements by one each second
+ * @given EVSE is in normal mode with SolarStopTimer=3
+ * @when A 1-second tick occurs
+ * @then SolarStopTimer decrements to 2
+ */
 void test_solar_stop_timer_countdown(void) {
     setup_base();
     ctx.SolarStopTimer = 3;
@@ -28,6 +36,14 @@ void test_solar_stop_timer_countdown(void) {
     TEST_ASSERT_EQUAL_INT(2, ctx.SolarStopTimer);
 }
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-002
+ * @scenario SolarStopTimer expiry triggers STATE_C to STATE_C1 transition
+ * @given EVSE is in Smart mode in STATE_C with high mains load and SolarStopTimer=1
+ * @when A 1-second tick decrements SolarStopTimer to 0
+ * @then The EVSE transitions to STATE_C1 (charging suspended) and LESS_6A error flag is set
+ */
 void test_solar_stop_timer_triggers_c1(void) {
     setup_base();
     /* Use SMART mode with high load so LESS_6A won't auto-recover */
@@ -43,6 +59,14 @@ void test_solar_stop_timer_triggers_c1(void) {
     TEST_ASSERT_TRUE(ctx.ErrorFlags & LESS_6A);
 }
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-003
+ * @scenario SolarStopTimer expiry does not trigger C1 when not in STATE_C
+ * @given EVSE is in Smart mode in STATE_B (not charging) with SolarStopTimer=1
+ * @when A 1-second tick decrements SolarStopTimer to 0
+ * @then The EVSE does not transition to STATE_C1 but LESS_6A error flag is still set
+ */
 void test_solar_stop_timer_not_in_c(void) {
     setup_base();
     ctx.Mode = MODE_SMART;
@@ -59,6 +83,14 @@ void test_solar_stop_timer_not_in_c(void) {
 
 /* ---- Node charge timers ---- */
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-004
+ * @scenario Node charge timers increment when node is in STATE_C
+ * @given Node 0 is in STATE_C with IntTimer=5 and Timer=100
+ * @when A 1-second tick occurs
+ * @then IntTimer increments to 6 and Timer increments to 101
+ */
 void test_node_charge_timer_increments(void) {
     setup_base();
     ctx.BalancedState[0] = STATE_C;
@@ -69,6 +101,14 @@ void test_node_charge_timer_increments(void) {
     TEST_ASSERT_EQUAL_INT(101, ctx.Node[0].Timer);
 }
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-005
+ * @scenario Node charge timer resets when node is not in STATE_C
+ * @given Node 0 is in STATE_B (connected but not charging) with IntTimer=20
+ * @when A 1-second tick occurs
+ * @then IntTimer is reset to 0
+ */
 void test_node_charge_timer_resets(void) {
     setup_base();
     ctx.BalancedState[0] = STATE_B;
@@ -77,6 +117,14 @@ void test_node_charge_timer_resets(void) {
     TEST_ASSERT_EQUAL_INT(0, ctx.Node[0].IntTimer);
 }
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-006
+ * @scenario Multiple node charge timers update independently based on each node state
+ * @given Nodes 0 and 2 are in STATE_C (charging) and node 1 is in STATE_B, all with IntTimer=10
+ * @when A 1-second tick occurs
+ * @then Nodes 0 and 2 increment to 11 while node 1 resets to 0
+ */
 void test_multi_node_timers(void) {
     setup_base();
     ctx.BalancedState[0] = STATE_C;
@@ -93,6 +141,14 @@ void test_multi_node_timers(void) {
 
 /* ---- MainsMeter timeout (node) ---- */
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-007
+ * @scenario MainsMeter timeout sets CT_NOCOMM error on node
+ * @given EVSE is a node (LoadBl=2) with MainsMeterTimeout=0
+ * @when A 1-second tick occurs
+ * @then CT_NOCOMM error flag is set indicating mains meter communication lost
+ */
 void test_mains_meter_timeout_node(void) {
     setup_base();
     ctx.LoadBl = 2;
@@ -102,6 +158,14 @@ void test_mains_meter_timeout_node(void) {
     TEST_ASSERT_TRUE(ctx.ErrorFlags & CT_NOCOMM);
 }
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-008
+ * @scenario MainsMeter timeout counter decrements on node each second
+ * @given EVSE is a node (LoadBl=3) with MainsMeterTimeout=5
+ * @when A 1-second tick occurs
+ * @then MainsMeterTimeout decrements to 4
+ */
 void test_mains_meter_node_countdown(void) {
     setup_base();
     ctx.LoadBl = 3;
@@ -112,6 +176,14 @@ void test_mains_meter_node_countdown(void) {
 
 /* ---- LESS_6A enforcement ---- */
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-009
+ * @scenario LESS_6A error forces STATE_C to STATE_C1 via power unavailable
+ * @given EVSE is in Smart mode in STATE_C with LESS_6A error flag set and high mains load
+ * @when A 1-second tick occurs
+ * @then The EVSE transitions to STATE_C1 (charging suspended due to insufficient power)
+ */
 void test_less_6a_enforces_power_unavailable(void) {
     setup_base();
     /* Use SMART mode with high mains load so LESS_6A can't auto-recover */
@@ -126,6 +198,14 @@ void test_less_6a_enforces_power_unavailable(void) {
     TEST_ASSERT_EQUAL_INT(STATE_C1, ctx.State);
 }
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-010
+ * @scenario LESS_6A error sets ChargeDelay to CHARGEDELAY (60 seconds)
+ * @given EVSE is in Smart mode in STATE_B1 with LESS_6A error flag set and ChargeDelay=0
+ * @when A 1-second tick occurs
+ * @then ChargeDelay is set to CHARGEDELAY (60 seconds) to prevent rapid retry
+ */
 void test_less_6a_sets_charge_delay(void) {
     setup_base();
     /* Use SMART mode with high mains load so LESS_6A can't auto-recover */
@@ -143,6 +223,14 @@ void test_less_6a_sets_charge_delay(void) {
 
 /* ---- MaxSumMains timer ---- */
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-011
+ * @scenario MaxSumMains timer decrements each second
+ * @given EVSE has MaxSumMainsTimer=5
+ * @when A 1-second tick occurs
+ * @then MaxSumMainsTimer decrements to 4
+ */
 void test_maxsummains_timer_countdown(void) {
     setup_base();
     ctx.MaxSumMainsTimer = 5;
@@ -150,6 +238,14 @@ void test_maxsummains_timer_countdown(void) {
     TEST_ASSERT_EQUAL_INT(4, ctx.MaxSumMainsTimer);
 }
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-012
+ * @scenario MaxSumMains timer expiry triggers STATE_C to STATE_C1 transition
+ * @given EVSE is in Smart mode in STATE_C with high mains load and MaxSumMainsTimer=1
+ * @when A 1-second tick decrements MaxSumMainsTimer to 0
+ * @then The EVSE transitions to STATE_C1 and LESS_6A error flag is set
+ */
 void test_maxsummains_timer_triggers_c1(void) {
     setup_base();
     ctx.Mode = MODE_SMART;
@@ -166,6 +262,14 @@ void test_maxsummains_timer_triggers_c1(void) {
 
 /* ---- AccessTimer ---- */
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-013
+ * @scenario AccessTimer is cleared when EVSE is not in STATE_A
+ * @given EVSE is in STATE_B with AccessTimer=30
+ * @when A 1-second tick occurs
+ * @then AccessTimer is cleared to 0 because it is only relevant in STATE_A
+ */
 void test_access_timer_cleared_not_in_a(void) {
     setup_base();
     evse_set_state(&ctx, STATE_B);
@@ -176,6 +280,14 @@ void test_access_timer_cleared_not_in_a(void) {
 
 /* ---- EVMeter timeout ---- */
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-014
+ * @scenario EV meter timeout counter decrements each second
+ * @given EVMeterType=1 (meter installed) with EVMeterTimeout=5
+ * @when A 1-second tick occurs
+ * @then EVMeterTimeout decrements to 4
+ */
 void test_ev_meter_timeout_countdown(void) {
     setup_base();
     ctx.EVMeterType = 1;
@@ -184,6 +296,14 @@ void test_ev_meter_timeout_countdown(void) {
     TEST_ASSERT_EQUAL_INT(4, ctx.EVMeterTimeout);
 }
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-015
+ * @scenario EV meter timeout reaching zero sets EV_NOCOMM error
+ * @given EVMeterType=1 with EVMeterTimeout=0 and no existing errors in Smart mode
+ * @when A 1-second tick occurs
+ * @then EV_NOCOMM error flag is set indicating EV meter communication lost
+ */
 void test_ev_meter_timeout_triggers_error(void) {
     setup_base();
     ctx.EVMeterType = 1;
@@ -196,6 +316,14 @@ void test_ev_meter_timeout_triggers_error(void) {
 
 /* ---- Activation timer ---- */
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-016
+ * @scenario Activation timer decrements each second
+ * @given EVSE has ActivationTimer=3
+ * @when A 1-second tick occurs
+ * @then ActivationTimer decrements to 2
+ */
 void test_activation_timer_countdown(void) {
     setup_base();
     ctx.ActivationTimer = 3;
@@ -205,6 +333,14 @@ void test_activation_timer_countdown(void) {
 
 /* ---- ActivationMode countdown ---- */
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-017
+ * @scenario ActivationMode counter decrements each second
+ * @given EVSE has ActivationMode=10
+ * @when A 1-second tick occurs
+ * @then ActivationMode decrements to 9
+ */
 void test_activation_mode_countdown(void) {
     setup_base();
     ctx.ActivationMode = 10;
@@ -214,6 +350,14 @@ void test_activation_mode_countdown(void) {
 
 /* ---- ChargeDelay overridden by LESS_6A ---- */
 
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-018
+ * @scenario ChargeDelay is overridden by LESS_6A enforcement after decrementing to zero
+ * @given EVSE is in Smart mode in STATE_B1 with ChargeDelay=1 and LESS_6A error flag set
+ * @when A 1-second tick decrements ChargeDelay to 0 then LESS_6A enforcement re-sets it
+ * @then ChargeDelay is set back to CHARGEDELAY (60 seconds) by LESS_6A enforcement
+ */
 void test_charge_delay_overridden_by_less_6a(void) {
     setup_base();
     /* Use SMART mode with high mains load so LESS_6A can't auto-recover */
