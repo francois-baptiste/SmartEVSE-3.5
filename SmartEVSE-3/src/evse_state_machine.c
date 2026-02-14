@@ -29,6 +29,7 @@ static evse_hal_t default_hal = {
     .actuator_lock  = hal_noop,
     .actuator_unlock= hal_noop,
     .actuator_off   = hal_noop,
+    .on_state_change = NULL,
 };
 
 // ---- Recording HAL for test instrumentation ----
@@ -160,7 +161,7 @@ uint8_t evse_force_single_phase(evse_ctx_t *ctx) {
         case NOT_PRESENT: return 0;  // 3P
         case ALWAYS_OFF:  return 1;  // 1P
         case SOLAR_OFF:   return (ctx->Mode == MODE_SOLAR) ? 1 : 0;
-        case AUTO_C2:     return (ctx->Nr_Of_Phases_Charging == 1) ? 1 : 0;
+        case AUTO:        return (ctx->Nr_Of_Phases_Charging == 1) ? 1 : 0;
         case ALWAYS_ON:   return 0;  // 3P
         default:          return 0;
     }
@@ -168,7 +169,7 @@ uint8_t evse_force_single_phase(evse_ctx_t *ctx) {
 
 // ---- Check switching phases (faithful to CheckSwitchingPhases() in main.cpp:542-575) ----
 static void check_switching_phases(evse_ctx_t *ctx) {
-    if (ctx->EnableC2 != AUTO_C2 || ctx->Mode == MODE_SOLAR) {
+    if (ctx->EnableC2 != AUTO || ctx->Mode == MODE_SOLAR) {
         if (evse_force_single_phase(ctx)) {
             if (ctx->Nr_Of_Phases_Charging != 1) {
                 if (ctx->State != STATE_A) {
@@ -260,6 +261,8 @@ void evse_set_access(evse_ctx_t *ctx, AccessStatus_t access) {
 // ---- State transition ----
 // Faithful to setState() in main.cpp:790-941
 void evse_set_state(evse_ctx_t *ctx, uint8_t new_state) {
+    uint8_t old_state = ctx->State;  // Save for callback
+
     // Log transition
     if (ctx->State != new_state && ctx->transition_count < 64) {
         ctx->transition_log[ctx->transition_count++] = new_state;
@@ -353,6 +356,11 @@ void evse_set_state(evse_ctx_t *ctx, uint8_t new_state) {
 
     ctx->BalancedState[0] = new_state;
     ctx->State = new_state;
+
+    // Fire platform callback for state transition side effects
+    if (ctx->hal.on_state_change) {
+        ctx->hal.on_state_change(old_state, new_state);
+    }
 }
 
 // ---- Power availability check ----
@@ -485,7 +493,7 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
 
         // Solar B-state phase determination (lines 1212-1231)
         if (ctx->Mode == MODE_SOLAR && ctx->State == STATE_B) {
-            if (ctx->EnableC2 == AUTO_C2) {
+            if (ctx->EnableC2 == AUTO) {
                 if (-ctx->Isum >= (int32_t)(30 * ctx->MinCurrent + 30)) {
                     if (ctx->Nr_Of_Phases_Charging != 3)
                         ctx->Switching_Phases_C2 = GOING_TO_SWITCH_3P;
@@ -579,16 +587,16 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
             // ---- Shortage of power (lines 1332-1440) ----
             ctx->IsetBalanced = ActiveEVSE * ctx->MinCurrent * 10;  // line 1336
 
-            // Solar shortage: 3P→1P switching (lines 1337-1370)
+            // Solar shortage: 3P->1P switching (lines 1337-1370)
             if (ctx->Mode == MODE_SOLAR) {
                 if (ActiveEVSE && IsumImport > 0 &&
                     (ctx->Isum > (int32_t)((ActiveEVSE * ctx->MinCurrent * ctx->Nr_Of_Phases_Charging
                                              - ctx->StartCurrent) * 10) ||
-                     (ctx->Nr_Of_Phases_Charging > 1 && ctx->EnableC2 == AUTO_C2))) {
+                     (ctx->Nr_Of_Phases_Charging > 1 && ctx->EnableC2 == AUTO))) {
 
-                    if (ctx->Nr_Of_Phases_Charging > 1 && ctx->EnableC2 == AUTO_C2 &&
+                    if (ctx->Nr_Of_Phases_Charging > 1 && ctx->EnableC2 == AUTO &&
                         ctx->State == STATE_C) {
-                        // Start solar stop timer for 3P→1P switch
+                        // Start solar stop timer for 3P->1P switch
                         if (ctx->SolarStopTimer == 0) {
                             if (IsumImport < (int32_t)(10 * ctx->MinCurrent))
                                 ctx->SolarStopTimer = ctx->StopTime * 60;
@@ -634,9 +642,9 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
         } else {
             // ---- No shortage (lines 1399-1440) ----
 
-            // Solar 1P→3P upgrade (lines 1404-1432)
+            // Solar 1P->3P upgrade (lines 1404-1432)
             if (ctx->Mode == MODE_SOLAR && ctx->Nr_Of_Phases_Charging == 1 &&
-                ctx->EnableC2 == AUTO_C2 &&
+                ctx->EnableC2 == AUTO &&
                 ctx->IsetBalanced + 8 >= (int32_t)(ctx->MaxCurrent * 10) &&
                 ctx->State == STATE_C) {
 
@@ -739,7 +747,7 @@ void evse_tick_10ms(evse_ctx_t *ctx, uint8_t pilot) {
         } else if (pilot == PILOT_9V && ctx->ErrorFlags == NO_ERROR &&
                    ctx->ChargeDelay == 0 && ctx->AccessStatus == ON &&
                    ctx->State != STATE_COMM_B) {
-            // A→B transition (lines 3095-3126)
+            // A->B transition (lines 3095-3126)
             ctx->DiodeCheck = 0;
 
             // Set ChargeCurrent based on MaxCapacity (line 3107-3108)
@@ -951,7 +959,7 @@ void evse_tick_1s(evse_ctx_t *ctx) {
         }
     }
 
-    // C1Timer countdown (lines 1616-1625) — belongs in tick_1s, NOT tick_10ms
+    // C1Timer countdown (lines 1616-1625)
     if (ctx->State == STATE_C1) {
         if (ctx->C1Timer > 0) {
             ctx->C1Timer--;

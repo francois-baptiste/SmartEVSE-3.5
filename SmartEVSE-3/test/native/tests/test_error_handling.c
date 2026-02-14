@@ -12,7 +12,7 @@
  */
 
 #include "test_framework.h"
-#include "evse_types.h"
+#include "evse_ctx.h"
 #include "evse_state_machine.h"
 
 static evse_ctx_t ctx;

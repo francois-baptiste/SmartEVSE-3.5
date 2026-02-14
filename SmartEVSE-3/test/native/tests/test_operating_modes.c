@@ -6,7 +6,7 @@
  */
 
 #include "test_framework.h"
-#include "evse_types.h"
+#include "evse_ctx.h"
 #include "evse_state_machine.h"
 
 static evse_ctx_t ctx;
@@ -196,14 +196,14 @@ void test_force_single_phase_solar_off_in_smart_mode(void) {
 
 void test_force_single_phase_auto_c2_1p(void) {
     evse_init(&ctx, NULL);
-    ctx.EnableC2 = AUTO_C2;
+    ctx.EnableC2 = AUTO;
     ctx.Nr_Of_Phases_Charging = 1;
     TEST_ASSERT_EQUAL_INT(1, evse_force_single_phase(&ctx));
 }
 
 void test_force_single_phase_auto_c2_3p(void) {
     evse_init(&ctx, NULL);
-    ctx.EnableC2 = AUTO_C2;
+    ctx.EnableC2 = AUTO;
     ctx.Nr_Of_Phases_Charging = 3;
     TEST_ASSERT_EQUAL_INT(0, evse_force_single_phase(&ctx));
 }
@@ -235,7 +235,7 @@ void test_state_C_contactor2_on_when_three_phase(void) {
 void test_phase_switch_going_to_1p(void) {
     evse_init(&ctx, NULL);
     ctx.Switching_Phases_C2 = GOING_TO_SWITCH_1P;
-    ctx.EnableC2 = AUTO_C2;
+    ctx.EnableC2 = AUTO;
     evse_set_state(&ctx, STATE_C);
     TEST_ASSERT_EQUAL_INT(1, ctx.Nr_Of_Phases_Charging);
     TEST_ASSERT_EQUAL_INT(NO_SWITCH, ctx.Switching_Phases_C2);

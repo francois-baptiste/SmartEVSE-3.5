@@ -9,9 +9,9 @@
 
 CC       ?= cc
 CFLAGS   := -std=c11 -Wall -Wextra -Wpedantic -Werror -O0 -g
-INCLUDES := -Iinclude
+INCLUDES := -Iinclude -I../../src
 
-SRC_DIR  := src
+SRC_DIR  := ../../src
 TEST_DIR := tests
 BUILD    := build
 
@@ -28,7 +28,7 @@ TEST_NAMES := $(patsubst $(TEST_DIR)/test_%.c,%,$(TEST_SRCS))
 all: $(TEST_BINS)
 
 # Build each test binary
-$(BUILD)/test_%: $(TEST_DIR)/test_%.c $(EVSE_SRC) include/*.h | $(BUILD)
+$(BUILD)/test_%: $(TEST_DIR)/test_%.c $(EVSE_SRC) include/*.h $(SRC_DIR)/*.h | $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(TEST_DIR)/test_$*.c $(EVSE_SRC)
 
 $(BUILD):
