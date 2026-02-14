@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  native-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run native tests
+        run: make clean test
+        working-directory: SmartEVSE-3/test/native
+
+  firmware-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: ${{ runner.os }}-pio-${{ hashFiles('SmartEVSE-3/platformio.ini') }}
+          restore-keys: ${{ runner.os }}-pio-
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
+      - name: Build ESP32 release
+        run: pio run -e release -d SmartEVSE-3/
+      - name: Build CH32
+        run: pio run -e ch32 -d SmartEVSE-3/
+
+  traceability:
+    needs: [native-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Generate traceability report
+        working-directory: SmartEVSE-3/test/native
+        run: |
+          python scripts/extract_traceability.py \
+            --html traceability-report.html \
+            --markdown test-specification.md
+      - name: Validate state transitions
+        working-directory: SmartEVSE-3/test/native
+        run: python scripts/validate_transitions.py
+      - name: Upload traceability artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: traceability-reports
+          path: |
+            SmartEVSE-3/test/native/traceability-report.html
+            SmartEVSE-3/test/native/test-specification.md
+
+  bdd-tests:
+    needs: [native-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install BDD dependencies
+        run: pip install -r SmartEVSE-3/test/native/requirements-bdd.txt
+      - name: Build native test binaries
+        run: make all
+        working-directory: SmartEVSE-3/test/native
+      - name: Run BDD feature tests
+        working-directory: SmartEVSE-3/test/native
+        run: |
+          python -m pytest steps/ \
+            --tb=short \
+            --html=bdd-report.html \
+            --self-contained-html \
+            -v
+      - name: Upload BDD report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bdd-report
+          path: SmartEVSE-3/test/native/bdd-report.html
+
+  ci-passed:
+    if: always()
+    needs: [native-tests, firmware-build, traceability, bdd-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          if [ "${{ needs.native-tests.result }}" != "success" ] || \
+             [ "${{ needs.firmware-build.result }}" != "success" ] || \
+             [ "${{ needs.traceability.result }}" != "success" ] || \
+             [ "${{ needs.bdd-tests.result }}" != "success" ]; then
+            echo "One or more jobs failed"
+            exit 1
+          fi
+          echo "All checks passed"
