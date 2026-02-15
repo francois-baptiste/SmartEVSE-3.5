@@ -21,6 +21,20 @@ SmartEVSE is an internet-connected device that controls mains electricity. Secur
 - Denial of service that could leave contactors in an unsafe state
 - Information disclosure of WiFi credentials or RFID card data
 
+## Security Design Choices
+
+### Shared Default TLS Certificate
+
+The repository includes a self-signed EC private key (`SmartEVSE-3/data/key.pem`) and certificate (`SmartEVSE-3/data/cert.pem`) used for the device's built-in HTTPS web server. This is an intentional design choice: every SmartEVSE ships with the same default keypair so that HTTPS works out of the box without requiring a per-device provisioning step.
+
+**Implications:**
+
+- The private key is public knowledge. HTTPS provides encryption in transit but does not authenticate the device — an attacker on the local network could impersonate a SmartEVSE endpoint.
+- All devices share the same certificate, so compromising one does not increase risk to others (there is no unique secret to protect).
+- This is a common tradeoff in embedded devices where there is no certificate authority infrastructure or user-facing provisioning flow.
+
+Users who require stronger TLS authentication should replace the default keypair with a device-specific certificate.
+
 ## Supported Versions
 
 | Version | Supported |
