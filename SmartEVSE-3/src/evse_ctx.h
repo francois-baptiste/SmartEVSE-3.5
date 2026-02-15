@@ -299,12 +299,14 @@ typedef struct {
     evse_hal_t hal;
 
     // --- Test instrumentation (for assertions) ---
+#ifdef EVSE_TESTING
     uint32_t last_pwm_duty;
     bool     contactor1_state;
     bool     contactor2_state;
     bool     pilot_connected;
     int      transition_count;
     uint8_t  transition_log[64];
+#endif
 } evse_ctx_t;
 
 #ifdef __cplusplus

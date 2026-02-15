@@ -34,22 +34,30 @@ static evse_hal_t default_hal = {
 
 // ---- Recording HAL for test instrumentation ----
 static void record_cp_duty(evse_ctx_t *ctx, uint32_t duty) {
+#ifdef EVSE_TESTING
     ctx->last_pwm_duty = duty;
+#endif
     if (ctx->hal.set_cp_duty) ctx->hal.set_cp_duty(duty);
 }
 
 static void record_contactor1(evse_ctx_t *ctx, bool on) {
+#ifdef EVSE_TESTING
     ctx->contactor1_state = on;
+#endif
     if (ctx->hal.contactor1) ctx->hal.contactor1(on);
 }
 
 static void record_contactor2(evse_ctx_t *ctx, bool on) {
+#ifdef EVSE_TESTING
     ctx->contactor2_state = on;
+#endif
     if (ctx->hal.contactor2) ctx->hal.contactor2(on);
 }
 
 static void record_pilot(evse_ctx_t *ctx, bool connected) {
+#ifdef EVSE_TESTING
     ctx->pilot_connected = connected;
+#endif
     if (ctx->hal.set_pilot) ctx->hal.set_pilot(connected);
 }
 
@@ -147,11 +155,13 @@ void evse_init(evse_ctx_t *ctx, evse_hal_t *hal) {
     // Node 0 (master) starts online
     ctx->Node[0].Online = 1;
 
-    // Test instrumentation
+#ifdef EVSE_TESTING
+    // Test instrumentation defaults
     ctx->pilot_connected = true;
     ctx->contactor1_state = false;
     ctx->contactor2_state = false;
     ctx->transition_count = 0;
+#endif
 }
 
 // ---- Phase switching helper ----
@@ -263,10 +273,12 @@ void evse_set_access(evse_ctx_t *ctx, AccessStatus_t access) {
 void evse_set_state(evse_ctx_t *ctx, uint8_t new_state) {
     uint8_t old_state = ctx->State;  // Save for callback
 
-    // Log transition
+#ifdef EVSE_TESTING
+    // Log transition for test assertions
     if (ctx->State != new_state && ctx->transition_count < 64) {
         ctx->transition_log[ctx->transition_count++] = new_state;
     }
+#endif
 
     switch (new_state) {
         case STATE_B1:

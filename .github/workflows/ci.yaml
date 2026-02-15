@@ -46,6 +46,38 @@ jobs:
             -I SmartEVSE-3/src \
             -I SmartEVSE-3/test/native/include \
             SmartEVSE-3/src/evse_state_machine.c
+      - name: Check stack usage (GCC)
+        run: make clean all CFLAGS_EXTRA="-Wstack-usage=1024"
+        working-directory: SmartEVSE-3/test/native
+
+  memory-sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Run tests with ASan + UBSan
+        run: make clean test CFLAGS_EXTRA="-fsanitize=address,undefined -fno-omit-frame-pointer"
+        working-directory: SmartEVSE-3/test/native
+
+  valgrind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Install Valgrind
+        run: sudo apt-get -qq install -y valgrind
+      - name: Build tests
+        run: make clean all
+        working-directory: SmartEVSE-3/test/native
+      - name: Run tests under Valgrind
+        working-directory: SmartEVSE-3/test/native
+        run: |
+          failed=0
+          for bin in build/test_*; do
+            echo "=== Valgrind: $(basename $bin) ==="
+            if ! valgrind --error-exitcode=1 --leak-check=full --show-leak-kinds=definite,possible --errors-for-leak-kinds=definite "$bin"; then
+              failed=1
+            fi
+          done
+          exit $failed
 
   firmware-build:
     runs-on: ubuntu-latest
@@ -64,9 +96,37 @@ jobs:
       - name: Install PlatformIO
         run: pip install --upgrade platformio
       - name: Build ESP32 release
-        run: pio run -e release -d SmartEVSE-3/
+        run: pio run -e release -d SmartEVSE-3/ 2>&1 | tee esp32-build.log
       - name: Build CH32
-        run: pio run -e ch32 -d SmartEVSE-3/
+        run: pio run -e ch32 -d SmartEVSE-3/ 2>&1 | tee ch32-build.log
+      - name: Check firmware memory budget
+        run: |
+          check_budget() {
+            local log="$1" label="$2" flash_max="$3" ram_max="$4"
+            echo "=== $label Memory Budget ==="
+            # PlatformIO prints: RAM:   [==        ]  XX.X% (used XXXXX bytes from XXXXXX bytes)
+            #                    Flash: [=======   ]  XX.X% (used XXXXXX bytes from XXXXXXX bytes)
+            ram_pct=$(grep -oP 'RAM:.*?(\d+\.\d+)%' "$log" | grep -oP '\d+\.\d+' | tail -1)
+            flash_pct=$(grep -oP 'Flash:.*?(\d+\.\d+)%' "$log" | grep -oP '\d+\.\d+' | tail -1)
+            echo "  RAM usage:   ${ram_pct}% (budget: ${ram_max}%)"
+            echo "  Flash usage: ${flash_pct}% (budget: ${flash_max}%)"
+            failed=0
+            if [ -n "$ram_pct" ] && [ "$(echo "$ram_pct > $ram_max" | bc -l)" -eq 1 ]; then
+              echo "  ERROR: RAM usage ${ram_pct}% exceeds budget ${ram_max}%"
+              failed=1
+            fi
+            if [ -n "$flash_pct" ] && [ "$(echo "$flash_pct > $flash_max" | bc -l)" -eq 1 ]; then
+              echo "  ERROR: Flash usage ${flash_pct}% exceeds budget ${flash_max}%"
+              failed=1
+            fi
+            return $failed
+          }
+          result=0
+          # ESP32: 4MB flash (1.75MB OTA partition), 320KB RAM
+          check_budget esp32-build.log "ESP32" 95 90 || result=1
+          # CH32: 64KB flash, 20KB RAM - much tighter
+          check_budget ch32-build.log "CH32" 95 90 || result=1
+          exit $result
 
   traceability:
     needs: [native-tests]
@@ -126,7 +186,7 @@ jobs:
 
   ci-passed:
     if: always()
-    needs: [native-tests, firmware-build, static-analysis, traceability, bdd-tests]
+    needs: [native-tests, firmware-build, static-analysis, memory-sanitizers, valgrind, traceability, bdd-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Check results
@@ -134,6 +194,8 @@ jobs:
           if [ "${{ needs.native-tests.result }}" != "success" ] || \
              [ "${{ needs.firmware-build.result }}" != "success" ] || \
              [ "${{ needs.static-analysis.result }}" != "success" ] || \
+             [ "${{ needs.memory-sanitizers.result }}" != "success" ] || \
+             [ "${{ needs.valgrind.result }}" != "success" ] || \
              [ "${{ needs.traceability.result }}" != "success" ] || \
              [ "${{ needs.bdd-tests.result }}" != "success" ]; then
             echo "One or more jobs failed"
