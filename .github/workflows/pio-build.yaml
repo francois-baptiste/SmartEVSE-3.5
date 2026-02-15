@@ -82,10 +82,13 @@ jobs:
           PLATFORMIO_BUILD_FLAGS='-DVERSION=\"v${{ steps.version.outputs.version }}\" -DDBG=0' pio run -d SmartEVSE-3/
           mkdir -p ./SmartEVSE-3/distribution
       - name: Sign normal version
-        if: ${{ secrets.SECRET_RSA_KEY != '' }}
         env:
           super_secret: ${{ secrets.SECRET_RSA_KEY }}
         run: |
+          if [ -z "$super_secret" ]; then
+            echo "Signing key not available, skipping firmware signing"
+            exit 0
+          fi
           secret_file=$(mktemp)
           echo "$super_secret" > "$secret_file"
           openssl dgst -sign "$secret_file" -keyform PEM -sha256 -out firmware.sign -binary ./SmartEVSE-3/.pio/build/release/firmware.bin
@@ -97,10 +100,13 @@ jobs:
         run: |
           PLATFORMIO_BUILD_FLAGS='-DVERSION=\"v${{ steps.version.outputs.version }}\" -DDBG=1' pio run -d SmartEVSE-3/
       - name: Sign debug version
-        if: ${{ secrets.SECRET_RSA_KEY != '' }}
         env:
           super_secret: ${{ secrets.SECRET_RSA_KEY }}
         run: |
+          if [ -z "$super_secret" ]; then
+            echo "Signing key not available, skipping firmware signing"
+            exit 0
+          fi
           secret_file=$(mktemp)
           echo "$super_secret" > "$secret_file"
           openssl dgst -sign "$secret_file" -keyform PEM -sha256 -out firmware.sign -binary ./SmartEVSE-3/.pio/build/release/firmware.bin
