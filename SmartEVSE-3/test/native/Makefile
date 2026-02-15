@@ -8,7 +8,7 @@
 #   make test_state_transitions  - build+run single suite
 
 CC       ?= cc
-CFLAGS   := -std=c11 -Wall -Wextra -Wpedantic -Werror -O0 -g
+CFLAGS   := -std=c11 -Wall -Wextra -Wpedantic -Werror -O0 -g $(CFLAGS_EXTRA)
 INCLUDES := -Iinclude -I../../src
 
 SRC_DIR  := ../../src

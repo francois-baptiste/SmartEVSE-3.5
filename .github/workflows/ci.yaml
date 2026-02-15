@@ -17,9 +17,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Run native tests
-        run: make clean test
+      - name: Run native tests with coverage
+        run: make clean test CFLAGS_EXTRA="--coverage"
         working-directory: SmartEVSE-3/test/native
+      - name: Generate coverage report
+        run: |
+          sudo apt-get -qq install -y lcov
+          lcov --capture --directory SmartEVSE-3/test/native/build --output-file coverage.info --include '*/evse_state_machine.c'
+          lcov --list coverage.info
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: coverage-report
+          path: coverage.info
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Install cppcheck
+        run: sudo apt-get -qq install -y cppcheck
+      - name: Run cppcheck on state machine module
+        run: |
+          cppcheck --enable=warning,style,performance \
+            --error-exitcode=1 \
+            --suppress=missingIncludeSystem \
+            --inline-suppr \
+            -I SmartEVSE-3/src \
+            -I SmartEVSE-3/test/native/include \
+            SmartEVSE-3/src/evse_state_machine.c
 
   firmware-build:
     runs-on: ubuntu-latest
@@ -100,13 +126,14 @@ jobs:
 
   ci-passed:
     if: always()
-    needs: [native-tests, firmware-build, traceability, bdd-tests]
+    needs: [native-tests, firmware-build, static-analysis, traceability, bdd-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Check results
         run: |
           if [ "${{ needs.native-tests.result }}" != "success" ] || \
              [ "${{ needs.firmware-build.result }}" != "success" ] || \
+             [ "${{ needs.static-analysis.result }}" != "success" ] || \
              [ "${{ needs.traceability.result }}" != "success" ] || \
              [ "${{ needs.bdd-tests.result }}" != "success" ]; then
             echo "One or more jobs failed"
