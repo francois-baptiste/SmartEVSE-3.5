@@ -62,6 +62,7 @@ static void record_pilot(evse_ctx_t *ctx, bool connected) {
 }
 
 // ---- Initialization ----
+// cppcheck-suppress constParameterPointer
 void evse_init(evse_ctx_t *ctx, evse_hal_t *hal) {
     memset(ctx, 0, sizeof(evse_ctx_t));
 
@@ -166,6 +167,7 @@ void evse_init(evse_ctx_t *ctx, evse_hal_t *hal) {
 
 // ---- Phase switching helper ----
 // Faithful to Force_Single_Phase_Charging() in main.cpp:681-696
+// cppcheck-suppress constParameterPointer
 uint8_t evse_force_single_phase(evse_ctx_t *ctx) {
     switch (ctx->EnableC2) {
         case NOT_PRESENT: return 0;  // 3P
@@ -446,10 +448,10 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
     int32_t TotalCurrent = 0;
     int32_t ActiveMax = 0;
     int32_t Baseload, Baseload_EV;
-    int32_t Idifference;
+    int32_t Idifference; // cppcheck-suppress variableScope
     int32_t IsumImport = 0;
     bool LimitedByMaxSumMains = false;
-    char CurrentSet[NR_EVSES] = {0};
+    char CurrentSet[NR_EVSES] = {0}; // cppcheck-suppress variableScope
 
     // ---- Phase 1: ChargeCurrent (lines 1158-1179) ----
     if (ctx->BalancedState[0] == STATE_C && ctx->MaxCurrent > ctx->MaxCapacity && ctx->MaxCapacity)
@@ -601,6 +603,7 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
 
             // Solar shortage: 3P->1P switching (lines 1337-1370)
             if (ctx->Mode == MODE_SOLAR) {
+                // cppcheck-suppress knownConditionTrueFalse
                 if (ActiveEVSE && IsumImport > 0 &&
                     (ctx->Isum > (int32_t)((ActiveEVSE * ctx->MinCurrent * ctx->Nr_Of_Phases_Charging
                                              - ctx->StartCurrent) * 10) ||
