@@ -123,9 +123,29 @@ void test_A_to_modem_when_modem_stage_0(void) {
     ctx.Mode = MODE_NORMAL;
     ctx.LoadBl = 0;
     ctx.ChargeCurrent = 100;
+    ctx.ModemEnabled = true;  // Modem must be enabled for modem flow
     ctx.ModemStage = 0;  // Modem not yet authenticated
     evse_tick_10ms(&ctx, PILOT_9V);
     TEST_ASSERT_EQUAL_INT(STATE_MODEM_REQUEST, ctx.State);
+}
+
+/*
+ * @feature IEC 61851-1 State Transitions
+ * @req REQ-IEC61851-007B
+ * @scenario A→B goes directly to STATE_B when modem is disabled
+ * @given The EVSE is in STATE_A with ModemStage=0 but ModemEnabled=false
+ * @when A 9V pilot signal is received (vehicle connected)
+ * @then The state transitions directly to STATE_B (modem flow skipped)
+ */
+void test_A_to_B_skips_modem_when_disabled(void) {
+    setup_idle();
+    ctx.Mode = MODE_NORMAL;
+    ctx.LoadBl = 0;
+    ctx.ChargeCurrent = 100;
+    ctx.ModemEnabled = false;  // Modem disabled (default)
+    ctx.ModemStage = 0;
+    evse_tick_10ms(&ctx, PILOT_9V);
+    TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
 }
 
 /*
@@ -672,6 +692,7 @@ int main(void) {
     RUN_TEST(test_A_stays_A_on_12V);
     RUN_TEST(test_A_to_B_on_9V_when_ready);
     RUN_TEST(test_A_to_modem_when_modem_stage_0);
+    RUN_TEST(test_A_to_B_skips_modem_when_disabled);
     RUN_TEST(test_A_stays_A_when_access_off);
     RUN_TEST(test_A_to_B1_when_errors);
     RUN_TEST(test_A_to_B1_when_charge_delay);

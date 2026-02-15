@@ -16,6 +16,7 @@ static void setup_basic(void) {
     evse_init(&ctx, NULL);
     ctx.AccessStatus = ON;
     ctx.Mode = MODE_NORMAL;
+    ctx.ModemEnabled = true;  // Modem tests require modem to be enabled
 }
 
 // ---- MODEM_REQUEST ----

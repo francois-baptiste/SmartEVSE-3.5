@@ -317,6 +317,7 @@ void evse_sync_globals_to_ctx(void) {
     ctx->Switching_Phases_C2 = (uint8_t)Switching_Phases_C2;
     ctx->phasesLastUpdateFlag = phasesLastUpdateFlag;
 
+    ctx->ModemEnabled = MODEM;
     ctx->ModemStage = ModemStage;
     ctx->DisconnectTimeCounter = DisconnectTimeCounter;
     ctx->ToModemWaitStateTimer = ToModemWaitStateTimer;

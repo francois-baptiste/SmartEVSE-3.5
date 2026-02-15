@@ -131,6 +131,7 @@ void evse_init(evse_ctx_t *ctx, evse_hal_t *hal) {
     ctx->LimitedByMaxSumMains = false;
 
     // Modem
+    ctx->ModemEnabled = false;
     ctx->ModemStage = 0;
     ctx->DisconnectTimeCounter = -1;     // Disabled
     ctx->RequiredEVCCID[0] = '\0';
@@ -779,8 +780,8 @@ void evse_tick_10ms(evse_ctx_t *ctx, uint8_t pilot) {
                 ctx->BalancedMax[0] = ctx->MaxCapacity * 10;
                 ctx->Balanced[0] = ctx->ChargeCurrent;
 
-                // Modem stage check (lines 3119-3123)
-                if (ctx->ModemStage == 0) {
+                // Modem stage check (lines 3119-3123, guarded by #if MODEM in original)
+                if (ctx->ModemEnabled && ctx->ModemStage == 0) {
                     evse_set_state(ctx, STATE_MODEM_REQUEST);
                 } else {
                     evse_set_state(ctx, STATE_B);
@@ -929,48 +930,50 @@ void evse_tick_1s(evse_ctx_t *ctx) {
     // ActivationTimer countdown (line 1546)
     if (ctx->ActivationTimer) ctx->ActivationTimer--;
 
-    // Modem timers (lines 1548-1611)
-    if (ctx->State == STATE_MODEM_REQUEST) {
-        if (ctx->ToModemWaitStateTimer > 0) {
-            ctx->ToModemWaitStateTimer--;
-        } else {
-            evse_set_state(ctx, STATE_MODEM_WAIT);
-        }
-    }
-    if (ctx->State == STATE_MODEM_WAIT) {
-        if (ctx->ToModemDoneStateTimer > 0) {
-            ctx->ToModemDoneStateTimer--;
-        }
-        if (ctx->ToModemDoneStateTimer == 0) {
-            evse_set_state(ctx, STATE_MODEM_DONE);
-        }
-    }
-    if (ctx->State == STATE_MODEM_DONE) {
-        if (ctx->LeaveModemDoneStateTimer > 0) {
-            ctx->LeaveModemDoneStateTimer--;
-        }
-        if (ctx->LeaveModemDoneStateTimer == 0) {
-            // EVCCID validation (lines 1585-1598)
-            record_cp_duty(ctx, 1024);                      // Reset CP (line 1581)
-            record_pilot(ctx, false);                        // PILOT_DISCONNECTED (line 1582)
-            if (ctx->RequiredEVCCID[0] == '\0' ||
-                strcmp(ctx->RequiredEVCCID, ctx->EVCCID) == 0) {
-                ctx->ModemStage = 1;                         // Skip modem next time
-                evse_set_state(ctx, STATE_B);
+    // Modem timers (lines 1548-1611, guarded by #if MODEM in original)
+    if (ctx->ModemEnabled) {
+        if (ctx->State == STATE_MODEM_REQUEST) {
+            if (ctx->ToModemWaitStateTimer > 0) {
+                ctx->ToModemWaitStateTimer--;
             } else {
-                ctx->ModemStage = 0;
-                ctx->LeaveModemDeniedStateTimer = 60;
-                evse_set_state(ctx, STATE_MODEM_DENIED);
+                evse_set_state(ctx, STATE_MODEM_WAIT);
             }
         }
-    }
-    if (ctx->State == STATE_MODEM_DENIED) {
-        if (ctx->LeaveModemDeniedStateTimer > 0) {
-            ctx->LeaveModemDeniedStateTimer--;
+        if (ctx->State == STATE_MODEM_WAIT) {
+            if (ctx->ToModemDoneStateTimer > 0) {
+                ctx->ToModemDoneStateTimer--;
+            }
+            if (ctx->ToModemDoneStateTimer == 0) {
+                evse_set_state(ctx, STATE_MODEM_DONE);
+            }
         }
-        if (ctx->LeaveModemDeniedStateTimer == 0) {
-            evse_set_state(ctx, STATE_A);
-            record_pilot(ctx, true);                         // PILOT_CONNECTED (line 1608)
+        if (ctx->State == STATE_MODEM_DONE) {
+            if (ctx->LeaveModemDoneStateTimer > 0) {
+                ctx->LeaveModemDoneStateTimer--;
+            }
+            if (ctx->LeaveModemDoneStateTimer == 0) {
+                // EVCCID validation (lines 1585-1598)
+                record_cp_duty(ctx, 1024);                      // Reset CP (line 1581)
+                record_pilot(ctx, false);                        // PILOT_DISCONNECTED (line 1582)
+                if (ctx->RequiredEVCCID[0] == '\0' ||
+                    strcmp(ctx->RequiredEVCCID, ctx->EVCCID) == 0) {
+                    ctx->ModemStage = 1;                         // Skip modem next time
+                    evse_set_state(ctx, STATE_B);
+                } else {
+                    ctx->ModemStage = 0;
+                    ctx->LeaveModemDeniedStateTimer = 60;
+                    evse_set_state(ctx, STATE_MODEM_DENIED);
+                }
+            }
+        }
+        if (ctx->State == STATE_MODEM_DENIED) {
+            if (ctx->LeaveModemDeniedStateTimer > 0) {
+                ctx->LeaveModemDeniedStateTimer--;
+            }
+            if (ctx->LeaveModemDeniedStateTimer == 0) {
+                evse_set_state(ctx, STATE_A);
+                record_pilot(ctx, true);                         // PILOT_CONNECTED (line 1608)
+            }
         }
     }
 

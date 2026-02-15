@@ -265,6 +265,7 @@ typedef struct {
     bool    LimitedByMaxSumMains;
 
     // --- Modem ---
+    bool    ModemEnabled;
     uint8_t ModemStage;
     uint8_t ToModemWaitStateTimer;
     uint8_t ToModemDoneStateTimer;
