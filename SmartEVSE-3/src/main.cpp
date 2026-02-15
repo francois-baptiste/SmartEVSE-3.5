@@ -2330,7 +2330,6 @@ void Timer10ms_singlerun(void) {
 #if !defined(SMARTEVSE_VERSION) || SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40 //CH32 and v3
     // === PLATFORM PRE-ACTIONS ===
     ExtSwitch.CheckSwitch();
-    MaxCapacity = ProximityPin();                                           // Sample Proximity Pin (needed by module)
     pilot = Pilot();
     LOG1S("WCH 10ms: state=%d, pilot=%d, ErrorFlags=%d, ChargeDelay=%d, AccessStatus=%d, MainsMeter.Type=%d.\n", State, pilot, ErrorFlags, ChargeDelay, AccessStatus, MainsMeter.Type);
 
@@ -2345,6 +2344,12 @@ void Timer10ms_singlerun(void) {
     // (State transitions -> callback fires automatically)
 
     // === PLATFORM POST-ACTIONS ===
+
+    // Sample Proximity Pin only on A->B transition (original location: line 3104)
+    if (State != STATE_A && oldState == STATE_A) {
+        MaxCapacity = ProximityPin();
+        _LOG_I("Cable limit: %uA  Max: %uA\n", MaxCapacity, MaxCurrent);
+    }
 
     // EVMeter energy tracking (STATE_A pilot 12V disconnect)
     if (State == STATE_A && pilot == PILOT_12V && !EVMeter.ResetKwh) {
