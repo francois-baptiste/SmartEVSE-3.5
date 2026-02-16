@@ -206,6 +206,7 @@ typedef struct {
     // --- Operating config ---
     uint8_t Mode;
     uint8_t LoadBl;
+    uint8_t Config;     // 0=Socket, 1=Fixed Cable
 
     // --- Authorization ---
     AccessStatus_t AccessStatus;

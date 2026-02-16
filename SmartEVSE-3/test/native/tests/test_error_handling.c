@@ -541,10 +541,16 @@ void test_pilot_reconnect_after_timer(void) {
 
     evse_tick_1s(&ctx);
     TEST_ASSERT_EQUAL_INT(1, ctx.PilotDisconnectTime);
-    TEST_ASSERT_TRUE(ctx.PilotDisconnected);
+    TEST_ASSERT_TRUE(ctx.PilotDisconnected);  // Still disconnected
 
     evse_tick_1s(&ctx);
     TEST_ASSERT_EQUAL_INT(0, ctx.PilotDisconnectTime);
+    // tick_1s only decrements - reconnect happens in tick_10ms (matches original)
+    TEST_ASSERT_TRUE(ctx.PilotDisconnected);  // Still disconnected after tick_1s
+
+    // Reconnect happens on the next tick_10ms when PilotDisconnectTime==0
+    ctx.State = STATE_B1;  // Must be in A/COMM_B/B1 for pilot check
+    evse_tick_10ms(&ctx, PILOT_9V);
     TEST_ASSERT_FALSE(ctx.PilotDisconnected);
     TEST_ASSERT_TRUE(ctx.pilot_connected);
 }

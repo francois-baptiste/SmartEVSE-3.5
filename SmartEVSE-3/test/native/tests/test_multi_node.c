@@ -361,6 +361,63 @@ void test_isetbalanced_capped_at_active_max(void) {
     TEST_ASSERT_EQUAL_INT(80, ctx.Balanced[1]);
 }
 
+/* ---- Unequal BalancedMax distribution ---- */
+
+/*
+ * @feature Multi-Node Load Balancing
+ * @req REQ-MULTI-013
+ * @scenario Three EVSEs with all different BalancedMax values
+ * @given Master with 3 EVSEs: max 320, 160, 80 deciamps, MaxCircuit=64A
+ * @when Balanced current is calculated
+ * @then Each EVSE capped at its max, remainder redistributed to uncapped EVSEs
+ */
+void test_three_evse_all_different_max(void) {
+    setup_master_n_evse(3);
+    ctx.BalancedMax[0] = 320;  /* 32A */
+    ctx.BalancedMax[1] = 160;  /* 16A */
+    ctx.BalancedMax[2] = 80;   /* 8A */
+    ctx.EVMeterImeasured = 0;
+
+    evse_calc_balanced_current(&ctx, 0);
+
+    /* IsetBalanced = 640. ActiveMax = 320+160+80 = 560.
+     * IsetBalanced capped at 560. Distribution:
+     * First pass: EVSE[2] capped at 80 (80 < 560/3=186).
+     * Remaining: 560-80 = 480 for 2 EVSEs -> 240 each.
+     * EVSE[1] capped at 160 (160 < 240).
+     * Remaining for EVSE[0]: 560-80-160 = 320. Capped at 320. */
+    TEST_ASSERT_LESS_OR_EQUAL(320, (int)ctx.Balanced[0]);
+    TEST_ASSERT_LESS_OR_EQUAL(160, (int)ctx.Balanced[1]);
+    TEST_ASSERT_LESS_OR_EQUAL(80, (int)ctx.Balanced[2]);
+    /* Total should equal IsetBalanced (capped at ActiveMax=560) */
+    int total = ctx.Balanced[0] + ctx.Balanced[1] + ctx.Balanced[2];
+    TEST_ASSERT_EQUAL_INT(560, total);
+}
+
+/*
+ * @feature Multi-Node Load Balancing
+ * @req REQ-MULTI-014
+ * @scenario Tight circuit with unequal max: surplus from small EVSE redistributed
+ * @given 2 EVSEs: EVSE[0] max 320, EVSE[1] max 60 (MinCurrent), MaxCircuit=25A
+ * @when Balanced current is calculated
+ * @then EVSE[1] gets 60, EVSE[0] gets remainder (250-60=190)
+ */
+void test_unequal_max_tight_circuit(void) {
+    setup_master_n_evse(2);
+    ctx.MaxCircuit = 25;
+    ctx.BalancedMax[0] = 320;
+    ctx.BalancedMax[1] = 60;   /* Can only take MinCurrent */
+    ctx.EVMeterImeasured = 0;
+
+    evse_calc_balanced_current(&ctx, 0);
+
+    /* IsetBalanced = 250. ActiveMax = 320+60 = 380.
+     * IsetBalanced = min(250, 380) = 250.
+     * EVSE[1] capped at 60. Remaining: 250-60 = 190 for EVSE[0]. */
+    TEST_ASSERT_EQUAL_INT(60, ctx.Balanced[1]);
+    TEST_ASSERT_EQUAL_INT(190, ctx.Balanced[0]);
+}
+
 /* ---- Main ---- */
 int main(void) {
     TEST_SUITE_BEGIN("Multi-Node Load Balancing Edge Cases");
@@ -377,6 +434,8 @@ int main(void) {
     RUN_TEST(test_nocurrent_zero_when_sufficient);
     RUN_TEST(test_state_b_node_gets_no_current);
     RUN_TEST(test_isetbalanced_capped_at_active_max);
+    RUN_TEST(test_three_evse_all_different_max);
+    RUN_TEST(test_unequal_max_tight_circuit);
 
     TEST_SUITE_RESULTS();
 }

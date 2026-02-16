@@ -127,6 +127,10 @@ extern ModbusMessage MBEVMeterResponse(ModbusMessage request);
 hw_timer_t * timerA = NULL;
 Preferences preferences;
 
+#if DIAG_LOG
+volatile uint32_t cpPulseCount = 0;  // Count CP rising edge interrupts
+#endif
+
 // delayed write settings - reduces flash wear by combining multiple writes into one
 static bool SettingsDirty = false;                      // Flag indicating settings need to be written
 static unsigned long LastSettingsWriteTime = 0;         // millis() timestamp of last write
@@ -383,8 +387,11 @@ uint16_t IRAM_ATTR local_adc1_read(int channel) {
 void IRAM_ATTR onCPpulse() {
 
   // reset timer, these functions are in IRAM !
-  timerWrite(timerA, 0);                                        
+  timerWrite(timerA, 0);
   timerAlarmEnable(timerA);
+#if DIAG_LOG
+  cpPulseCount++;
+#endif
 }
 
 

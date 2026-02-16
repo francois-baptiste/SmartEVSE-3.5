@@ -373,6 +373,52 @@ void test_charge_delay_overridden_by_less_6a(void) {
     TEST_ASSERT_EQUAL_INT(CHARGEDELAY, ctx.ChargeDelay);
 }
 
+/* ---- LESS_6A ChargeDelay unconditional reset (F2 fidelity fix) ---- */
+
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-F2A
+ * @scenario LESS_6A resets ChargeDelay to CHARGEDELAY every tick, even when non-zero
+ * @given EVSE is in Smart mode in STATE_B1 with LESS_6A set and ChargeDelay=30
+ * @when A 1-second tick occurs
+ * @then ChargeDelay is reset to CHARGEDELAY (60), not decremented to 29
+ */
+void test_less_6a_resets_charge_delay_every_tick(void) {
+    setup_base();
+    ctx.Mode = MODE_SMART;
+    ctx.MainsMeterType = 1;
+    ctx.MainsMeterImeasured = 300;
+    ctx.MaxMains = 10;
+    ctx.ErrorFlags = LESS_6A;
+    ctx.ChargeDelay = 30;
+    ctx.State = STATE_B1;
+    ctx.BalancedState[0] = STATE_B1;
+    evse_tick_1s(&ctx);
+    TEST_ASSERT_EQUAL_INT(CHARGEDELAY, ctx.ChargeDelay);
+}
+
+/*
+ * @feature 1-Second Tick Processing
+ * @req REQ-TICK1S-F2B
+ * @scenario LESS_6A prevents ChargeDelay from ever reaching zero
+ * @given EVSE is in Smart mode in STATE_B1 with LESS_6A set and ChargeDelay=1
+ * @when A 1-second tick occurs (ChargeDelay decrements to 0, then LESS_6A resets it)
+ * @then ChargeDelay is CHARGEDELAY (60), not 0
+ */
+void test_less_6a_charge_delay_never_reaches_zero(void) {
+    setup_base();
+    ctx.Mode = MODE_SMART;
+    ctx.MainsMeterType = 1;
+    ctx.MainsMeterImeasured = 300;
+    ctx.MaxMains = 10;
+    ctx.ErrorFlags = LESS_6A;
+    ctx.ChargeDelay = 1;
+    ctx.State = STATE_B1;
+    ctx.BalancedState[0] = STATE_B1;
+    evse_tick_1s(&ctx);
+    TEST_ASSERT_EQUAL_INT(CHARGEDELAY, ctx.ChargeDelay);
+}
+
 /* ---- Main ---- */
 int main(void) {
     TEST_SUITE_BEGIN("Tick 1s");
@@ -395,6 +441,8 @@ int main(void) {
     RUN_TEST(test_activation_timer_countdown);
     RUN_TEST(test_activation_mode_countdown);
     RUN_TEST(test_charge_delay_overridden_by_less_6a);
+    RUN_TEST(test_less_6a_resets_charge_delay_every_tick);
+    RUN_TEST(test_less_6a_charge_delay_never_reaches_zero);
 
     TEST_SUITE_RESULTS();
 }

@@ -324,16 +324,20 @@ void test_a_to_b_sets_balanced_max(void) {
 /*
  * @feature 10ms Tick Processing
  * @req REQ-TICK10-016
- * @scenario A-to-B transition sets PWM duty cycle from balanced current
+ * @scenario A-to-B transition does NOT set extra PWM duty (F3 fidelity fix)
  * @given EVSE is ready to charge in standalone mode
  * @when A 9V pilot signal triggers the A-to-B transition
- * @then The PWM duty cycle is set to the value corresponding to Balanced[0] current
+ * @then PWM duty remains 1024 (from STATE_A entry); module does not set PWM on A→B,
+ *       the platform callback (on_state_change) handles timer setup
  */
-void test_a_to_b_sets_pwm_duty(void) {
+void test_a_to_b_no_extra_pwm(void) {
     setup_ready_to_charge();
+    /* After init, last_pwm_duty is 0 (memset). Remember it. */
+    uint32_t before = ctx.last_pwm_duty;
     evse_tick_10ms(&ctx, PILOT_9V);
-    uint32_t expected = evse_current_to_duty(ctx.Balanced[0]);
-    TEST_ASSERT_EQUAL_INT(expected, ctx.last_pwm_duty);
+    /* STATE_B entry does not call record_cp_duty. The platform callback
+     * (on_state_change) handles timer setup, not the module. */
+    TEST_ASSERT_EQUAL_INT(before, ctx.last_pwm_duty);
 }
 
 /*
@@ -377,10 +381,10 @@ void test_b1_with_errors_stays_b1_on_9v(void) {
 /*
  * @feature 10ms Tick Processing
  * @req REQ-TICK10-019
- * @scenario All modem states transition to STATE_A on 12V pilot (vehicle disconnected)
+ * @scenario Modem states are NOT handled in tick_10ms (matches original Timer10ms)
  * @given EVSE is in one of the modem states (REQUEST, WAIT, DONE, or DENIED)
  * @when A 12V pilot signal (no vehicle) is received during a 10ms tick
- * @then The EVSE transitions to STATE_A for all four modem states
+ * @then The EVSE stays in its modem state (modem is managed solely by tick_1s)
  */
 void test_modem_states_to_a_on_12v(void) {
     uint8_t modem_states[] = {STATE_MODEM_REQUEST, STATE_MODEM_WAIT,
@@ -390,7 +394,7 @@ void test_modem_states_to_a_on_12v(void) {
         ctx.State = modem_states[i];
         ctx.BalancedState[0] = modem_states[i];
         evse_tick_10ms(&ctx, PILOT_12V);
-        TEST_ASSERT_EQUAL_INT(STATE_A, ctx.State);
+        TEST_ASSERT_EQUAL_INT(modem_states[i], ctx.State);  // Stays in modem state
     }
 }
 
@@ -432,7 +436,7 @@ int main(void) {
     RUN_TEST(test_comm_b_stays_on_9v);
     RUN_TEST(test_node_b_to_comm_c);
     RUN_TEST(test_a_to_b_sets_balanced_max);
-    RUN_TEST(test_a_to_b_sets_pwm_duty);
+    RUN_TEST(test_a_to_b_no_extra_pwm);
     RUN_TEST(test_a_to_b_sets_activation_mode_30);
     RUN_TEST(test_b1_with_errors_stays_b1_on_9v);
     RUN_TEST(test_modem_states_to_a_on_12v);

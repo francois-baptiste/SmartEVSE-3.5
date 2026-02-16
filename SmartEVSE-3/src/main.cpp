@@ -676,6 +676,12 @@ void SetCPDuty(uint32_t DutyCycle){
 #else //CH32 and v3 ESP32
 #if SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40 //v3 ESP32
     ledcWrite(CP_CHANNEL, DutyCycle);                                       // update PWM signal
+#if DIAG_LOG
+    uint32_t readback = ledcRead(CP_CHANNEL);
+    if (readback != DutyCycle) {
+        _LOG_A("SetCPDuty MISMATCH: wrote %u, read %u\n", DutyCycle, readback);
+    }
+#endif
 #endif
 #ifndef SMARTEVSE_VERSION  //CH32
     // update PWM signal
@@ -699,6 +705,9 @@ void SetCurrent(uint16_t current) {
     else DutyCycle = 100;                                                   // invalid, use 6A
 #if SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40 //v3 ESP32
     DutyCycle = DutyCycle * 1024 / 1000;                                    // conversion to 1024 = 100%
+#endif
+#if DIAG_LOG
+    _LOG_A("SetCurrent(%u) duty=%u\n", current, DutyCycle);
 #endif
     SetCPDuty(DutyCycle);
 #endif
@@ -878,7 +887,14 @@ uint8_t Pilot() {
         if (voltage < Min) Min = voltage;                                   // store lowest value
         if (voltage > Max) Max = voltage;                                   // store highest value
     }
-    //_LOG_A("min:%u max:%u\n",Min ,Max);
+    // Diagnostic: log ADC Min/Max once per second (every 100 calls at 10ms)
+#if DIAG_LOG
+    static uint8_t pilotLogCnt = 0;
+    if (++pilotLogCnt >= 100) {
+        pilotLogCnt = 0;
+        _LOG_A("CP: min=%u max=%u\n", Min, Max);
+    }
+#endif
 
     // test Min/Max against fixed levels
     if (Min >= 3055 ) return PILOT_12V;                                     // Pilot at 12V (min 11.0V)
@@ -2363,9 +2379,37 @@ void Timer10ms_singlerun(void) {
         EVMeter.ResetKwh = 0;
     }
 
-    // DiodeCheck ADC timing (just transitioned to DiodeCheck=1)
-    if (g_evse_ctx.DiodeCheck == 1 && oldDiodeCheck == 0) {
-        _LOG_A("Diode OK\n");
+    // Diagnostic: log state/pilot/DiodeCheck once per second while in STATE_B
+#if DIAG_LOG
+    {
+        extern volatile uint32_t cpPulseCount;
+        static uint8_t diagBCnt = 0;
+        if ((State == STATE_B || State == STATE_COMM_C) && ++diagBCnt >= 100) {
+            diagBCnt = 0;
+            uint32_t ledc_duty = ledcRead(CP_CHANNEL);
+            uint32_t pulses = cpPulseCount;
+            uint64_t tmr = timerRead(timerA);
+            _LOG_A("DIAG B: pilot=%u DC=%u Err=%u CD=%u Acc=%u ledc=%u pulses=%u tmr=%llu lastADC=%u\n",
+                   pilot, g_evse_ctx.DiodeCheck, ErrorFlags, ChargeDelay, AccessStatus,
+                   ledc_duty, pulses, tmr, adcsample);
+        }
+    }
+#endif
+
+    // DiodeCheck ADC timing — original code sets the alarm EVERY tick where
+    // pilot == PILOT_DIODE (not just on DiodeCheck 0→1 transition).
+    // This is critical after ACTSTART→STATE_B: the STATE_B callback sets
+    // the alarm to PWM_95 (950us), but DiodeCheck is already 1, so a
+    // transition-only check would never re-set the alarm to PWM_5.
+    // Without PWM_5, the ADC samples the LOW phase and Pilot() never
+    // returns PILOT_9V/6V, leaving the EVSE stuck in STATE_B.
+    if (pilot == PILOT_DIODE) {
+        if (g_evse_ctx.DiodeCheck == 1 && oldDiodeCheck == 0) {
+            _LOG_A("Diode OK\n");
+        }
+#if DIAG_LOG
+        _LOG_A("Alarm -> PWM_5\n");
+#endif
 #ifdef SMARTEVSE_VERSION
         timerAlarmWrite(timerA, PWM_5, false);                              // Enable Timer alarm, set to start of CP signal (5%)
 #else

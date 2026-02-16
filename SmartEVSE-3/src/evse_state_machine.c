@@ -77,6 +77,7 @@ void evse_init(evse_ctx_t *ctx, evse_hal_t *hal) {
     ctx->State = STATE_A;
     ctx->Mode = MODE_NORMAL;
     ctx->LoadBl = 0;
+    ctx->Config = 0;  // Socket mode
 
     // Authorization
     ctx->AccessStatus = OFF;
@@ -299,6 +300,8 @@ void evse_set_state(evse_ctx_t *ctx, uint8_t new_state) {
 
             if (new_state == STATE_A) {
                 ctx->ModemStage = 0;                     // line 827
+                if (ctx->ModemEnabled && ctx->DisconnectTimeCounter == -1)
+                    ctx->DisconnectTimeCounter = 0;      // Start disconnect counter
                 evse_clear_error_flags(ctx, LESS_6A);    // line 828
                 ctx->ChargeDelay = 0;                    // line 829
                 ctx->Node[0].Timer = 0;
@@ -310,6 +313,7 @@ void evse_set_state(evse_ctx_t *ctx, uint8_t new_state) {
 
         case STATE_MODEM_REQUEST:
             ctx->ToModemWaitStateTimer = 0;
+            ctx->DisconnectTimeCounter = -1;             // Disable disconnect counter
             record_pilot(ctx, false);                    // PILOT_DISCONNECTED
             record_cp_duty(ctx, 1024);
             record_contactor1(ctx, false);
@@ -323,14 +327,17 @@ void evse_set_state(evse_ctx_t *ctx, uint8_t new_state) {
             break;
 
         case STATE_MODEM_DONE:
+            ctx->DisconnectTimeCounter = -1;             // Disable disconnect counter
             record_pilot(ctx, false);                    // PILOT_DISCONNECTED
             ctx->LeaveModemDoneStateTimer = 5;
             break;
 
         case STATE_B:
             check_switching_phases(ctx);                 // line 863
-            record_pilot(ctx, true);                     // PILOT_CONNECTED
-            ctx->DisconnectTimeCounter = -1;             // line 866
+            if (ctx->ModemEnabled) {
+                record_pilot(ctx, true);                 // PILOT_CONNECTED
+                ctx->DisconnectTimeCounter = -1;         // line 866
+            }
             record_contactor1(ctx, false);
             record_contactor2(ctx, false);
             break;
@@ -455,7 +462,7 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
     char CurrentSet[NR_EVSES] = {0}; // cppcheck-suppress variableScope
 
     // ---- Phase 1: ChargeCurrent (lines 1158-1179) ----
-    if (ctx->BalancedState[0] == STATE_C && ctx->MaxCurrent > ctx->MaxCapacity && ctx->MaxCapacity)
+    if (ctx->BalancedState[0] == STATE_C && ctx->MaxCurrent > ctx->MaxCapacity && !ctx->Config)
         ctx->ChargeCurrent = ctx->MaxCapacity * 10;
     else
         ctx->ChargeCurrent = ctx->MaxCurrent * 10;
@@ -739,10 +746,13 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
 
 // ---- Main 10ms state machine tick ----
 // Faithful to Timer10ms_singlerun() in main.cpp:3002-3275
+// NOTE: No early returns — matches original flat if-chain where state changes
+// propagate to subsequent handlers within the same tick.
+// Handler order matches original: A/B1/COMM_B → COMM_B_OK → B/COMM_C →
+// C1 → ACTSTART → COMM_C_OK → C
 void evse_tick_10ms(evse_ctx_t *ctx, uint8_t pilot) {
 
     // ---- STATE_A / STATE_COMM_B / STATE_B1 handling (lines 3079-3130) ----
-    // Original combines these three states in one handler
     if (ctx->State == STATE_A || ctx->State == STATE_COMM_B || ctx->State == STATE_B1) {
 
         if (ctx->PilotDisconnected) {
@@ -789,10 +799,6 @@ void evse_tick_10ms(evse_ctx_t *ctx, uint8_t pilot) {
 
                 ctx->ActivationMode = 30;               // Line 3124: timeout to enter STATE_C
                 ctx->AccessTimer = 0;                    // Line 3125
-
-                // Set PWM for the charge current
-                uint32_t duty = evse_current_to_duty(ctx->Balanced[0]);
-                record_cp_duty(ctx, duty);
             } else {
                 evse_set_error_flags(ctx, LESS_6A);
             }
@@ -801,7 +807,6 @@ void evse_tick_10ms(evse_ctx_t *ctx, uint8_t pilot) {
             // Errors or ChargeDelay prevent full transition, go to B1 (line 3127-3128)
             evse_set_state(ctx, STATE_B1);
         }
-        return;
     }
 
     // ---- STATE_COMM_B_OK handling (lines 3132-3136) ----
@@ -809,7 +814,6 @@ void evse_tick_10ms(evse_ctx_t *ctx, uint8_t pilot) {
         evse_set_state(ctx, STATE_B);
         ctx->ActivationMode = 30;
         ctx->AccessTimer = 0;
-        return;
     }
 
     // ---- STATE_B / STATE_COMM_C handling (lines 3140-3197) ----
@@ -855,7 +859,6 @@ void evse_tick_10ms(evse_ctx_t *ctx, uint8_t pilot) {
         if (pilot == PILOT_DIODE) {
             ctx->DiodeCheck = 1;
         }
-        return;
     }
 
     // ---- STATE_C1 handling (lines 3199-3217) ----
@@ -866,7 +869,20 @@ void evse_tick_10ms(evse_ctx_t *ctx, uint8_t pilot) {
         } else if (pilot == PILOT_9V) {
             evse_set_state(ctx, STATE_B1);           // Original line 3212: STATE_B1, not STATE_B
         }
-        return;
+    }
+
+    // ---- STATE_ACTSTART handling (lines 3220-3223) ----
+    if (ctx->State == STATE_ACTSTART) {
+        if (ctx->ActivationTimer == 0) {
+            evse_set_state(ctx, STATE_B);
+            ctx->ActivationMode = 255;               // Disable ActivationMode
+        }
+    }
+
+    // ---- STATE_COMM_C_OK handling (lines 3225-3232) ----
+    if (ctx->State == STATE_COMM_C_OK) {
+        ctx->DiodeCheck = 0;
+        evse_set_state(ctx, STATE_C);
     }
 
     // ---- STATE_C handling (lines 3236-3261) ----
@@ -886,35 +902,6 @@ void evse_tick_10ms(evse_ctx_t *ctx, uint8_t pilot) {
         } else {
             ctx->StateTimer = 0;                         // Original line 3259: reset on normal pilot
         }
-        return;
-    }
-
-    // ---- STATE_ACTSTART handling (lines 3220-3223) ----
-    if (ctx->State == STATE_ACTSTART) {
-        if (ctx->ActivationTimer == 0) {
-            evse_set_state(ctx, STATE_B);
-            ctx->ActivationMode = 255;               // Disable ActivationMode
-        }
-        if (pilot == PILOT_12V) {
-            evse_set_state(ctx, STATE_A);
-        }
-        return;
-    }
-
-    // ---- STATE_COMM_C_OK handling (lines 3225-3232) ----
-    if (ctx->State == STATE_COMM_C_OK) {
-        ctx->DiodeCheck = 0;
-        evse_set_state(ctx, STATE_C);
-        return;
-    }
-
-    // ---- Modem states (simplified) ----
-    if (ctx->State == STATE_MODEM_REQUEST || ctx->State == STATE_MODEM_WAIT ||
-        ctx->State == STATE_MODEM_DONE || ctx->State == STATE_MODEM_DENIED) {
-        if (pilot == PILOT_12V) {
-            evse_set_state(ctx, STATE_A);
-        }
-        return;
     }
 }
 
@@ -942,16 +929,14 @@ void evse_tick_1s(evse_ctx_t *ctx) {
         if (ctx->State == STATE_MODEM_WAIT) {
             if (ctx->ToModemDoneStateTimer > 0) {
                 ctx->ToModemDoneStateTimer--;
-            }
-            if (ctx->ToModemDoneStateTimer == 0) {
+            } else {
                 evse_set_state(ctx, STATE_MODEM_DONE);
             }
         }
         if (ctx->State == STATE_MODEM_DONE) {
             if (ctx->LeaveModemDoneStateTimer > 0) {
                 ctx->LeaveModemDoneStateTimer--;
-            }
-            if (ctx->LeaveModemDoneStateTimer == 0) {
+            } else {
                 // EVCCID validation (lines 1585-1598)
                 record_cp_duty(ctx, 1024);                      // Reset CP (line 1581)
                 record_pilot(ctx, false);                        // PILOT_DISCONNECTED (line 1582)
@@ -969,12 +954,15 @@ void evse_tick_1s(evse_ctx_t *ctx) {
         if (ctx->State == STATE_MODEM_DENIED) {
             if (ctx->LeaveModemDeniedStateTimer > 0) {
                 ctx->LeaveModemDeniedStateTimer--;
-            }
-            if (ctx->LeaveModemDeniedStateTimer == 0) {
+            } else {
                 evse_set_state(ctx, STATE_A);
                 record_pilot(ctx, true);                         // PILOT_CONNECTED (line 1608)
             }
         }
+
+        // DisconnectTimeCounter: increment + pilot check stays in firmware wrapper
+        // (main.cpp Timer1S_singlerun lines 1012-1024) because it requires the
+        // hardware pilot reading. Module only manages the counter via set_state.
     }
 
     // C1Timer countdown (lines 1616-1625)
@@ -995,13 +983,11 @@ void evse_tick_1s(evse_ctx_t *ctx) {
         }
     }
 
-    // Pilot disconnect timer (line 1682)
+    // Pilot disconnect timer countdown (line 1682)
+    // NOTE: Only decrement here. Reconnect (PILOT_CONNECTED, PilotDisconnected=false)
+    // happens in tick_10ms when PilotDisconnectTime reaches 0, matching original.
     if (ctx->PilotDisconnectTime > 0) {
         ctx->PilotDisconnectTime--;
-        if (ctx->PilotDisconnectTime == 0) {
-            record_pilot(ctx, true);                    // PILOT_CONNECTED
-            ctx->PilotDisconnected = false;
-        }
     }
 
     // Charge timer per node (lines 1685-1690)
@@ -1096,7 +1082,6 @@ void evse_tick_1s(evse_ctx_t *ctx) {
     // LESS_6A active: enforce power unavailable + charge delay (lines 1780-1787)
     if (ctx->ErrorFlags & LESS_6A) {
         evse_set_power_unavailable(ctx);
-        if (ctx->ChargeDelay == 0)
-            ctx->ChargeDelay = CHARGEDELAY;
+        ctx->ChargeDelay = CHARGEDELAY;
     }
 }

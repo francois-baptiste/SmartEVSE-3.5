@@ -376,6 +376,62 @@ void test_node_requests_comm_c(void) {
     TEST_ASSERT_EQUAL_INT(STATE_COMM_C, ctx.State);
 }
 
+// ---- Config (Socket vs Fixed Cable) guard (F1 fidelity fix) ----
+
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-F1A
+ * @scenario Socket mode (Config=0) caps ChargeCurrent by MaxCapacity
+ * @given Config=0 (Socket), MaxCurrent=25, MaxCapacity=16, STATE_C
+ * @when evse_calc_balanced_current is called
+ * @then ChargeCurrent is capped at 160 (MaxCapacity * 10)
+ */
+void test_config_socket_caps_by_maxcapacity(void) {
+    evse_init(&ctx, NULL);
+    ctx.Mode = MODE_NORMAL;
+    ctx.LoadBl = 0;
+    ctx.Config = 0;  // Socket mode
+    ctx.MaxCurrent = 25;
+    ctx.MaxCapacity = 16;
+    ctx.MinCurrent = 6;
+    ctx.ChargeCurrent = 250;
+    ctx.State = STATE_C;
+    ctx.BalancedState[0] = STATE_C;
+    ctx.BalancedMax[0] = 250;
+    ctx.Balanced[0] = 250;
+    ctx.phasesLastUpdateFlag = true;
+
+    evse_calc_balanced_current(&ctx, 0);
+    TEST_ASSERT_EQUAL_INT(160, ctx.ChargeCurrent);
+}
+
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-F1B
+ * @scenario Fixed Cable mode (Config=1) does NOT cap by MaxCapacity
+ * @given Config=1 (Fixed Cable), MaxCurrent=25, MaxCapacity=16, STATE_C
+ * @when evse_calc_balanced_current is called
+ * @then ChargeCurrent is 250 (MaxCurrent * 10), not capped by MaxCapacity
+ */
+void test_config_fixed_cable_no_maxcapacity_cap(void) {
+    evse_init(&ctx, NULL);
+    ctx.Mode = MODE_NORMAL;
+    ctx.LoadBl = 0;
+    ctx.Config = 1;  // Fixed Cable mode
+    ctx.MaxCurrent = 25;
+    ctx.MaxCapacity = 16;
+    ctx.MinCurrent = 6;
+    ctx.ChargeCurrent = 250;
+    ctx.State = STATE_C;
+    ctx.BalancedState[0] = STATE_C;
+    ctx.BalancedMax[0] = 250;
+    ctx.Balanced[0] = 250;
+    ctx.phasesLastUpdateFlag = true;
+
+    evse_calc_balanced_current(&ctx, 0);
+    TEST_ASSERT_EQUAL_INT(250, ctx.ChargeCurrent);
+}
+
 // ---- Main ----
 int main(void) {
     TEST_SUITE_BEGIN("Load Balancing");
@@ -394,6 +450,8 @@ int main(void) {
     RUN_TEST(test_no_shortage_clears_nocurrent);
     RUN_TEST(test_grid_relay_limits_current);
     RUN_TEST(test_node_requests_comm_c);
+    RUN_TEST(test_config_socket_caps_by_maxcapacity);
+    RUN_TEST(test_config_fixed_cable_no_maxcapacity_cap);
 
     TEST_SUITE_RESULTS();
 }

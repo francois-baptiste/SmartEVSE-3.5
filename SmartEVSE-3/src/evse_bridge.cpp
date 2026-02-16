@@ -34,6 +34,7 @@ extern uint8_t PIN_ACTA, PIN_ACTB;  // Dynamically assigned in esp32.cpp
 extern uint8_t State;
 extern uint8_t Mode;
 extern uint8_t LoadBl;
+extern uint8_t Config;
 extern AccessStatus_t AccessStatus;
 extern uint8_t RFIDReader;
 extern bool CPDutyOverride;
@@ -192,6 +193,12 @@ static void hal_on_state_change(uint8_t old_state, uint8_t new_state) {
 
         case STATE_B:
 #ifdef SMARTEVSE_VERSION
+            // Reset timer counter before setting alarm to ensure the alarm
+            // fires even after long periods without CP pulses (e.g., after
+            // ACTSTART where 0% duty means no rising edges to reset timer).
+            // Without this, the 64-bit timer counter can be far past the
+            // alarm value, causing the alarm to never fire.
+            timerWrite(timerA, 0);
             timerAlarmWrite(timerA, PWM_95, false);
 #else
             TIM1->CH4CVR = PWM_96;
@@ -257,6 +264,7 @@ void evse_sync_globals_to_ctx(void) {
     ctx->State = State;
     ctx->Mode = Mode;
     ctx->LoadBl = LoadBl;
+    ctx->Config = Config;
     ctx->AccessStatus = (AccessStatus_t)AccessStatus;
     ctx->RFIDReader = RFIDReader;
     ctx->CPDutyOverride = CPDutyOverride;

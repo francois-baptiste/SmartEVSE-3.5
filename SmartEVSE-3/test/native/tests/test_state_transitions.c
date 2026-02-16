@@ -511,16 +511,18 @@ void test_full_charge_cycle(void) {
 /*
  * @feature IEC 61851-1 State Transitions
  * @req REQ-IEC61851-028
- * @scenario Vehicle disconnect from STATE_ACTSTART returns to STATE_A
+ * @scenario Vehicle disconnect during ACTSTART is NOT handled in tick_10ms
  * @given The EVSE is in STATE_ACTSTART (activation mode)
  * @when A 12V pilot signal is received (vehicle disconnected)
- * @then The state transitions to STATE_A
+ * @then The state stays ACTSTART (original behavior: no pilot check in ACTSTART,
+ *       timer expires → STATE_B → next tick detects 12V → STATE_A)
  */
 void test_actstart_to_A_on_disconnect(void) {
     setup_ready_to_charge();
     evse_set_state(&ctx, STATE_ACTSTART);
+    ctx.ActivationTimer = 3;  // Timer still running
     evse_tick_10ms(&ctx, PILOT_12V);
-    TEST_ASSERT_EQUAL_INT(STATE_A, ctx.State);
+    TEST_ASSERT_EQUAL_INT(STATE_ACTSTART, ctx.State);  // Stays in ACTSTART
 }
 
 /*
@@ -681,6 +683,48 @@ void test_state_B_calls_check_switching_phases_from_B(void) {
     TEST_ASSERT_EQUAL_INT(GOING_TO_SWITCH_1P, ctx.Switching_Phases_C2);
 }
 
+// ---- PILOT_CONNECTED guard in STATE_B entry (M3 fidelity fix) ----
+
+/*
+ * @feature IEC 61851-1 State Transitions
+ * @req REQ-IEC61851-M3
+ * @scenario STATE_B entry does NOT set pilot_connected when modem disabled
+ * @given ModemEnabled=false, EVSE transitions A→B
+ * @when evse_set_state is called with STATE_B
+ * @then pilot_connected is NOT explicitly set by STATE_B entry
+ *       (it remains at whatever value it had before)
+ */
+void test_state_b_no_pilot_reconnect_without_modem(void) {
+    setup_idle();
+    ctx.Mode = MODE_NORMAL;
+    ctx.ModemEnabled = false;
+    /* Disconnect pilot before B entry to verify B doesn't reconnect it */
+    ctx.pilot_connected = false;
+    evse_set_state(&ctx, STATE_B);
+    /* Without modem, STATE_B should NOT call record_pilot(true) */
+    TEST_ASSERT_FALSE(ctx.pilot_connected);
+    /* Verify we are actually in STATE_B */
+    TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
+}
+
+/*
+ * @feature IEC 61851-1 State Transitions
+ * @req REQ-IEC61851-M3B
+ * @scenario STATE_B entry DOES set pilot_connected when modem enabled
+ * @given ModemEnabled=true, EVSE transitions to STATE_B
+ * @when evse_set_state is called with STATE_B
+ * @then pilot_connected is set to true
+ */
+void test_state_b_pilot_reconnect_with_modem(void) {
+    setup_idle();
+    ctx.Mode = MODE_NORMAL;
+    ctx.ModemEnabled = true;
+    ctx.pilot_connected = false;
+    evse_set_state(&ctx, STATE_B);
+    TEST_ASSERT_TRUE(ctx.pilot_connected);
+    TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
+}
+
 // ---- Main ----
 int main(void) {
     TEST_SUITE_BEGIN("State Transitions");
@@ -723,6 +767,8 @@ int main(void) {
     RUN_TEST(test_node_sends_comm_b);
     RUN_TEST(test_state_B_calls_check_switching_phases_from_A);
     RUN_TEST(test_state_B_calls_check_switching_phases_from_B);
+    RUN_TEST(test_state_b_no_pilot_reconnect_without_modem);
+    RUN_TEST(test_state_b_pilot_reconnect_with_modem);
 
     TEST_SUITE_RESULTS();
 }
