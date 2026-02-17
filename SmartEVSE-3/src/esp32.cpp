@@ -50,6 +50,7 @@ char RequiredEVCCID[32] = "";                                               // R
 #include "OneWireESP32.h"
 #include "modbus.h"
 #include "meter.h"
+#include "evse_bridge.h"
 
 //OCPP includes
 #if ENABLE_OCPP && defined(SMARTEVSE_VERSION) //run OCPP only on ESP32
@@ -3152,6 +3153,10 @@ extern void Timer20ms(void * parameter);
         WCHUPDATE(0);
     }
 #endif
+
+    // Initialize state machine HAL callbacks (contactor, PWM, state change logging)
+    // Must be called after read_settings() so globals are ready for evse_sync_globals_to_ctx()
+    evse_bridge_init();
 
     // Create Task EVSEStates, that handles changes in the CP signal
     xTaskCreate(
