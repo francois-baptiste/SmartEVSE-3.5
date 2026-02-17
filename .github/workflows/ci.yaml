@@ -160,11 +160,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add SmartEVSE-3/test/native/test-specification.md
+          git add SmartEVSE-3/test/native/test-specification.md SmartEVSE-3/test/native/traceability-report.html
           if git diff --cached --quiet; then
-            echo "test-specification.md is already up to date"
+            echo "Reports are already up to date"
           else
-            git commit -m "docs: regenerate test specification
+            git commit -m "docs: regenerate test specification and traceability report
 
           Auto-generated from SbE annotations by CI pipeline.
           $(grep -c '###' SmartEVSE-3/test/native/test-specification.md) scenarios across $(grep -c '^## ' SmartEVSE-3/test/native/test-specification.md) features."

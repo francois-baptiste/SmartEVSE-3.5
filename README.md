@@ -94,8 +94,9 @@ CI pipeline generates two reports on every build:
 - **[Test Specification](SmartEVSE-3/test/native/test-specification.md)** — Markdown
   document listing all scenarios grouped by feature, with requirement IDs and
   Given/When/Then steps. Auto-regenerated and committed on every merge to master.
-- **Traceability Report** (`traceability-report.html`) — Interactive HTML matrix
-  mapping requirements to test functions. Available as a CI artifact on every build.
+- **[Traceability Report](SmartEVSE-3/test/native/traceability-report.html)** — Interactive HTML matrix
+  mapping requirements to test functions. Auto-regenerated and committed on every
+  merge to master. Also attached to every GitHub release.
 
 Additional CI artifacts:
 

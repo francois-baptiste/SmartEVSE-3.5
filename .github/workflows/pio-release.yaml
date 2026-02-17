@@ -52,6 +52,18 @@ jobs:
           name: ${{ needs.build.outputs.artifact }}
           path: dist
 
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.10"
+
+      - name: Generate traceability report
+        working-directory: SmartEVSE-3/test/native
+        run: |
+          python scripts/extract_traceability.py \
+            --html traceability-report.html \
+            --markdown test-specification.md
+
       - name: Zip artifacts
         run: zip -j ${{ steps.tag.outputs.tag }}-dist.zip ./dist/*
 
@@ -63,7 +75,9 @@ jobs:
           draft: false
           prerelease: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          files: ${{ steps.tag.outputs.tag }}-dist.zip
+          files: |
+            ${{ steps.tag.outputs.tag }}-dist.zip
+            SmartEVSE-3/test/native/traceability-report.html
 
       - name: Configure AWS Credentials
         if: ${{ env.HAS_AWS == 'true' }}

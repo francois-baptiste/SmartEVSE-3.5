@@ -233,5 +233,6 @@ When dividing work across agents:
   budget and documenting stack size rationale.
 - Do not remove or weaken existing test assertions — tests are the safety net.
 - Do not "improve" code that wasn't part of the assigned task. Stay focused.
-- Do not commit generated files (`traceability-report.html`) — CI generates these.
-  Exception: `test-specification.md` IS committed (auto-updated by CI).
+- Do not manually commit generated files (`traceability-report.html`,
+  `test-specification.md`) — CI auto-generates and commits both on every merge
+  to master. Both are tracked in the repo.
