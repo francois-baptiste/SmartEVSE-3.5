@@ -26,6 +26,11 @@
 // ---- Global context instance ----
 evse_ctx_t g_evse_ctx;
 
+// ---- Spinlock for sync functions ----
+#ifdef SMARTEVSE_VERSION
+static portMUX_TYPE evse_sync_spinlock = portMUX_INITIALIZER_UNLOCKED;
+#endif
+
 // ---- External references to firmware globals ----
 // (Most are declared in main.h / main_c.h or as file-scope in main.cpp)
 #ifdef SMARTEVSE_VERSION
@@ -259,6 +264,9 @@ static void hal_on_state_change(uint8_t old_state, uint8_t new_state) {
 
 // ---- Sync: globals -> ctx ----
 void evse_sync_globals_to_ctx(void) {
+#ifdef SMARTEVSE_VERSION
+    portENTER_CRITICAL(&evse_sync_spinlock);
+#endif
     evse_ctx_t *ctx = &g_evse_ctx;
 
     ctx->State = State;
@@ -365,10 +373,16 @@ void evse_sync_globals_to_ctx(void) {
         ctx->Node[i].SolarTimer = Node[i].SolarTimer;
         ctx->Node[i].Mode = Node[i].Mode;
     }
+#ifdef SMARTEVSE_VERSION
+    portEXIT_CRITICAL(&evse_sync_spinlock);
+#endif
 }
 
 // ---- Sync: ctx -> globals ----
 void evse_sync_ctx_to_globals(void) {
+#ifdef SMARTEVSE_VERSION
+    portENTER_CRITICAL(&evse_sync_spinlock);
+#endif
     evse_ctx_t *ctx = &g_evse_ctx;
 
     State = ctx->State;
@@ -426,6 +440,9 @@ void evse_sync_ctx_to_globals(void) {
         Node[i].SolarTimer = ctx->Node[i].SolarTimer;
         Node[i].Mode = ctx->Node[i].Mode;
     }
+#ifdef SMARTEVSE_VERSION
+    portEXIT_CRITICAL(&evse_sync_spinlock);
+#endif
 }
 
 // ---- Initialization ----
