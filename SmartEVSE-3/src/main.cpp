@@ -18,6 +18,8 @@
 #include "memory.h"  //for memcpy
 #include <time.h>
 #include "evse_bridge.h"
+#include "serial_parser.h"
+#include "led_color.h"
 
 #ifdef SMARTEVSE_VERSION //ESP32
 #define EXT extern
@@ -972,32 +974,11 @@ void CalcBalancedCurrent(char mod) {
 } //CalcBalancedCurrent
 
 
-void Timer1S_singlerun(void) {
-#ifndef SMARTEVSE_VERSION //CH32
-#endif
-#if !defined(SMARTEVSE_VERSION) || SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40 //not on ESP32 v4
-    static uint8_t Broadcast = 1;
-#endif
-#ifdef SMARTEVSE_VERSION //ESP32
-    if (BacklightTimer) BacklightTimer--;                               // Decrease backlight counter every second.
-#endif
+// --- Timer1S helpers ---
 
 #if !defined(SMARTEVSE_VERSION) || SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40   //CH32 and v3 ESP32
-    // === PLATFORM PRE-ACTIONS ===
-    TempEVSE = TemperatureSensor();                                     // Read temperature BEFORE module checks it
-
-    // === SAVE STATE FOR POST-ACTION COMPARISON ===
-    uint16_t oldSolarStopTimer = SolarStopTimer;
-    uint8_t  oldErrorFlags = ErrorFlags;
-
-    // === BRIDGE CALL ===
-    evse_sync_globals_to_ctx();
-    evse_tick_1s(&g_evse_ctx);
-    evse_sync_ctx_to_globals();
-    // (State transitions -> callback fires automatically)
-
-    // === PLATFORM POST-ACTIONS ===
-
+// Log error flag transitions after the 1S state machine tick
+static void timer1s_check_error_transitions(uint8_t oldErrorFlags, uint16_t oldSolarStopTimer) {
     // SolarStopTimer notification (SEND_TO_ESP32 + MQTT on each change)
     if (SolarStopTimer != oldSolarStopTimer) {
         SEND_TO_ESP32(SolarStopTimer)
@@ -1024,9 +1005,10 @@ void Timer1S_singlerun(void) {
     if (!(ErrorFlags & LESS_6A) && (oldErrorFlags & LESS_6A)) {
         _LOG_I("No power/current Errors Cleared.\n");
     }
+}
 
 #if MODEM
-    // Modem disconnect counter (uses pilot global — stays outside module)
+static void timer1s_modem_disconnect(void) {
     if (DisconnectTimeCounter >= 0) {
         DisconnectTimeCounter++;
     }
@@ -1038,19 +1020,22 @@ void Timer1S_singlerun(void) {
             DisconnectTimeCounter = 0;
         }
     }
+}
 #endif
 
+static void timer1s_modbus_broadcast(void) {
+    static uint8_t Broadcast = 1;
     // Every two seconds request measurement data from sensorbox/kwh meters.
     if (LoadBl < 2 && !Broadcast--) {
         ModbusRequest = 1;
         ModbusRequestLoop();
         Broadcast = 1;
     }
-
+}
 #endif // CH32 and v3 ESP32
 
 #if SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40 //ESP32 v3
-    // RFID polling
+static void timer1s_rfid_poll(void) {
     if (RFIDReader) {
         if (OneWireReadCardId()) {
             CheckRFID();
@@ -1058,13 +1043,15 @@ void Timer1S_singlerun(void) {
             RFIDstatus = 0;
         }
     }
+}
 #endif
+
 #if SMARTEVSE_VERSION >=40
+static void timer1s_v4_timers(void) {
     if (RFIDReader) Serial1.printf("@OneWireReadCardId\n");
     if (State == STATE_A && modem_state > MODEM_CONFIGURED && modem_state < MODEM_PRESET_NMK)
         modem_state = MODEM_PRESET_NMK;
 
-    // v4: timer logic (module doesn't run on v4)
     if (MaxSumMainsTimer) {
         MaxSumMainsTimer--;
         if (MaxSumMainsTimer == 0) {
@@ -1080,9 +1067,11 @@ void Timer1S_singlerun(void) {
             setAccess(OFF);
         }
     } else AccessTimer = 0;
+}
 #endif
 
 #if MQTT
+static void timer1s_mqtt_publish(void) {
     if (lastMqttUpdate++ >= 10) {
         mqttPublishData();
     }
@@ -1091,9 +1080,11 @@ void Timer1S_singlerun(void) {
         lastSmartEVSEUpdate = 0;
         mqttSmartEVSEPublishData();
     }
+}
 #endif
 
 #ifndef SMARTEVSE_VERSION //CH32
+static void timer1s_rcm_test(void) {
     if (ErrorFlags & RCM_TEST) {
         if (RCMTestCounter) RCMTestCounter--;
         SEND_TO_ESP32(RCMTestCounter);
@@ -1112,6 +1103,46 @@ void Timer1S_singlerun(void) {
     printf("@IsCurrentAvailable:%u\n", IsCurrentAvailable());
     SEND_TO_ESP32(ErrorFlags)
     elapsedmax = 0;
+}
+#endif
+
+// --- Timer1S dispatcher ---
+
+void Timer1S_singlerun(void) {
+#ifdef SMARTEVSE_VERSION //ESP32
+    if (BacklightTimer) BacklightTimer--;                               // Decrease backlight counter every second.
+#endif
+
+#if !defined(SMARTEVSE_VERSION) || SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40   //CH32 and v3 ESP32
+    TempEVSE = TemperatureSensor();
+    uint16_t oldSolarStopTimer = SolarStopTimer;
+    uint8_t  oldErrorFlags = ErrorFlags;
+
+    evse_sync_globals_to_ctx();
+    evse_tick_1s(&g_evse_ctx);
+    evse_sync_ctx_to_globals();
+
+    timer1s_check_error_transitions(oldErrorFlags, oldSolarStopTimer);
+#if MODEM
+    timer1s_modem_disconnect();
+#endif
+    timer1s_modbus_broadcast();
+#endif // CH32 and v3 ESP32
+
+#if SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40 //ESP32 v3
+    timer1s_rfid_poll();
+#endif
+
+#if SMARTEVSE_VERSION >=40
+    timer1s_v4_timers();
+#endif
+
+#if MQTT
+    timer1s_mqtt_publish();
+#endif
+
+#ifndef SMARTEVSE_VERSION //CH32
+    timer1s_rcm_test();
 #endif
 } //Timer1S_singlerun
 
@@ -1307,13 +1338,17 @@ Regist 	Access  Description 	        Unit 	Values
  * @param uint8_t NodeAdr (1-7)
  */
 void receiveNodeStatus(uint8_t *buf, uint8_t NodeNr) {
+    serial_node_status_t parsed;
+    if (!serial_parse_node_status(buf, 16, &parsed))
+        return;
+
     Node[NodeNr].Online = 5;
 
-    BalancedState[NodeNr] = buf[1];                                             // Node State
-    BalancedError[NodeNr] = buf[3];                                             // Node Error status
+    BalancedState[NodeNr] = parsed.state;
+    BalancedError[NodeNr] = parsed.error;
     // Update Mode when changed on Node and not Smart/Solar Switch on the Master
     // Also make sure we are not in the menu.
-    Node[NodeNr].Mode = buf[7];
+    Node[NodeNr].Mode = parsed.mode;
 
     if ((Node[NodeNr].Mode != Mode) && Switch != 4 && !LCDNav && !NodeNewMode) {
         NodeNewMode = Node[NodeNr].Mode + 1;        // Store the new Mode in NodeNewMode, we'll update Mode in 'ProcessAllNodeStates'
@@ -1321,9 +1356,9 @@ void receiveNodeStatus(uint8_t *buf, uint8_t NodeNr) {
         printf("@NodeNewMode:%u.\n", Node[NodeNr].Mode + 1); //CH32 sends new value to ESP32
 #endif
     }
-    Node[NodeNr].SolarTimer = (buf[8] * 256) + buf[9];
-    Node[NodeNr].ConfigChanged = buf[13] | Node[NodeNr].ConfigChanged;
-    BalancedMax[NodeNr] = buf[15] * 10;                                         // Node Max ChargeCurrent (0.1A)
+    Node[NodeNr].SolarTimer = parsed.solar_timer;
+    Node[NodeNr].ConfigChanged = parsed.config_changed | Node[NodeNr].ConfigChanged;
+    BalancedMax[NodeNr] = parsed.max_current;
     _LOG_D("ReceivedNode[%u]Status State:%u (%s) Error:%u, BalancedMax:%u, Mode:%u, ConfigChanged:%u.\n", NodeNr, BalancedState[NodeNr], StrStateName[BalancedState[NodeNr]], BalancedError[NodeNr], BalancedMax[NodeNr], Node[NodeNr].Mode, Node[NodeNr].ConfigChanged);
 }
 
@@ -1515,58 +1550,42 @@ uint8_t processAllNodeStates(uint8_t NodeNr) {
 
 #if !defined(SMARTEVSE_VERSION) || SMARTEVSE_VERSION >=40 //CH32 and v4 ESP32
 bool ReadIrms(char *SerialBuf) {
-    char *ret;
-    char token[64];
-    strncpy(token, "Irms:", sizeof(token));
-    //Irms:011,312,123,124 means: the meter on address 11(dec) has Irms[0] 312 dA, Irms[1] of 123 dA, Irms[2] of 124 dA.
-    ret = strstr(SerialBuf, token);
-    if (ret != NULL) {
-        short unsigned int Address;
-        int16_t Irms[3];
-        int n = sscanf(ret,"Irms:%03hu,%hi,%hi,%hi", &Address, &Irms[0], &Irms[1], &Irms[2]);
-        if (n == 4) {   //success
-            if (Address == MainsMeter.Address) {
-                for (int x = 0; x < 3; x++)
-                    MainsMeter.Irms[x] = Irms[x];
-                MainsMeter.setTimeout(COMM_TIMEOUT);
-                CalcIsum();
-            } else if (Address == EVMeter.Address) {
-                for (int x = 0; x < 3; x++)
-                    EVMeter.Irms[x] = Irms[x];
-                EVMeter.setTimeout(COMM_EVTIMEOUT);
-                EVMeter.CalcImeasured();
-            }
-            return true; //success
-        } else {
-            _LOG_A("Received corrupt %s, n=%d, message:%s.\n", token, n, SerialBuf);
-        }
+    serial_irms_t parsed;
+    if (!serial_parse_irms(SerialBuf, &parsed)) {
+        if (strstr(SerialBuf, "Irms:"))
+            _LOG_A("Received corrupt Irms message:%s.\n", SerialBuf);
+        return false;
     }
-    return false; //did not parse
+
+    if (parsed.address == MainsMeter.Address) {
+        for (int x = 0; x < 3; x++)
+            MainsMeter.Irms[x] = parsed.irms[x];
+        MainsMeter.setTimeout(COMM_TIMEOUT);
+        CalcIsum();
+    } else if (parsed.address == EVMeter.Address) {
+        for (int x = 0; x < 3; x++)
+            EVMeter.Irms[x] = parsed.irms[x];
+        EVMeter.setTimeout(COMM_EVTIMEOUT);
+        EVMeter.CalcImeasured();
+    }
+    return true;
 }
 
 
 bool ReadPowerMeasured(char *SerialBuf) {
-    char *ret;
-    char token[64];
-    strncpy(token, "PowerMeasured:", sizeof(token));
-    //printf("@PowerMeasured:%03u,%d\n", Address, PowerMeasured);
-    ret = strstr(SerialBuf, token);
-    if (ret != NULL) {
-        short unsigned int Address;
-        int16_t PowerMeasured;
-        int n = sscanf(ret,"PowerMeasured:%03hu,%hi", &Address, &PowerMeasured);
-        if (n == 2) {   //success
-            if (Address == MainsMeter.Address) {
-                MainsMeter.PowerMeasured = PowerMeasured;
-            } else if (Address == EVMeter.Address) {
-                EVMeter.PowerMeasured = PowerMeasured;
-            }
-            return true; //success
-        } else {
-            _LOG_A("Received corrupt %s, n=%d, message from WCH:%s.\n", token, n, SerialBuf);
-        }
+    serial_power_t parsed;
+    if (!serial_parse_power(SerialBuf, &parsed)) {
+        if (strstr(SerialBuf, "PowerMeasured:"))
+            _LOG_A("Received corrupt PowerMeasured message from WCH:%s.\n", SerialBuf);
+        return false;
     }
-    return false; //did not parse
+
+    if (parsed.address == MainsMeter.Address) {
+        MainsMeter.PowerMeasured = parsed.power;
+    } else if (parsed.address == EVMeter.Address) {
+        EVMeter.PowerMeasured = parsed.power;
+    }
+    return true;
 }
 #endif
 
@@ -1684,7 +1703,8 @@ void CheckSerialComm(void) {
     strncpy(token, "RequiredEVCCID:", sizeof(token));
     ret = strstr(SerialBuf, token);
     if (ret) {
-        strncpy(RequiredEVCCID, ret+strlen(token), sizeof(RequiredEVCCID));
+        strncpy(RequiredEVCCID, ret+strlen(token), sizeof(RequiredEVCCID) - 1);
+        RequiredEVCCID[sizeof(RequiredEVCCID) - 1] = '\0';
         if (RequiredEVCCID[0] == 0x0a) //empty string was sent
             RequiredEVCCID[0] = '\0';
     }
@@ -1692,7 +1712,8 @@ void CheckSerialComm(void) {
     strncpy(token, "EVCCID:", sizeof(token));
     ret = strstr(SerialBuf, token);
     if (ret) {
-        strncpy(EVCCID, ret+strlen(token), sizeof(EVCCID));
+        strncpy(EVCCID, ret+strlen(token), sizeof(EVCCID) - 1);
+        EVCCID[sizeof(EVCCID) - 1] = '\0';
         if (EVCCID[0] == 0x0a) //empty string was sent
             EVCCID[0] = '\0';
     }
@@ -1712,8 +1733,35 @@ void CheckSerialComm(void) {
 #endif
 
 
+// Drive the cable lock/unlock actuator with retry logic.
+// lock_direction: true = lock, false = unlock.
+// Pulses the actuator for 600ms, then checks feedback pin.
+// Retries after 5 seconds if feedback indicates the lock hasn't moved.
+#if !defined(SMARTEVSE_VERSION) || SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40   //CH32 and v3 ESP32
+static void actuate_cable_lock(unsigned int *timer, unsigned int *companion,
+                                bool lock_direction) {
+    if (*timer == 0) {                                          // 600ms pulse
+        if (lock_direction) { ACTUATOR_LOCK; }
+        else { ACTUATOR_UNLOCK; }
+    } else if (*timer == 6) {
+        ACTUATOR_OFF;
+    }
+    if ((*timer)++ > 7) {
+        // Check feedback pin: still in wrong position?
+        int expected = lock_direction ? (Lock == 2 ? 0 : 1)    // still unlocked...
+                                      : (Lock == 2 ? 1 : 0);   // still locked...
+        if (digitalRead(PIN_LOCK_IN) == expected) {
+            if (*timer > 50) *timer = 0;                        // retry in 5 seconds
+        } else {
+            *timer = 7;                                         // success, stop
+        }
+    }
+    *companion = 0;
+}
+#endif
+
 // Task that handles the Cable Lock and modbus
-// 
+//
 // called every 100ms
 //
 void Timer100ms_singlerun(void) {
@@ -1739,37 +1787,15 @@ static unsigned int locktimer = 0, unlocktimer = 0;
 #endif
             State == STATE_A) {                                 // The charging socket is unlocked when unplugged from the EV
             if (CableLock != 1 && Lock != 0) {                  // CableLock is Enabled, do not unlock
-                if (unlocktimer == 0) {                         // 600ms pulse
-                    ACTUATOR_UNLOCK;
-                } else if (unlocktimer == 6) {
-                    ACTUATOR_OFF;
-                }
-                if (unlocktimer++ > 7) {
-                    if (digitalRead(PIN_LOCK_IN) == (Lock == 2 ? 1:0 ))         // still locked...
-                    {
-                        if (unlocktimer > 50) unlocktimer = 0;      // try to unlock again in 5 seconds
-                    } else unlocktimer = 7;
-                }
-                locktimer = 0;
+                actuate_cable_lock(&unlocktimer, &locktimer, false);
             }
-        // Lock Cable    
+        // Lock Cable
         } else if (State != STATE_A                            // Lock cable when connected to the EV
 #if ENABLE_OCPP && defined(SMARTEVSE_VERSION) //run OCPP only on ESP32
         || (OcppMode && OcppForcesLock)
 #endif
         ) {
-            if (locktimer == 0) {                               // 600ms pulse
-                ACTUATOR_LOCK;
-            } else if (locktimer == 6) {
-                ACTUATOR_OFF;
-            }
-            if (locktimer++ > 7) {
-                if (digitalRead(PIN_LOCK_IN) == (Lock == 2 ? 0:1 ))         // still unlocked...
-                {
-                    if (locktimer > 50) locktimer = 0;          // try to lock again in 5 seconds
-                } else locktimer = 7;
-            }
-            unlocktimer = 0;
+            actuate_cable_lock(&locktimer, &unlocktimer, true);
         }
     }
 }
@@ -1970,123 +1996,61 @@ void ModbusRequestLoop() {
 //
 // Task is called every 10ms
 void BlinkLed_singlerun(void) {
-static uint8_t RedPwm = 0, GreenPwm = 0, BluePwm = 0;
-static uint8_t LedCount = 0;                                                   // Raw Counter before being converted to PWM value
-static unsigned int LedPwm = 0;                                                // PWM value 0-255
+    static led_context_t ctx = {0, 0};
 
-    // RGB LED
+    led_state_t snap;
+    memset(&snap, 0, sizeof(snap));
+    snap.error_flags = ErrorFlags;
+    snap.access_status = AccessStatus;
+    snap.state = State;
+    snap.mode = Mode;
+    snap.charge_delay = ChargeDelay;
+    snap.custom_button = CustomButton;
+    memcpy(snap.color_off, ColorOff, 3);
+    memcpy(snap.color_custom, ColorCustom, 3);
+    memcpy(snap.color_solar, ColorSolar, 3);
+    memcpy(snap.color_smart, ColorSmart, 3);
+    memcpy(snap.color_normal, ColorNormal, 3);
 #ifndef SMARTEVSE_VERSION //CH32
-    if ((ErrorFlags & (CT_NOCOMM | EV_NOCOMM | TEMP_HIGH) ) || (((ErrorFlags & RCM_TRIPPED) != (ErrorFlags & RCM_TEST)) && !RCMTestCounter)) {
-#else //v3 ESP32
-    if (ErrorFlags & (RCM_TRIPPED | CT_NOCOMM | EV_NOCOMM | TEMP_HIGH) ) {
+    snap.is_ch32 = true;
+    snap.rcm_test_counter = RCMTestCounter;
 #endif
-            LedCount += 20;                                                 // Very rapid flashing, RCD tripped or no Serial Communication.
-            if (LedCount > 128) LedPwm = ERROR_LED_BRIGHTNESS;              // Red LED 50% of time on, full brightness
-            else LedPwm = 0;
-            RedPwm = LedPwm;
-            GreenPwm = 0;
-            BluePwm = 0;
-    } else if (AccessStatus == OFF && CustomButton) {
-        RedPwm = ColorCustom[0];
-        GreenPwm = ColorCustom[1];
-        BluePwm = ColorCustom[2];
-    } else if (AccessStatus == OFF || State == STATE_MODEM_DENIED) {
-        RedPwm = ColorOff[0];
-        GreenPwm = ColorOff[1];
-        BluePwm = ColorOff[2];
-    } else if (ErrorFlags || ChargeDelay) {                                 // Waiting for Solar power or not enough current to start charging
-            LedCount += 2;                                                  // Slow blinking.
-            if (LedCount > 230) LedPwm = WAITING_LED_BRIGHTNESS;            // LED 10% of time on, full brightness
-            else LedPwm = 0;
 
-            if (CustomButton) {                                             // Blue for Custom, unless configured otherwise
-                RedPwm = LedPwm * ColorCustom[0] / 255;
-                GreenPwm = LedPwm * ColorCustom[1] / 255;
-                BluePwm = LedPwm * ColorCustom[2] / 255;
-            } else if (Mode == MODE_SOLAR) {                                // Orange for Solar, unless configured otherwise
-                RedPwm = LedPwm * ColorSolar[0] / 255;
-                GreenPwm = LedPwm * ColorSolar[1] / 255;
-                BluePwm = LedPwm * ColorSolar[2] / 255;
-            } else if (Mode == MODE_SMART) {                                // Green for Smart, unless configured otherwise
-                RedPwm = LedPwm * ColorSmart[0] / 255;
-                GreenPwm = LedPwm * ColorSmart[1] / 255;
-                BluePwm = LedPwm * ColorSmart[2] / 255;
-            } else {                                                        // Green for Normal, unless configured otherwise
-                RedPwm = LedPwm * ColorNormal[0] / 255;
-                GreenPwm = LedPwm * ColorNormal[1] / 255;
-                BluePwm = LedPwm * ColorNormal[2] / 255;
-            }    
+    uint8_t RedPwm, GreenPwm, BluePwm;
 
 #if ENABLE_OCPP && defined(SMARTEVSE_VERSION) //run OCPP only on ESP32
-    } else if (OcppMode && (RFIDReader == 6 || RFIDReader == 0) &&
+    // OCPP LED overrides (depend on millis() and MicroOcpp types, kept here)
+    if (OcppMode && (RFIDReader == 6 || RFIDReader == 0) &&
                 millis() - OcppLastRfidUpdate < 200) {
-        RedPwm = 128;
-        GreenPwm = 128;
-        BluePwm = 128;
+        RedPwm = 128; GreenPwm = 128; BluePwm = 128;
     } else if (OcppMode && (RFIDReader == 6 || RFIDReader == 0) &&
                 millis() - OcppLastTxNotification < 1000 && OcppTrackTxNotification == MicroOcpp::TxNotification::Authorized) {
-        RedPwm = 0;
-        GreenPwm = 255;
-        BluePwm = 0;
+        RedPwm = 0; GreenPwm = 255; BluePwm = 0;
     } else if (OcppMode && (RFIDReader == 6 || RFIDReader == 0) &&
                 millis() - OcppLastTxNotification < 2000 && (OcppTrackTxNotification == MicroOcpp::TxNotification::AuthorizationRejected ||
                                                              OcppTrackTxNotification == MicroOcpp::TxNotification::DeAuthorized ||
                                                              OcppTrackTxNotification == MicroOcpp::TxNotification::ReservationConflict)) {
-        RedPwm = 255;
-        GreenPwm = 0;
-        BluePwm = 0;
+        RedPwm = 255; GreenPwm = 0; BluePwm = 0;
     } else if (OcppMode && (RFIDReader == 6 || RFIDReader == 0) &&
                 millis() - OcppLastTxNotification < 300 && (OcppTrackTxNotification == MicroOcpp::TxNotification::AuthorizationTimeout ||
                                                             OcppTrackTxNotification == MicroOcpp::TxNotification::ConnectionTimeout)) {
-        RedPwm = 255;
-        GreenPwm = 0;
-        BluePwm = 0;
+        RedPwm = 255; GreenPwm = 0; BluePwm = 0;
     } else if (OcppMode && (RFIDReader == 6 || RFIDReader == 0) &&
                 getChargePointStatus() == ChargePointStatus_Reserved) {
-        RedPwm = 196;
-        GreenPwm = 64;
-        BluePwm = 0;
+        RedPwm = 196; GreenPwm = 64; BluePwm = 0;
     } else if (OcppMode && (RFIDReader == 6 || RFIDReader == 0) &&
                 (getChargePointStatus() == ChargePointStatus_Unavailable ||
                  getChargePointStatus() == ChargePointStatus_Faulted)) {
-        RedPwm = 255;
-        GreenPwm = 0;
-        BluePwm = 0;
+        RedPwm = 255; GreenPwm = 0; BluePwm = 0;
+    } else
 #endif //ENABLE_OCPP
-    } else {                                                                // State A, B or C
-
-        if (State == STATE_A) {
-            LedPwm = STATE_A_LED_BRIGHTNESS;                                // STATE A, LED on (dimmed)
-        
-        } else if (State == STATE_B || State == STATE_B1 || State == STATE_MODEM_REQUEST || State == STATE_MODEM_WAIT) {
-            LedPwm = STATE_B_LED_BRIGHTNESS;                                // STATE B, LED on (full brightness)
-            LedCount = 128;                                                 // When switching to STATE C, start at full brightness
-
-        } else if (State == STATE_C) {                                      
-            if (Mode == MODE_SOLAR) LedCount ++;                            // Slower fading (Solar mode)
-            else LedCount += 2;                                             // Faster fading (Smart mode)
-            LedPwm = ease8InOutQuad(triwave8(LedCount));                    // pre calculate new LedPwm value
-        }
-
-        if (CustomButton) {                                             // Blue for Custom, unless configured otherwise
-            RedPwm = LedPwm * ColorCustom[0] / 255;
-            GreenPwm = LedPwm * ColorCustom[1] / 255;
-            BluePwm = LedPwm * ColorCustom[2] / 255;
-        } else if (Mode == MODE_SOLAR) {                                // Orange for Solar, unless configured otherwise
-            RedPwm = LedPwm * ColorSolar[0] / 255;
-            GreenPwm = LedPwm * ColorSolar[1] / 255;
-            BluePwm = LedPwm * ColorSolar[2] / 255;
-        } else if (Mode == MODE_SMART) {                                // Green for Smart, unless configured otherwise
-            RedPwm = LedPwm * ColorSmart[0] / 255;
-            GreenPwm = LedPwm * ColorSmart[1] / 255;
-            BluePwm = LedPwm * ColorSmart[2] / 255;
-        } else {                                                        // Green for Normal, unless configured otherwise
-            RedPwm = LedPwm * ColorNormal[0] / 255;
-            GreenPwm = LedPwm * ColorNormal[1] / 255;
-            BluePwm = LedPwm * ColorNormal[2] / 255;
-        }    
-
+    {
+        led_rgb_t rgb = led_compute_color(&snap, &ctx);
+        RedPwm = rgb.r;
+        GreenPwm = rgb.g;
+        BluePwm = rgb.b;
     }
+
 #if SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40
     ledcWrite(RED_CHANNEL, RedPwm);
     ledcWrite(GREEN_CHANNEL, GreenPwm);
@@ -2277,24 +2241,13 @@ void Handle_ESP32_Message(char *SerialBuf, uint8_t *CommState) {
 
 
 
-void Timer10ms_singlerun(void) {
-#if !defined(SMARTEVSE_VERSION) || SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40   //CH32 and v3 ESP32
-    BlinkLed_singlerun();
-#else //v4
-    static uint16_t idx = 0;
-    static char SerialBuf[512];
-    static uint8_t CommState = COMM_VER_REQ;
-    static uint8_t CommTimeout = 0;
-#endif
+// --- Timer10ms helpers ---
 
-#ifndef SMARTEVSE_VERSION //CH32
-    static uint32_t log1S = millis();
-    //Check RS485 communication
-    if (ModbusRxLen) CheckRS485Comm();
-#else //v3 and v4
+#ifdef SMARTEVSE_VERSION //v3 and v4
+// Fade LCD backlight in/out based on BacklightTimer
+static void timer10ms_backlight(void) {
     static uint8_t LcdPwm = 0;
 
-    // Backlight LCD
     if (BacklightTimer > 1 && BacklightSet != 1) {                      // Enable LCD backlight at max brightness
                                                                         // start only when fully off(0) or when we are dimming the backlight(2)
         LcdPwm = LCD_BRIGHTNESS;
@@ -2312,9 +2265,10 @@ void Timer10ms_singlerun(void) {
         ledcWrite(LCD_CHANNEL, 0);                                      // switch off LED PWM
         BacklightSet = 0;                                               // 0: backlight fully off
     }
+}
 
-// Task that handles EVSE State Changes
-// Reads buttons, and updates the LCD.
+// Read buttons, update LCD menu and help screen
+static void timer10ms_buttons(void) {
     static uint16_t old_sec = 0;
     getButtonState();
 
@@ -2334,41 +2288,20 @@ void Timer10ms_singlerun(void) {
         old_sec = timeinfo.tm_sec;
         _GLCD;
     }
-#endif
-
-#ifndef SMARTEVSE_VERSION // CH32
-#define LOG1S(fmt, ...) \
-    if (millis() > log1S + 1000) printf("@MSG: " fmt, ##__VA_ARGS__);
-#else
-#define LOG1S(fmt, ...) //dummy
+}
 #endif
 
 #if !defined(SMARTEVSE_VERSION) || SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40 //CH32 and v3
-    // === PLATFORM PRE-ACTIONS ===
-    ExtSwitch.CheckSwitch();
-    pilot = Pilot();
-    LOG1S("WCH 10ms: state=%d, pilot=%d, ErrorFlags=%d, ChargeDelay=%d, AccessStatus=%d, MainsMeter.Type=%d.\n", State, pilot, ErrorFlags, ChargeDelay, AccessStatus, MainsMeter.Type);
-
-    // === SAVE STATE FOR POST-ACTION COMPARISON ===
-    uint8_t oldState = State;
-    uint8_t oldDiodeCheck = g_evse_ctx.DiodeCheck;
-
-    // === BRIDGE CALL ===
-    evse_sync_globals_to_ctx();
-    evse_tick_10ms(&g_evse_ctx, pilot);
-    evse_sync_ctx_to_globals();
-    // (State transitions -> callback fires automatically)
-
-    // === PLATFORM POST-ACTIONS ===
-
-    // Sample Proximity Pin only on A->B transition (original location: line 3104)
+// Track EV meter energy on state transitions
+static void timer10ms_ev_metering(uint8_t oldState, uint8_t pilot_val) {
+    // Sample Proximity Pin only on A->B transition
     if (State != STATE_A && oldState == STATE_A) {
         MaxCapacity = ProximityPin();
         _LOG_I("Cable limit: %uA  Max: %uA\n", MaxCapacity, MaxCurrent);
     }
 
     // EVMeter energy tracking (STATE_A pilot 12V disconnect)
-    if (State == STATE_A && pilot == PILOT_12V && !EVMeter.ResetKwh) {
+    if (State == STATE_A && pilot_val == PILOT_12V && !EVMeter.ResetKwh) {
         EVMeter.ResetKwh = 1;                                               // reset EV kWh meter on next B->C change
     }
 
@@ -2378,24 +2311,10 @@ void Timer10ms_singlerun(void) {
         EVMeter.EnergyCharged = EVMeter.Energy - EVMeter.EnergyMeterStart;
         EVMeter.ResetKwh = 0;
     }
+}
 
-    // Diagnostic: log state/pilot/DiodeCheck once per second while in STATE_B
-#if DIAG_LOG
-    {
-        extern volatile uint32_t cpPulseCount;
-        static uint8_t diagBCnt = 0;
-        if ((State == STATE_B || State == STATE_COMM_C) && ++diagBCnt >= 100) {
-            diagBCnt = 0;
-            uint32_t ledc_duty = ledcRead(CP_CHANNEL);
-            uint32_t pulses = cpPulseCount;
-            uint64_t tmr = timerRead(timerA);
-            _LOG_A("DIAG B: pilot=%u DC=%u Err=%u CD=%u Acc=%u ledc=%u pulses=%u tmr=%llu lastADC=%u\n",
-                   pilot, g_evse_ctx.DiodeCheck, ErrorFlags, ChargeDelay, AccessStatus,
-                   ledc_duty, pulses, tmr, adcsample);
-        }
-    }
-#endif
-
+// Handle diode check ADC timing and activation mode CP off
+static void timer10ms_diode_activation(uint8_t oldState, uint8_t oldDiodeCheck, uint8_t pilot_val) {
     // DiodeCheck ADC timing — original code sets the alarm EVERY tick where
     // pilot == PILOT_DIODE (not just on DiodeCheck 0→1 transition).
     // This is critical after ACTSTART→STATE_B: the STATE_B callback sets
@@ -2403,7 +2322,7 @@ void Timer10ms_singlerun(void) {
     // transition-only check would never re-set the alarm to PWM_5.
     // Without PWM_5, the ADC samples the LOW phase and Pilot() never
     // returns PILOT_9V/6V, leaving the EVSE stuck in STATE_B.
-    if (pilot == PILOT_DIODE) {
+    if (pilot_val == PILOT_DIODE) {
         if (g_evse_ctx.DiodeCheck == 1 && oldDiodeCheck == 0) {
             _LOG_A("Diode OK\n");
         }
@@ -2425,9 +2344,12 @@ void Timer10ms_singlerun(void) {
         TIM1->CH1CVR = 0;
 #endif
     }
+}
+#endif // CH32 and v3
 
-    // RCM fault detection (v3 ESP32 only)
-#if SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40
+#if SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40 //ESP32 v3
+// RCM fault detection with debounce
+static void timer10ms_rcm_check(void) {
     if (RCmon == 1 && digitalRead(PIN_RCM_FAULT) == HIGH) {
         delay(1);
         if (digitalRead(PIN_RCM_FAULT) == HIGH) {
@@ -2436,23 +2358,20 @@ void Timer10ms_singlerun(void) {
             LCDTimer = 0;
         }
     }
+}
 #endif
 
-    // CH32: send status to ESP32
-#ifndef SMARTEVSE_VERSION
-    if ((ErrorFlags & CT_NOCOMM) && MainsMeter.Timeout == 10) clearErrorFlags(CT_NOCOMM);
-    printf("@IsCurrentAvailable:%u\n", IsCurrentAvailable());
-    SEND_TO_ESP32(ErrorFlags)
-    if (millis() > log1S + 1000) {
-        log1S = millis();
-    }
-#endif
-
-#endif //v3 and CH32
 #if SMARTEVSE_VERSION >= 40 //v4
-    //ESP32 receives info from CH32
-    //each message starts with @, : separates variable name from value, ends with \n
-    //so @State:2\n would be a valid message
+// Process serial messages from CH32 and drive comm state machine
+static void timer10ms_v4_serial(void) {
+    static uint16_t idx = 0;
+    static char SerialBuf[512];
+    static uint8_t CommState = COMM_VER_REQ;
+    static uint8_t CommTimeout = 0;
+
+    // ESP32 receives info from CH32
+    // each message starts with @, : separates variable name from value, ends with \n
+    // so @State:2\n would be a valid message
     while (Serial1.available()) {       // Process ALL available messages in one cycle
         idx = Serial1.readBytesUntil('\n', SerialBuf, sizeof(SerialBuf)-1);
         if (idx > 0) {
@@ -2492,11 +2411,84 @@ void Timer10ms_singlerun(void) {
         }
     }
 
-
     if (CommTimeout) CommTimeout--;
+}
+#endif //v4
 
-#endif //SMARTEVSE_VERSION v4
+// --- Timer10ms dispatcher ---
 
+#ifndef SMARTEVSE_VERSION // CH32
+#define LOG1S(fmt, ...) \
+    if (millis() > log1S + 1000) printf("@MSG: " fmt, ##__VA_ARGS__);
+#else
+#define LOG1S(fmt, ...) //dummy
+#endif
+
+void Timer10ms_singlerun(void) {
+#if !defined(SMARTEVSE_VERSION) || SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40   //CH32 and v3 ESP32
+    BlinkLed_singlerun();
+#endif
+
+#ifndef SMARTEVSE_VERSION //CH32
+    static uint32_t log1S = millis();
+    if (ModbusRxLen) CheckRS485Comm();
+#endif
+
+#ifdef SMARTEVSE_VERSION //v3 and v4
+    timer10ms_backlight();
+    timer10ms_buttons();
+#endif
+
+#if !defined(SMARTEVSE_VERSION) || SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40 //CH32 and v3
+    // Core state machine tick
+    ExtSwitch.CheckSwitch();
+    pilot = Pilot();
+    LOG1S("WCH 10ms: state=%d, pilot=%d, ErrorFlags=%d, ChargeDelay=%d, AccessStatus=%d, MainsMeter.Type=%d.\n", State, pilot, ErrorFlags, ChargeDelay, AccessStatus, MainsMeter.Type);
+
+    uint8_t oldState = State;
+    uint8_t oldDiodeCheck = g_evse_ctx.DiodeCheck;
+
+    evse_sync_globals_to_ctx();
+    evse_tick_10ms(&g_evse_ctx, pilot);
+    evse_sync_ctx_to_globals();
+
+    timer10ms_ev_metering(oldState, pilot);
+
+#if DIAG_LOG
+    {
+        extern volatile uint32_t cpPulseCount;
+        static uint8_t diagBCnt = 0;
+        if ((State == STATE_B || State == STATE_COMM_C) && ++diagBCnt >= 100) {
+            diagBCnt = 0;
+            uint32_t ledc_duty = ledcRead(CP_CHANNEL);
+            uint32_t pulses = cpPulseCount;
+            uint64_t tmr = timerRead(timerA);
+            _LOG_A("DIAG B: pilot=%u DC=%u Err=%u CD=%u Acc=%u ledc=%u pulses=%u tmr=%llu lastADC=%u\n",
+                   pilot, g_evse_ctx.DiodeCheck, ErrorFlags, ChargeDelay, AccessStatus,
+                   ledc_duty, pulses, tmr, adcsample);
+        }
+    }
+#endif
+
+    timer10ms_diode_activation(oldState, oldDiodeCheck, pilot);
+#endif // CH32 and v3
+
+#if SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40
+    timer10ms_rcm_check();
+#endif
+
+#ifndef SMARTEVSE_VERSION //CH32
+    if ((ErrorFlags & CT_NOCOMM) && MainsMeter.Timeout == 10) clearErrorFlags(CT_NOCOMM);
+    printf("@IsCurrentAvailable:%u\n", IsCurrentAvailable());
+    SEND_TO_ESP32(ErrorFlags)
+    if (millis() > log1S + 1000) {
+        log1S = millis();
+    }
+#endif
+
+#if SMARTEVSE_VERSION >= 40 //v4
+    timer10ms_v4_serial();
+#endif
 }
 
 #ifdef SMARTEVSE_VERSION //v3 and v4
@@ -2788,46 +2780,38 @@ uint16_t getItemValue(uint8_t nav) {
  */
 // 
 int16_t getBatteryCurrent(void) {
-    if (homeBatteryLastUpdate && (time(NULL) - homeBatteryLastUpdate) > 60) {
+    uint32_t elapsed = homeBatteryLastUpdate ? (uint32_t)(time(NULL) - homeBatteryLastUpdate) : 0;
+    int16_t result = calc_battery_current(elapsed, Mode, MainsMeter.Type, homeBatteryCurrent);
+    if (result == 0 && homeBatteryLastUpdate && elapsed > 60) {
         homeBatteryLastUpdate = 0;                      // last update was more then 60s ago, set to 0
         homeBatteryCurrent = 0;
-        return 0;
-    } else if (Mode == MODE_SOLAR && MainsMeter.Type == EM_API) {   // Only use BatteryCurrent if Mainsmeter = API, and Solar Mode
-        return homeBatteryCurrent;
-    } else {
-        return 0;                                       // don't touch homeBatteryCurrent, just return 0
     }
+    return result;
 }
 
 
 void CalcIsum(void) {
     phasesLastUpdate = time(NULL);
     phasesLastUpdateFlag = true;                        // Set flag if a new Irms measurement is received.
-    int16_t BatteryCurrent = getBatteryCurrent();
-    int16_t batteryPerPhase = getBatteryCurrent() / 3;
-    Isum = 0;
+
 #if FAKE_SUNNY_DAY
-    int32_t temp[3]={0, 0, 0};
-    temp[0] = INJECT_CURRENT_L1 * 10;                   //Irms is in units of 100mA
-    temp[1] = INJECT_CURRENT_L2 * 10;
-    temp[2] = INJECT_CURRENT_L3 * 10;
+    MainsMeter.Irms[0] -= INJECT_CURRENT_L1 * 10;      //Irms is in units of 100mA
+    MainsMeter.Irms[1] -= INJECT_CURRENT_L2 * 10;
+    MainsMeter.Irms[2] -= INJECT_CURRENT_L3 * 10;
 #endif
 
+    calc_isum_input_t input = {
+        .mains_irms = {MainsMeter.Irms[0], MainsMeter.Irms[1], MainsMeter.Irms[2]},
+        .battery_current = getBatteryCurrent(),
+        .enable_c2 = (uint8_t)EnableC2,
+    };
+    calc_isum_result_t result = calc_isum(&input);
+
     for (int x = 0; x < 3; x++) {
-#if FAKE_SUNNY_DAY
-        MainsMeter.Irms[x] = MainsMeter.Irms[x] - temp[x];
-#endif
         IrmsOriginal[x] = MainsMeter.Irms[x];
-        if (EnableC2 != ALWAYS_OFF) {                                           // so single phase users can signal to only correct battery current on first phase
-            MainsMeter.Irms[x] -= batteryPerPhase;
-        } else {
-            if (x == 0) {
-                MainsMeter.Irms[x] -= BatteryCurrent;
-                //MainsMeter.Irms[0] -= getBatteryCurrent(); //for some strange reason this would f*ck up the CH32 ?!?!
-            }
-        }
-        Isum = Isum + MainsMeter.Irms[x];
+        MainsMeter.Irms[x] = result.adjusted_irms[x];
     }
+    Isum = result.isum;
     MainsMeter.CalcImeasured();
 }
 
