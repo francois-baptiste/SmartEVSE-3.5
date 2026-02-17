@@ -3532,11 +3532,11 @@
 
 ## Battery Current Calculation
 
-### Fresh battery data in solar mode with API meter
+### Fresh battery data in solar mode
 
 **Requirement:** `REQ-CALC-001`
 
-- **Given** Battery update 30s ago, solar mode, API meter, current = 1000
+- **Given** Battery update 30s ago, solar mode, current = 1000
 - **When** calc_battery_current is called
 - **Then** Returns 1000 (battery current value)
 
@@ -3572,13 +3572,13 @@
 
 > Test: `test_battery_current_normal_mode` in `test_serial_parser.c:380`
 
-### Non-API meter returns zero
+### Non-API meter in solar mode still returns battery current
 
 **Requirement:** `REQ-CALC-001`
 
 - **Given** Solar mode with non-API meter type
 - **When** calc_battery_current is called
-- **Then** Returns 0 (battery only used with API meter)
+- **Then** Returns battery current (battery used with any meter in solar mode)
 
 > Test: `test_battery_current_non_api_meter` in `test_serial_parser.c:393`
 
