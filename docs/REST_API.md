@@ -2,6 +2,12 @@
 
 The REST API can be accessed through any http tool, here as an example CURL will be used.
 
+> **Testing**: REST API input validation is covered by 37 native test cases in
+> [`test_http_api.c`](../SmartEVSE-3/test/native/tests/test_http_api.c). These
+> verify parameter bounds, error responses, and edge cases for all settings
+> endpoints. See the [test specification](../SmartEVSE-3/test/native/test-specification.md)
+> for the full scenario list under the "HTTP API" features.
+
 # GET: /settings
 
 curl -X GET http://ipaddress/settings

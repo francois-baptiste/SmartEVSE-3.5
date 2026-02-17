@@ -15,8 +15,14 @@ SRC_DIR  := ../../src
 TEST_DIR := tests
 BUILD    := build
 
-# Source files
+# Source files for state machine tests
 EVSE_SRC := $(SRC_DIR)/evse_state_machine.c
+
+# Source files for module-specific tests
+MQTT_PARSER_SRC    := $(SRC_DIR)/mqtt_parser.c
+HTTP_API_SRC       := $(SRC_DIR)/http_api.c
+SERIAL_PARSER_SRC  := $(SRC_DIR)/serial_parser.c
+LED_COLOR_SRC      := $(SRC_DIR)/led_color.c
 
 # Discover all test files
 TEST_SRCS := $(wildcard $(TEST_DIR)/test_*.c)
@@ -27,7 +33,20 @@ TEST_NAMES := $(patsubst $(TEST_DIR)/test_%.c,%,$(TEST_SRCS))
 
 all: $(TEST_BINS)
 
-# Build each test binary
+# Module-specific build rules (must come before the generic rule)
+$(BUILD)/test_mqtt_parser: $(TEST_DIR)/test_mqtt_parser.c $(MQTT_PARSER_SRC) $(SRC_DIR)/mqtt_parser.h include/*.h | $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(TEST_DIR)/test_mqtt_parser.c $(MQTT_PARSER_SRC)
+
+$(BUILD)/test_http_api: $(TEST_DIR)/test_http_api.c $(HTTP_API_SRC) $(SRC_DIR)/http_api.h include/*.h | $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(TEST_DIR)/test_http_api.c $(HTTP_API_SRC)
+
+$(BUILD)/test_serial_parser: $(TEST_DIR)/test_serial_parser.c $(SERIAL_PARSER_SRC) $(SRC_DIR)/serial_parser.h include/*.h | $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(TEST_DIR)/test_serial_parser.c $(SERIAL_PARSER_SRC)
+
+$(BUILD)/test_led_color: $(TEST_DIR)/test_led_color.c $(LED_COLOR_SRC) $(SRC_DIR)/led_color.h include/*.h | $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(TEST_DIR)/test_led_color.c $(LED_COLOR_SRC)
+
+# Build each state machine test binary (generic rule)
 $(BUILD)/test_%: $(TEST_DIR)/test_%.c $(EVSE_SRC) include/*.h $(SRC_DIR)/*.h | $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(TEST_DIR)/test_$*.c $(EVSE_SRC)
 
