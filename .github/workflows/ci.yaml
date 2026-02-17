@@ -4,13 +4,14 @@ on:
   pull_request:
   push:
     branches: [master]
+    tags: ['v*']
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   native-tests:
@@ -154,6 +155,21 @@ jobs:
           path: |
             SmartEVSE-3/test/native/traceability-report.html
             SmartEVSE-3/test/native/test-specification.md
+      - name: Commit updated test specification
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add SmartEVSE-3/test/native/test-specification.md
+          if git diff --cached --quiet; then
+            echo "test-specification.md is already up to date"
+          else
+            git commit -m "docs: regenerate test specification
+
+          Auto-generated from SbE annotations by CI pipeline.
+          $(grep -c '###' SmartEVSE-3/test/native/test-specification.md) scenarios across $(grep -c '^## ' SmartEVSE-3/test/native/test-specification.md) features."
+            git push
+          fi
 
   bdd-tests:
     needs: [native-tests]
@@ -184,9 +200,28 @@ jobs:
           name: bdd-report
           path: SmartEVSE-3/test/native/bdd-report.html
 
+  version-check:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Validate tag matches platformio.ini VERSION
+        run: |
+          # Extract VERSION from platformio.ini build_flags
+          ini_version=$(grep -oP '(?<=-DVERSION=\\")[^\\]+' SmartEVSE-3/platformio.ini)
+          tag_version="${GITHUB_REF#refs/tags/}"
+          echo "platformio.ini VERSION: $ini_version"
+          echo "Git tag:               $tag_version"
+          if [ "$ini_version" != "$tag_version" ]; then
+            echo "ERROR: Tag '$tag_version' does not match platformio.ini VERSION '$ini_version'"
+            echo "Update VERSION in SmartEVSE-3/platformio.ini to match the tag before releasing."
+            exit 1
+          fi
+          echo "Version match confirmed."
+
   ci-passed:
     if: always()
-    needs: [native-tests, firmware-build, static-analysis, memory-sanitizers, valgrind, traceability, bdd-tests]
+    needs: [native-tests, firmware-build, static-analysis, memory-sanitizers, valgrind, traceability, bdd-tests, version-check]
     runs-on: ubuntu-latest
     steps:
       - name: Check results
@@ -199,6 +234,12 @@ jobs:
              [ "${{ needs.traceability.result }}" != "success" ] || \
              [ "${{ needs.bdd-tests.result }}" != "success" ]; then
             echo "One or more jobs failed"
+            exit 1
+          fi
+          # version-check only runs on tag pushes; fail if it ran and didn't succeed
+          if [ "${{ needs.version-check.result }}" != "success" ] && \
+             [ "${{ needs.version-check.result }}" != "skipped" ]; then
+            echo "Version check failed"
             exit 1
           fi
           echo "All checks passed"
