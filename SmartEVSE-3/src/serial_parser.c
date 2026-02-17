@@ -90,7 +90,8 @@ calc_isum_result_t calc_isum(const calc_isum_input_t *input) {
 }
 
 int16_t calc_battery_current(uint32_t time_since_update, uint8_t mode,
-                              uint8_t mains_meter_type, int16_t battery_current) {
+                              uint8_t mains_meter_type __attribute__((unused)),
+                              int16_t battery_current) {
     /* Never updated (time_since_update == 0 with no prior update) */
     if (time_since_update == 0)
         return 0;
@@ -99,8 +100,8 @@ int16_t calc_battery_current(uint32_t time_since_update, uint8_t mode,
     if (time_since_update > 60)
         return 0;
 
-    /* Only use battery current in Solar mode with API meter */
-    if (mode == SP_MODE_SOLAR && mains_meter_type == SP_EM_API)
+    /* Only use battery current in Solar mode */
+    if (mode == SP_MODE_SOLAR)
         return battery_current;
 
     return 0;

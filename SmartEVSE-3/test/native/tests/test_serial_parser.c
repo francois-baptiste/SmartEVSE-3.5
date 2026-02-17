@@ -341,8 +341,8 @@ void test_node_status_null_output(void) {
 /*
  * @feature Battery Current Calculation
  * @req REQ-CALC-001
- * @scenario Fresh battery data in solar mode with API meter
- * @given Battery update 30s ago, solar mode, API meter, current = 1000
+ * @scenario Fresh battery data in solar mode
+ * @given Battery update 30s ago, solar mode, current = 1000
  * @when calc_battery_current is called
  * @then Returns 1000 (battery current value)
  */
@@ -393,14 +393,14 @@ void test_battery_current_normal_mode(void) {
 /*
  * @feature Battery Current Calculation
  * @req REQ-CALC-001
- * @scenario Non-API meter returns zero
+ * @scenario Non-API meter in solar mode still returns battery current
  * @given Solar mode with non-API meter type
  * @when calc_battery_current is called
- * @then Returns 0 (battery only used with API meter)
+ * @then Returns battery current (battery used with any meter in solar mode)
  */
 void test_battery_current_non_api_meter(void) {
     int16_t result = calc_battery_current(10, MODE_SOLAR, 1, 1000);
-    TEST_ASSERT_EQUAL_INT(0, result);
+    TEST_ASSERT_EQUAL_INT(1000, result);
 }
 
 /*
