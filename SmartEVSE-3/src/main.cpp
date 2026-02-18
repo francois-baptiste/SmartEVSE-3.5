@@ -1745,6 +1745,10 @@ void CheckSerialComm(void) {
 // lock_direction: true = lock, false = unlock.
 // Pulses the actuator for 600ms, then checks feedback pin.
 // Retries after 5 seconds if feedback indicates the lock hasn't moved.
+#ifndef SMARTEVSE_VERSION //CH32: map Arduino-style names used below
+#define digitalRead funDigitalRead
+#define PIN_LOCK_IN LOCK_IN
+#endif
 #if !defined(SMARTEVSE_VERSION) || SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40   //CH32 and v3 ESP32
 static void actuate_cable_lock(unsigned int *timer, unsigned int *companion,
                                 bool lock_direction) {
@@ -1780,9 +1784,6 @@ static unsigned int locktimer = 0, unlocktimer = 0;
 #ifndef SMARTEVSE_VERSION //CH32
     //Check Serial communication with ESP32
     if (RxRdy1) CheckSerialComm();
-//make stuff compatible with CH32 terminology
-#define digitalRead funDigitalRead
-#define PIN_LOCK_IN LOCK_IN
 #endif
 
 #if !defined(SMARTEVSE_VERSION) || SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40   //CH32 and v3 ESP32
