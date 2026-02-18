@@ -605,7 +605,7 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
     int32_t Idifference; // cppcheck-suppress variableScope
     int32_t IsumImport = 0;
     bool LimitedByMaxSumMains = false;
-    bool priorityScheduled = false;
+    bool priorityScheduled = false; // cppcheck-suppress variableScope
     char CurrentSet[NR_EVSES] = {0}; // cppcheck-suppress variableScope
 
     // ---- Phase 1: ChargeCurrent (lines 1158-1179) ----
