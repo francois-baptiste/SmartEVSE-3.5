@@ -108,6 +108,19 @@ void evse_init(evse_ctx_t *ctx, evse_hal_t *hal) {
     ctx->IsetBalanced = 0;
     ctx->OverrideCurrent = 0;
 
+    // Priority scheduling
+    ctx->PrioStrategy = PRIO_MODBUS_ADDR;
+    ctx->RotationInterval = 0;
+    ctx->IdleTimeout = 60;
+    ctx->RotationTimer = 0;
+    ctx->Uptime = 0;
+    for (int i = 0; i < NR_EVSES; i++) {
+        ctx->Priority[i] = (uint8_t)i;
+        ctx->ConnectedTime[i] = 0;
+        ctx->IdleTimer[i] = 0;
+        ctx->ScheduleState[i] = SCHED_INACTIVE;
+    }
+
     // Meter readings
     ctx->Isum = 0;
     ctx->MainsMeterImeasured = 0;
@@ -449,6 +462,139 @@ int evse_is_current_available(evse_ctx_t *ctx) {
     return 1;
 }
 
+// ---- Priority scheduling helpers ----
+
+// Sort Priority[] by strategy. Active EVSEs (STATE_C) come first.
+void evse_sort_priority(evse_ctx_t *ctx) {
+    // Initialize Priority[] to identity
+    for (int i = 0; i < NR_EVSES; i++)
+        ctx->Priority[i] = (uint8_t)i;
+
+    // Insertion sort by: active first, then by strategy
+    for (int i = 1; i < NR_EVSES; i++) {
+        uint8_t key = ctx->Priority[i];
+        int j = i - 1;
+        while (j >= 0) {
+            uint8_t pj = ctx->Priority[j];
+            bool key_active = (ctx->BalancedState[key] == STATE_C);
+            bool pj_active = (ctx->BalancedState[pj] == STATE_C);
+
+            bool swap = false;
+            if (key_active && !pj_active) {
+                swap = true;  // active before inactive
+            } else if (key_active == pj_active) {
+                // Both same activity status: sort by strategy
+                switch (ctx->PrioStrategy) {
+                    case PRIO_FIRST_CONNECTED:
+                        // Earlier ConnectedTime = higher priority (lower value first)
+                        // But 0 means never connected, sort to end
+                        if (ctx->ConnectedTime[key] != 0 && ctx->ConnectedTime[pj] == 0)
+                            swap = true;
+                        else if (ctx->ConnectedTime[key] != 0 && ctx->ConnectedTime[pj] != 0 &&
+                                 ctx->ConnectedTime[key] < ctx->ConnectedTime[pj])
+                            swap = true;
+                        break;
+                    case PRIO_LAST_CONNECTED:
+                        // Later ConnectedTime = higher priority (higher value first)
+                        if (ctx->ConnectedTime[key] > ctx->ConnectedTime[pj])
+                            swap = true;
+                        break;
+                    default: // PRIO_MODBUS_ADDR: ascending index (already identity)
+                        if (key < pj)
+                            swap = true;
+                        break;
+                }
+            }
+
+            if (swap) {
+                ctx->Priority[j + 1] = ctx->Priority[j];
+                j--;
+            } else {
+                break;
+            }
+        }
+        ctx->Priority[j + 1] = key;
+    }
+}
+
+// Allocate MinCurrent to EVSEs in priority order until power runs out.
+// Returns surplus power above MinCurrent allocations (or 0).
+static int32_t evse_schedule_priority(evse_ctx_t *ctx, int32_t available,
+                                      uint8_t active_count) {
+    int32_t min_each = ctx->MinCurrent * 10;
+
+    for (int i = 0; i < NR_EVSES; i++) {
+        uint8_t idx = ctx->Priority[i];
+        if (ctx->BalancedState[idx] != STATE_C)
+            continue;
+
+        if (available >= min_each) {
+            ctx->Balanced[idx] = (uint16_t)min_each;
+            ctx->ScheduleState[idx] = SCHED_ACTIVE;
+            ctx->BalancedError[idx] &= (uint16_t)~(LESS_6A | NO_SUN);
+            available -= min_each;
+        } else {
+            // Not enough power for this EVSE
+            ctx->Balanced[idx] = 0;
+            ctx->ScheduleState[idx] = SCHED_PAUSED;
+            if (ctx->Mode == MODE_SOLAR)
+                ctx->BalancedError[idx] |= NO_SUN;
+            else
+                ctx->BalancedError[idx] |= LESS_6A;
+        }
+    }
+
+    (void)active_count;
+    return available;  // surplus above all MinCurrent allocations
+}
+
+// Distribute surplus above MinCurrent fairly among active EVSEs, respecting caps.
+static void evse_handout_surplus(evse_ctx_t *ctx, int32_t surplus) {
+    if (surplus <= 0) return;
+
+    // Count active (scheduled) EVSEs and track which are uncapped
+    char capped[NR_EVSES] = {0};
+    bool progress = true;
+
+    while (surplus > 0 && progress) {
+        progress = false;
+        int uncapped = 0;
+        for (int i = 0; i < NR_EVSES; i++) {
+            if (ctx->ScheduleState[i] == SCHED_ACTIVE && !capped[i])
+                uncapped++;
+        }
+        if (uncapped == 0) break;
+
+        int32_t share = surplus / uncapped;
+        if (share == 0) share = 1;
+        int32_t distributed = 0;
+
+        for (int i = 0; i < NR_EVSES; i++) {
+            if (ctx->ScheduleState[i] != SCHED_ACTIVE || capped[i])
+                continue;
+
+            int32_t can_add = (int32_t)ctx->BalancedMax[i] - (int32_t)ctx->Balanced[i];
+            if (can_add <= 0) {
+                capped[i] = 1;
+                progress = true;
+                continue;
+            }
+
+            int32_t add = (share < can_add) ? share : can_add;
+            if (add > surplus - distributed) add = surplus - distributed;
+            if (add <= 0) continue;
+
+            ctx->Balanced[i] += (uint16_t)add;
+            distributed += add;
+            progress = true;
+
+            if (ctx->Balanced[i] >= ctx->BalancedMax[i])
+                capped[i] = 1;
+        }
+        surplus -= distributed;
+    }
+}
+
 // ---- Current distribution ----
 // Faithful to CalcBalancedCurrent() in main.cpp:1148-1526
 void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
@@ -459,6 +605,7 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
     int32_t Idifference; // cppcheck-suppress variableScope
     int32_t IsumImport = 0;
     bool LimitedByMaxSumMains = false;
+    bool priorityScheduled = false;
     char CurrentSet[NR_EVSES] = {0}; // cppcheck-suppress variableScope
 
     // ---- Phase 1: ChargeCurrent (lines 1158-1179) ----
@@ -607,6 +754,11 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
 
         if (ctx->IsetBalanced < (int32_t)(ActiveEVSE * ctx->MinCurrent * 10)) {
             // ---- Shortage of power (lines 1332-1440) ----
+
+            // Save actual available power before inflation (for priority scheduling)
+            int32_t actualAvailable = ctx->IsetBalanced;
+            if (actualAvailable < 0) actualAvailable = 0;
+
             ctx->IsetBalanced = ActiveEVSE * ctx->MinCurrent * 10;  // line 1336
 
             // Solar shortage: 3P->1P switching (lines 1337-1370)
@@ -619,7 +771,6 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
 
                     if (ctx->Nr_Of_Phases_Charging > 1 && ctx->EnableC2 == AUTO &&
                         ctx->State == STATE_C) {
-                        // Start solar stop timer for 3P->1P switch
                         if (ctx->SolarStopTimer == 0) {
                             if (IsumImport < (int32_t)(10 * ctx->MinCurrent))
                                 ctx->SolarStopTimer = ctx->StopTime * 60;
@@ -652,18 +803,52 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
             if (!ctx->MaxSumMainsTime && LimitedByMaxSumMains)
                 hardShortage = true;
 
-            if (hardShortage && ctx->Switching_Phases_C2 != GOING_TO_SWITCH_1P) {
-                ctx->NoCurrent++;
+            // Priority scheduling: master with multiple EVSEs in shortage
+            if (ctx->LoadBl == 1 && ActiveEVSE > 1) {
+                priorityScheduled = true;
+                evse_sort_priority(ctx);
+                int32_t surplus = evse_schedule_priority(ctx, actualAvailable, ActiveEVSE);
+                evse_handout_surplus(ctx, surplus);
+
+                // Check if even the first-priority EVSE can't get MinCurrent
+                bool any_active = false;
+                for (int i = 0; i < NR_EVSES; i++) {
+                    if (ctx->ScheduleState[i] == SCHED_ACTIVE) {
+                        any_active = true;
+                        break;
+                    }
+                }
+                if (!any_active) {
+                    // True hard shortage — nobody gets power
+                    ctx->NoCurrent++;
+                }
+                // else: deliberate pause, NoCurrent stays at 0
+
             } else {
-                // Soft shortage - start MaxSumMains timer if needed (lines 1394-1397)
-                if (LimitedByMaxSumMains && ctx->MaxSumMainsTime) {
-                    if (ctx->MaxSumMainsTimer == 0)
-                        ctx->MaxSumMainsTimer = ctx->MaxSumMainsTime * 60;
+                // Standalone, node, or single EVSE: original behavior
+                if (hardShortage && ctx->Switching_Phases_C2 != GOING_TO_SWITCH_1P) {
+                    ctx->NoCurrent++;
+                } else {
+                    if (LimitedByMaxSumMains && ctx->MaxSumMainsTime) {
+                        if (ctx->MaxSumMainsTimer == 0)
+                            ctx->MaxSumMainsTimer = ctx->MaxSumMainsTime * 60;
+                    }
                 }
             }
 
         } else {
             // ---- No shortage (lines 1399-1440) ----
+
+            // When LoadBl==1 and sufficient power, mark all active EVSEs as SCHED_ACTIVE
+            if (ctx->LoadBl == 1) {
+                for (n = 0; n < NR_EVSES; n++) {
+                    if (ctx->BalancedState[n] == STATE_C) {
+                        ctx->ScheduleState[n] = SCHED_ACTIVE;
+                        ctx->BalancedError[n] &= (uint16_t)~(LESS_6A | NO_SUN);
+                        ctx->IdleTimer[n] = 0;
+                    }
+                }
+            }
 
             // Solar 1P->3P upgrade (lines 1404-1432)
             if (ctx->Mode == MODE_SOLAR && ctx->Nr_Of_Phases_Charging == 1 &&
@@ -691,6 +876,10 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
         }
 
         // ---- Distribution (lines 1442-1495) ----
+        // Skip standard distribution if priority scheduling already distributed
+        if (priorityScheduled) {
+            // Priority scheduling already set Balanced[] — skip standard distribution
+        } else {
         if (ctx->IsetBalanced > ActiveMax) ctx->IsetBalanced = ActiveMax;  // line 1444
         int32_t MaxBalanced = ctx->IsetBalanced;
 
@@ -731,6 +920,7 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
             }
             n++;
         }
+        } // end of standard distribution
     }
 
     // No active EVSEs: reset timers (lines 1497-1502)
@@ -742,6 +932,150 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
 
     // Reset measurement flag (line 1505)
     ctx->phasesLastUpdateFlag = false;
+}
+
+// ---- Priority scheduling 1-second tick ----
+// Handles idle detection, rotation, and ConnectedTime tracking.
+// Called from evse_tick_1s() when LoadBl == 1.
+void evse_schedule_tick_1s(evse_ctx_t *ctx) {
+    if (ctx->LoadBl != 1) return;
+
+    ctx->Uptime++;
+
+    // Track ConnectedTime: record Uptime when EVSE enters STATE_C
+    for (int i = 0; i < NR_EVSES; i++) {
+        if (ctx->BalancedState[i] == STATE_C && ctx->ConnectedTime[i] == 0) {
+            ctx->ConnectedTime[i] = ctx->Uptime;
+        } else if (ctx->BalancedState[i] != STATE_C) {
+            ctx->ConnectedTime[i] = 0;
+            if (ctx->ScheduleState[i] != SCHED_INACTIVE)
+                ctx->ScheduleState[i] = SCHED_INACTIVE;
+        }
+    }
+
+    // Count active scheduled EVSEs and paused EVSEs waiting for a turn
+    int active_idx = -1;
+    int paused_count = 0;
+    for (int i = 0; i < NR_EVSES; i++) {
+        if (ctx->ScheduleState[i] == SCHED_ACTIVE)
+            active_idx = i;  // track last active (usually only one when shortage)
+        if (ctx->ScheduleState[i] == SCHED_PAUSED)
+            paused_count++;
+    }
+
+    // No paused EVSEs waiting = nothing to rotate
+    if (paused_count == 0 || active_idx < 0)
+        return;
+
+    // Increment IdleTimer for active EVSEs
+    for (int i = 0; i < NR_EVSES; i++) {
+        if (ctx->ScheduleState[i] == SCHED_ACTIVE)
+            ctx->IdleTimer[i]++;
+    }
+
+    // Check idle detection for all active EVSEs
+    bool rotated = false;
+    for (int i = 0; i < NR_EVSES; i++) {
+        if (ctx->ScheduleState[i] != SCHED_ACTIVE)
+            continue;
+        if (ctx->IdleTimer[i] < ctx->IdleTimeout)
+            continue;
+
+        // IdleTimeout reached: check if EVSE is drawing power
+        if (ctx->Balanced[i] > 0 && ctx->EVMeterImeasured >= IDLE_CURRENT_THRESHOLD) {
+            // EVSE is actively charging — start rotation timer if enabled
+            if (ctx->RotationInterval > 0 && ctx->RotationTimer == 0) {
+                ctx->RotationTimer = ctx->RotationInterval * 60;
+            }
+        } else {
+            // EVSE is idle — pause it and activate next
+            ctx->ScheduleState[i] = SCHED_PAUSED;
+            ctx->Balanced[i] = 0;
+
+            // Find next paused EVSE in priority order
+            evse_sort_priority(ctx);
+            for (int p = 0; p < NR_EVSES; p++) {
+                uint8_t next = ctx->Priority[p];
+                if (next == (uint8_t)i) continue;
+                if (ctx->BalancedState[next] != STATE_C) continue;
+                if (ctx->ScheduleState[next] == SCHED_PAUSED) {
+                    ctx->ScheduleState[next] = SCHED_ACTIVE;
+                    ctx->IdleTimer[next] = 0;
+                    ctx->RotationTimer = (ctx->RotationInterval > 0) ?
+                                          ctx->RotationInterval * 60 : 0;
+                    rotated = true;
+                    break;
+                }
+            }
+            if (!rotated) {
+                // All others are active or inactive — wrap to first paused
+                for (int p = 0; p < NR_EVSES; p++) {
+                    uint8_t next = ctx->Priority[p];
+                    if (ctx->BalancedState[next] == STATE_C &&
+                        ctx->ScheduleState[next] == SCHED_PAUSED) {
+                        ctx->ScheduleState[next] = SCHED_ACTIVE;
+                        ctx->IdleTimer[next] = 0;
+                        ctx->RotationTimer = (ctx->RotationInterval > 0) ?
+                                              ctx->RotationInterval * 60 : 0;
+                        rotated = true;
+                        break;
+                    }
+                }
+            }
+            break;  // Only handle one rotation per tick
+        }
+    }
+
+    // Rotation timer countdown
+    if (!rotated && ctx->RotationInterval > 0 && ctx->RotationTimer > 0) {
+        ctx->RotationTimer--;
+        if (ctx->RotationTimer == 0) {
+            // Rotation timer expired — rotate to next EVSE
+            evse_sort_priority(ctx);
+            for (int i = 0; i < NR_EVSES; i++) {
+                if (ctx->ScheduleState[i] != SCHED_ACTIVE)
+                    continue;
+
+                ctx->ScheduleState[i] = SCHED_PAUSED;
+                ctx->Balanced[i] = 0;
+
+                // Find next paused EVSE in priority order after current
+                bool found = false;
+                // First look for paused EVSEs after this one in priority
+                bool past_current = false;
+                for (int p = 0; p < NR_EVSES; p++) {
+                    uint8_t next = ctx->Priority[p];
+                    if (next == (uint8_t)i) {
+                        past_current = true;
+                        continue;
+                    }
+                    if (!past_current) continue;
+                    if (ctx->BalancedState[next] == STATE_C &&
+                        ctx->ScheduleState[next] == SCHED_PAUSED) {
+                        ctx->ScheduleState[next] = SCHED_ACTIVE;
+                        ctx->IdleTimer[next] = 0;
+                        ctx->RotationTimer = ctx->RotationInterval * 60;
+                        found = true;
+                        break;
+                    }
+                }
+                // Wrap around to beginning
+                if (!found) {
+                    for (int p = 0; p < NR_EVSES; p++) {
+                        uint8_t next = ctx->Priority[p];
+                        if (ctx->BalancedState[next] == STATE_C &&
+                            ctx->ScheduleState[next] == SCHED_PAUSED) {
+                            ctx->ScheduleState[next] = SCHED_ACTIVE;
+                            ctx->IdleTimer[next] = 0;
+                            ctx->RotationTimer = ctx->RotationInterval * 60;
+                            break;
+                        }
+                    }
+                }
+                break;  // Only handle one active EVSE
+            }
+        }
+    }
 }
 
 // ---- Main 10ms state machine tick ----
@@ -1084,4 +1418,7 @@ void evse_tick_1s(evse_ctx_t *ctx) {
         evse_set_power_unavailable(ctx);
         ctx->ChargeDelay = CHARGEDELAY;
     }
+
+    // Priority scheduling tick
+    evse_schedule_tick_1s(ctx);
 }

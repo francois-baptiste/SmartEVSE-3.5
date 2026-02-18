@@ -167,6 +167,14 @@ uint8_t Show_RFID = 0;
 EnableC2_t EnableC2 = ENABLE_C2;                                            // CONTACT 2 menu setting, can be set to: NOT_PRESENT, ALWAYS_OFF, SOLAR_OFF, ALWAYS_ON, AUTO
 uint16_t maxTemp = MAX_TEMPERATURE;
 
+// Priority scheduling settings (Master only, when LoadBl=1)
+uint8_t PrioStrategy = PRIO_MODBUS_ADDR;                                    // Priority strategy (0:Modbus Address / 1:First Connected / 2:Last Connected)
+uint16_t RotationInterval = 0;                                              // Rotation interval in minutes (0=disabled, 30-1440)
+uint16_t IdleTimeout = 60;                                                  // Idle timeout in seconds (30-300)
+uint32_t ConnectedTime[NR_EVSES] = {0, 0, 0, 0, 0, 0, 0, 0};              // Uptime when each EVSE entered STATE_C
+uint8_t ScheduleState[NR_EVSES] = {0, 0, 0, 0, 0, 0, 0, 0};               // Scheduling state per EVSE (0:Inactive / 1:Active / 2:Paused)
+uint16_t RotationTimer = 0;                                                 // Countdown timer for rotation (seconds)
+
 Meter MainsMeter(MAINS_METER, MAINS_METER_ADDRESS, COMM_TIMEOUT);
 Meter EVMeter(EV_METER, EV_METER_ADDRESS, COMM_EVTIMEOUT);
 uint8_t Nr_Of_Phases_Charging = 3;                                          // Nr of phases we are charging with. Set to 1 or 3, depending on the CONTACT 2 setting, and the MODE we are in.
@@ -2282,7 +2290,7 @@ static void timer10ms_buttons(void) {
     }
 
     // Update/Show Helpmenu
-    if (LCDNav > MENU_ENTER && LCDNav < MENU_EXIT && (!SubMenu)) GLCDHelp();
+    if (LCDNav > MENU_ENTER && (LCDNav < MENU_EXIT || (LCDNav >= MENU_PRIO && LCDNav <= MENU_IDLE_TIMEOUT)) && (!SubMenu)) GLCDHelp();
 
     if (timeinfo.tm_sec != old_sec) {
         old_sec = timeinfo.tm_sec;
@@ -2574,6 +2582,9 @@ uint8_t setItemValue(uint8_t nav, uint16_t val) {
         SETITEM(MENU_EMCUSTOM_EDIVISOR, EMConfig[EM_CUSTOM].EDivisor)
         SETITEM(MENU_RFIDREADER, RFIDReader)
         SETITEM(MENU_AUTOUPDATE, AutoUpdate)
+        SETITEM(MENU_PRIO, PrioStrategy)
+        SETITEM(MENU_ROTATION, RotationInterval)
+        SETITEM(MENU_IDLE_TIMEOUT, IdleTimeout)
         SETITEM(STATUS_SOLAR_TIMER, SolarStopTimer)
         SETITEM(STATUS_CONFIG_CHANGED, ConfigChanged)
         case MENU_C2:
@@ -2732,6 +2743,12 @@ uint16_t getItemValue(uint8_t nav) {
 #endif
         case MENU_AUTOUPDATE:
             return AutoUpdate;
+        case MENU_PRIO:
+            return PrioStrategy;
+        case MENU_ROTATION:
+            return RotationInterval;
+        case MENU_IDLE_TIMEOUT:
+            return IdleTimeout;
 
         // Status writeable
         case STATUS_STATE:

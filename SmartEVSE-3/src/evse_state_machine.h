@@ -45,6 +45,10 @@ void evse_set_power_unavailable(evse_ctx_t *ctx);
 uint8_t evse_force_single_phase(evse_ctx_t *ctx);
 void evse_check_switching_phases(evse_ctx_t *ctx);
 
+// ---- Priority scheduling ----
+void evse_sort_priority(evse_ctx_t *ctx);
+void evse_schedule_tick_1s(evse_ctx_t *ctx);
+
 #ifdef __cplusplus
 }
 #endif

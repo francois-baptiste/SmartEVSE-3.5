@@ -80,6 +80,12 @@ extern uint8_t RCmon;
 #endif
 extern uint8_t ActivationMode;
 extern uint8_t ActivationTimer;
+extern uint8_t PrioStrategy;
+extern uint16_t RotationInterval;
+extern uint16_t IdleTimeout;
+extern uint32_t ConnectedTime[];
+extern uint8_t ScheduleState[];
+extern uint16_t RotationTimer;
 extern Node_t Node[];
 extern Meter MainsMeter;
 extern Meter EVMeter;
@@ -361,6 +367,15 @@ void evse_sync_globals_to_ctx(void) {
     ctx->ActivationMode = ActivationMode;
     ctx->ActivationTimer = ActivationTimer;
 
+    ctx->PrioStrategy = PrioStrategy;
+    ctx->RotationInterval = RotationInterval;
+    ctx->IdleTimeout = IdleTimeout;
+    ctx->RotationTimer = RotationTimer;
+    for (int i = 0; i < NR_EVSES; i++) {
+        ctx->ConnectedTime[i] = ConnectedTime[i];
+        ctx->ScheduleState[i] = ScheduleState[i];
+    }
+
     for (int i = 0; i < NR_EVSES; i++) {
         ctx->Node[i].Online = Node[i].Online;
         ctx->Node[i].ConfigChanged = Node[i].ConfigChanged;
@@ -424,6 +439,12 @@ void evse_sync_ctx_to_globals(void) {
 
     ActivationMode = ctx->ActivationMode;
     ActivationTimer = ctx->ActivationTimer;
+
+    RotationTimer = ctx->RotationTimer;
+    for (int i = 0; i < NR_EVSES; i++) {
+        ConnectedTime[i] = ctx->ConnectedTime[i];
+        ScheduleState[i] = ctx->ScheduleState[i];
+    }
 
     MainsMeter.Timeout = ctx->MainsMeterTimeout;
     EVMeter.Timeout = ctx->EVMeterTimeout;

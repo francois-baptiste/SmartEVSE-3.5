@@ -48,6 +48,9 @@ The LCD menu is dynamic. Which settings appear depends on your current MODE and 
 | 28 | [CAPACITY](#capacity) | MAINS MET configured | D/M | Disabled / 10-600A | Disabled |
 | 29 | [CAP STOP](#cap-stop) | CAPACITY configured | D/M | Disabled / 1-60 min | Disabled |
 | 30 | [LCD PIN](#lcd-pin) | Always | | 0-9999 | 0 |
+| 31 | [PRIORITY](#priority) | PWR SHARE = Master | D/M | Modbus Adr / First Conn / Last Conn | Modbus Adr |
+| 32 | [ROTATION](#rotation) | PWR SHARE = Master | D/M | 0, 30-1440 min | 0 (off) |
+| 33 | [IDLE TMO](#idle-tmo) | PWR SHARE = Master | D/M | 30-300 s | 60 s |
 
 **"D/M only"** means the setting is hidden when PWR SHARE is set to Node 1-7. Only Disabled and Master see these settings.
 
@@ -351,6 +354,30 @@ Timer in minutes. If CAPACITY is exceeded, charging will not immediately stop bu
 Pin code so that you can use the buttons on the LCD menu on the web-interface.
 Left button increases the digit by one, Right button goes to next digit, Middle button ends entry.
 
+## PRIORITY
+> Visible when: PWR SHARE = Master
+
+Set the priority strategy for load sharing when there is not enough power for all connected EVSEs. See [Priority-Based Power Scheduling](priority-scheduling.md) for full details.
+
+- **Modbus Adr**: Lower Modbus address = higher priority (Master first, then Node 1, 2, ...).
+- **First Conn**: The car that plugged in first gets priority.
+- **Last Conn**: The most recently plugged-in car gets priority.
+
+## ROTATION
+> Visible when: PWR SHARE = Master
+
+How often to rotate which EVSE is actively charging. See [Priority-Based Power Scheduling](priority-scheduling.md) for full details.
+
+- **0**: Disabled — no rotation. The highest-priority EVSE charges until done.
+- **30–1440**: Rotate every N minutes.
+
+## IDLE TMO
+> Visible when: PWR SHARE = Master
+
+How many seconds to wait before deciding an EVSE is idle and moving to the next one. Also serves as anti-flap protection. See [Priority-Based Power Scheduling](priority-scheduling.md) for full details.
+
+- **30–300**: Seconds (default 60).
+
 ---
 
 # Setup guides by role
@@ -375,6 +402,7 @@ Left button increases the digit by one, Right button goes to next digit, Middle 
 5. Set **MAX** for the EV connected to this SmartEVSE
 6. Set **MIN** to the lowest allowable charging current for all connected EVs
 7. Configure remaining hardware settings (WIFI, SWITCH, RCMON, RFID, etc.)
+8. Optionally configure **PRIORITY**, **ROTATION**, and **IDLE TMO** for [priority scheduling](priority-scheduling.md) — these control what happens when there isn't enough power for all EVSEs
 
 ## Node setup (Power Share)
 
@@ -467,7 +495,12 @@ Valid topics you can publish to are:
                Example: "112233445566" (6 bytes) or "11223344556677" (7 bytes)
                This will simulate an RFID card swipe and start/stop a charging session using all existing RFID checks
                (whitelist verification, OCPP authorization, etc.)
+/Set/PrioStrategy       0=Modbus Address, 1=First Connected, 2=Last Connected (Master only)
+/Set/RotationInterval   0=disabled, 30-1440 minutes (Master only)
+/Set/IdleTimeout        30-300 seconds (Master only)
 ```
+
+For details on the scheduling topics, see [Priority-Based Power Scheduling](priority-scheduling.md).
 Your mains kWh meter data can be fed with:
 ```
 mosquitto_pub  -h ip-of-mosquitto-server -u username -P password -t 'SmartEVSE-xxxxx/Set/MainsMeter' -m L1:L2:L3

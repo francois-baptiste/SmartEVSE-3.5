@@ -184,5 +184,35 @@ bool mqtt_parse_command(const char *prefix, const char *topic,
         return false;
     }
 
+    if (match_topic(prefix, topic, "/Set/PrioStrategy")) {
+        out->cmd = MQTT_CMD_PRIO_STRATEGY;
+        int val = atoi(payload);
+        if (val >= 0 && val <= 2) {
+            out->prio_strategy = (uint8_t)val;
+            return true;
+        }
+        return false;
+    }
+
+    if (match_topic(prefix, topic, "/Set/RotationInterval")) {
+        out->cmd = MQTT_CMD_ROTATION_INTERVAL;
+        int val = atoi(payload);
+        if (val == 0 || (val >= 30 && val <= 1440)) {
+            out->rotation_interval = (uint16_t)val;
+            return true;
+        }
+        return false;
+    }
+
+    if (match_topic(prefix, topic, "/Set/IdleTimeout")) {
+        out->cmd = MQTT_CMD_IDLE_TIMEOUT;
+        int val = atoi(payload);
+        if (val >= 30 && val <= 300) {
+            out->idle_timeout = (uint16_t)val;
+            return true;
+        }
+        return false;
+    }
+
     return false;
 }

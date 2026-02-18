@@ -140,6 +140,33 @@ to your curl POST command. -d ''
 <br>&emsp;&emsp;Usually you should leave this setting at its default value (600A)
 <br>&emsp;&emsp;since your electricity provider probably does not supports this.
 
+* prio_strategy
+
+&emsp;&emsp;Set the priority strategy for load sharing. Only works when PWR SHARE = Disabled or Master.
+<br>&emsp;&emsp;See [Priority-Based Power Scheduling](priority-scheduling.md) for details.
+<br>&emsp;&emsp;0: Modbus Address
+<br>&emsp;&emsp;1: First Connected
+<br>&emsp;&emsp;2: Last Connected
+```
+    curl -X POST 'http://ipaddress/settings?prio_strategy=1' -d ''
+```
+
+* rotation_interval
+
+&emsp;&emsp;Set the rotation interval in minutes. Only works when PWR SHARE = Disabled or Master.
+<br>&emsp;&emsp;Value must be 0 (disabled) or 30-1440.
+```
+    curl -X POST 'http://ipaddress/settings?rotation_interval=60' -d ''
+```
+
+* idle_timeout
+
+&emsp;&emsp;Set the idle timeout in seconds. Only works when PWR SHARE = Disabled or Master.
+<br>&emsp;&emsp;Value must be 30-300.
+```
+    curl -X POST 'http://ipaddress/settings?idle_timeout=60' -d ''
+```
+
 * cablelock
 
 &emsp;&emsp;Enhanced cable locking option. This setting makes sure the charging cable stays locked in the charging station, even if no EV is connected anymore.

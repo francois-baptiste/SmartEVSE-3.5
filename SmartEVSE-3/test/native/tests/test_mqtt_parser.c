@@ -565,6 +565,186 @@ void test_required_evccid_too_long(void) {
         "12345678901234567890123456789012", &cmd)); // 32 chars = too long (no room for null)
 }
 
+// ---- PrioStrategy ----
+
+/*
+ * @feature MQTT Command Parsing
+ * @req REQ-MQTT-015
+ * @scenario PrioStrategy set to MODBUS_ADDR (0) via MQTT
+ * @given A valid MQTT prefix
+ * @when Topic is prefix/Set/PrioStrategy with payload "0"
+ * @then Command type is MQTT_CMD_PRIO_STRATEGY with value 0
+ */
+void test_prio_strategy_modbus_addr(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/PrioStrategy", "0", &cmd));
+    TEST_ASSERT_EQUAL_INT(MQTT_CMD_PRIO_STRATEGY, cmd.cmd);
+    TEST_ASSERT_EQUAL_INT(0, cmd.prio_strategy);
+}
+
+/*
+ * @feature MQTT Command Parsing
+ * @req REQ-MQTT-015
+ * @scenario PrioStrategy set to FIRST_CONNECTED (1)
+ */
+void test_prio_strategy_first_connected(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/PrioStrategy", "1", &cmd));
+    TEST_ASSERT_EQUAL_INT(1, cmd.prio_strategy);
+}
+
+/*
+ * @feature MQTT Command Parsing
+ * @req REQ-MQTT-015
+ * @scenario PrioStrategy set to LAST_CONNECTED (2)
+ */
+void test_prio_strategy_last_connected(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/PrioStrategy", "2", &cmd));
+    TEST_ASSERT_EQUAL_INT(2, cmd.prio_strategy);
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-015
+ * @scenario PrioStrategy value 3 is rejected (out of range)
+ * @given A valid MQTT prefix
+ * @when Topic is prefix/Set/PrioStrategy with payload "3"
+ * @then The parser returns false
+ */
+void test_prio_strategy_out_of_range(void) {
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/PrioStrategy", "3", &cmd));
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-015
+ * @scenario PrioStrategy negative value is rejected
+ */
+void test_prio_strategy_negative(void) {
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/PrioStrategy", "-1", &cmd));
+}
+
+// ---- RotationInterval ----
+
+/*
+ * @feature MQTT Command Parsing
+ * @req REQ-MQTT-016
+ * @scenario RotationInterval set to 0 (disabled) via MQTT
+ * @given A valid MQTT prefix
+ * @when Topic is prefix/Set/RotationInterval with payload "0"
+ * @then Command type is MQTT_CMD_ROTATION_INTERVAL with value 0
+ */
+void test_rotation_interval_zero(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/RotationInterval", "0", &cmd));
+    TEST_ASSERT_EQUAL_INT(MQTT_CMD_ROTATION_INTERVAL, cmd.cmd);
+    TEST_ASSERT_EQUAL_INT(0, cmd.rotation_interval);
+}
+
+/*
+ * @feature MQTT Command Parsing
+ * @req REQ-MQTT-016
+ * @scenario RotationInterval set to minimum (30 minutes)
+ */
+void test_rotation_interval_min(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/RotationInterval", "30", &cmd));
+    TEST_ASSERT_EQUAL_INT(30, cmd.rotation_interval);
+}
+
+/*
+ * @feature MQTT Command Parsing
+ * @req REQ-MQTT-016
+ * @scenario RotationInterval set to maximum (1440 minutes = 24h)
+ */
+void test_rotation_interval_max(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/RotationInterval", "1440", &cmd));
+    TEST_ASSERT_EQUAL_INT(1440, cmd.rotation_interval);
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-016
+ * @scenario RotationInterval in gap (1-29) is rejected
+ * @given A valid MQTT prefix
+ * @when Topic is prefix/Set/RotationInterval with payload "15"
+ * @then The parser returns false
+ */
+void test_rotation_interval_gap(void) {
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/RotationInterval", "15", &cmd));
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-016
+ * @scenario RotationInterval above maximum is rejected
+ */
+void test_rotation_interval_too_high(void) {
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/RotationInterval", "1441", &cmd));
+}
+
+// ---- IdleTimeout ----
+
+/*
+ * @feature MQTT Command Parsing
+ * @req REQ-MQTT-017
+ * @scenario IdleTimeout set to minimum (30 seconds) via MQTT
+ * @given A valid MQTT prefix
+ * @when Topic is prefix/Set/IdleTimeout with payload "30"
+ * @then Command type is MQTT_CMD_IDLE_TIMEOUT with value 30
+ */
+void test_idle_timeout_min(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/IdleTimeout", "30", &cmd));
+    TEST_ASSERT_EQUAL_INT(MQTT_CMD_IDLE_TIMEOUT, cmd.cmd);
+    TEST_ASSERT_EQUAL_INT(30, cmd.idle_timeout);
+}
+
+/*
+ * @feature MQTT Command Parsing
+ * @req REQ-MQTT-017
+ * @scenario IdleTimeout set to default (60 seconds)
+ */
+void test_idle_timeout_default(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/IdleTimeout", "60", &cmd));
+    TEST_ASSERT_EQUAL_INT(60, cmd.idle_timeout);
+}
+
+/*
+ * @feature MQTT Command Parsing
+ * @req REQ-MQTT-017
+ * @scenario IdleTimeout set to maximum (300 seconds)
+ */
+void test_idle_timeout_max(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/IdleTimeout", "300", &cmd));
+    TEST_ASSERT_EQUAL_INT(300, cmd.idle_timeout);
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-017
+ * @scenario IdleTimeout below minimum (29) is rejected
+ * @given A valid MQTT prefix
+ * @when Topic is prefix/Set/IdleTimeout with payload "29"
+ * @then The parser returns false
+ */
+void test_idle_timeout_too_low(void) {
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/IdleTimeout", "29", &cmd));
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-017
+ * @scenario IdleTimeout above maximum (301) is rejected
+ */
+void test_idle_timeout_too_high(void) {
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/IdleTimeout", "301", &cmd));
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-017
+ * @scenario IdleTimeout zero is rejected (minimum is 30)
+ */
+void test_idle_timeout_zero(void) {
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/IdleTimeout", "0", &cmd));
+}
+
 // ---- Unrecognized topic ----
 
 /*
@@ -659,6 +839,28 @@ int main(void) {
     // RequiredEVCCID
     RUN_TEST(test_required_evccid);
     RUN_TEST(test_required_evccid_too_long);
+
+    // PrioStrategy
+    RUN_TEST(test_prio_strategy_modbus_addr);
+    RUN_TEST(test_prio_strategy_first_connected);
+    RUN_TEST(test_prio_strategy_last_connected);
+    RUN_TEST(test_prio_strategy_out_of_range);
+    RUN_TEST(test_prio_strategy_negative);
+
+    // RotationInterval
+    RUN_TEST(test_rotation_interval_zero);
+    RUN_TEST(test_rotation_interval_min);
+    RUN_TEST(test_rotation_interval_max);
+    RUN_TEST(test_rotation_interval_gap);
+    RUN_TEST(test_rotation_interval_too_high);
+
+    // IdleTimeout
+    RUN_TEST(test_idle_timeout_min);
+    RUN_TEST(test_idle_timeout_default);
+    RUN_TEST(test_idle_timeout_max);
+    RUN_TEST(test_idle_timeout_too_low);
+    RUN_TEST(test_idle_timeout_too_high);
+    RUN_TEST(test_idle_timeout_zero);
 
     // Unrecognized
     RUN_TEST(test_unrecognized_topic);

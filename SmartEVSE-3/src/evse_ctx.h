@@ -62,7 +62,23 @@ extern "C" {
 #define RCM_TEST    32
 #define Test_IO     64
 #define BL_FLASH   128
+#define NO_SUN     256
 #endif
+
+// ---- Priority scheduling constants ----
+#ifndef PRIO_MODBUS_ADDR
+#define PRIO_MODBUS_ADDR      0
+#define PRIO_FIRST_CONNECTED  1
+#define PRIO_LAST_CONNECTED   2
+#endif
+
+#ifndef SCHED_INACTIVE
+#define SCHED_INACTIVE  0
+#define SCHED_ACTIVE    1
+#define SCHED_PAUSED    2
+#endif
+
+#define IDLE_CURRENT_THRESHOLD  10  /* 1.0A in deciamps */
 
 // ---- PWM constants ----
 #ifndef PWM_5
@@ -234,6 +250,17 @@ typedef struct {
     uint16_t ChargeCurrent;
     int32_t  IsetBalanced;
     uint16_t OverrideCurrent;
+
+    // --- Priority scheduling ---
+    uint8_t  PrioStrategy;              /* PRIO_MODBUS_ADDR / PRIO_FIRST_CONNECTED / PRIO_LAST_CONNECTED */
+    uint16_t RotationInterval;          /* 0=disabled, 30-1440 minutes */
+    uint16_t IdleTimeout;               /* 30-300 seconds, doubles as anti-flap window */
+    uint8_t  Priority[NR_EVSES];        /* Sorted EVSE indices by priority */
+    uint32_t ConnectedTime[NR_EVSES];   /* Uptime seconds when EVSE entered STATE_C */
+    uint16_t IdleTimer[NR_EVSES];       /* Seconds since activation (counts up) */
+    uint16_t RotationTimer;             /* Countdown in seconds for rotation */
+    uint8_t  ScheduleState[NR_EVSES];   /* SCHED_INACTIVE / SCHED_ACTIVE / SCHED_PAUSED */
+    uint32_t Uptime;                    /* Monotonic seconds counter */
 
     // --- Meter readings ---
     int16_t  Isum;

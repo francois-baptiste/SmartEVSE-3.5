@@ -23,6 +23,9 @@ typedef enum {
     MQTT_CMD_COLOR,
     MQTT_CMD_CABLE_LOCK,
     MQTT_CMD_ENABLE_C2,
+    MQTT_CMD_PRIO_STRATEGY,
+    MQTT_CMD_ROTATION_INTERVAL,
+    MQTT_CMD_IDLE_TIMEOUT,
 } mqtt_cmd_type_t;
 
 // Mode values matching firmware MODE_NORMAL/MODE_SOLAR/MODE_SMART
@@ -54,6 +57,9 @@ typedef struct {
         struct { uint8_t index; uint8_t r, g, b; } color; // MQTT_CMD_COLOR
         uint8_t cable_lock;                     // MQTT_CMD_CABLE_LOCK
         uint8_t enable_c2;                      // MQTT_CMD_ENABLE_C2
+        uint8_t prio_strategy;                  // MQTT_CMD_PRIO_STRATEGY (0-2)
+        uint16_t rotation_interval;             // MQTT_CMD_ROTATION_INTERVAL (0, 30-1440)
+        uint16_t idle_timeout;                  // MQTT_CMD_IDLE_TIMEOUT (30-300)
     };
 } mqtt_command_t;
 

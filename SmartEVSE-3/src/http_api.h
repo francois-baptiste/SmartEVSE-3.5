@@ -26,6 +26,9 @@ typedef struct {
     bool has_solar_max_import;  int solar_max_import;
     bool has_lcd_lock;          int lcd_lock;
     bool has_cable_lock;        int cable_lock;
+    bool has_prio_strategy;     int prio_strategy;
+    bool has_rotation_interval; int rotation_interval;
+    bool has_idle_timeout;      int idle_timeout;
 } http_settings_request_t;
 
 // Validation result — NULL means valid, non-NULL is an error message.
@@ -65,6 +68,15 @@ const char *http_api_validate_solar_start(int value);
 
 // Validate solar_max_import (0..48).
 const char *http_api_validate_solar_max_import(int value);
+
+// Validate prio_strategy (0..2). Only valid on master (load_bl <= 1).
+const char *http_api_validate_prio_strategy(int value, int load_bl);
+
+// Validate rotation_interval (0 or 30..1440). Only valid on master.
+const char *http_api_validate_rotation_interval(int value, int load_bl);
+
+// Validate idle_timeout (30..300). Only valid on master.
+const char *http_api_validate_idle_timeout(int value, int load_bl);
 
 #ifdef __cplusplus
 }

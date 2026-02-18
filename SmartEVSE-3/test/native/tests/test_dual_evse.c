@@ -412,10 +412,10 @@ void test_s6_solar_insufficient_starts_timer(void) {
 /*
  * @feature Dual-EVSE Load Balancing
  * @req REQ-DUAL-S7A
- * @scenario Both get MinCurrent when IsetBalanced is very low
- * @given Smart mode, MaxMains=5A, heavy mains load
+ * @scenario Zero available power pauses all EVSEs via priority scheduling
+ * @given Smart mode, MaxMains=5A, heavy mains load (IsetBalanced drops to 0)
  * @when evse_calc_balanced_current
- * @then Each gets 60 (MinCurrent * 10), NoCurrent increments
+ * @then Both EVSEs paused (Balanced=0), NoCurrent increments (true hard shortage)
  */
 void test_s7_mincurrent_violation(void) {
     setup_dual_normal();
@@ -430,8 +430,10 @@ void test_s7_mincurrent_violation(void) {
 
     evse_calc_balanced_current(&ctx, 0);
 
-    TEST_ASSERT_EQUAL_INT(60, ctx.Balanced[0]);
-    TEST_ASSERT_EQUAL_INT(60, ctx.Balanced[1]);
+    /* With priority scheduling, available power = 0 (50 + (-150) clamped to 0).
+     * Neither EVSE can get MinCurrent, so both are paused. NoCurrent increments. */
+    TEST_ASSERT_EQUAL_INT(0, ctx.Balanced[0]);
+    TEST_ASSERT_EQUAL_INT(0, ctx.Balanced[1]);
     TEST_ASSERT_GREATER_THAN(0, (int)ctx.NoCurrent);
 }
 

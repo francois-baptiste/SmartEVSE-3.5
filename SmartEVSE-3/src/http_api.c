@@ -66,6 +66,30 @@ const char *http_api_validate_solar_max_import(int value) {
     return NULL;
 }
 
+const char *http_api_validate_prio_strategy(int value, int load_bl) {
+    if (load_bl >= 2)
+        return "Value not allowed!";
+    if (value < 0 || value > 2)
+        return "Value not allowed!";
+    return NULL;
+}
+
+const char *http_api_validate_rotation_interval(int value, int load_bl) {
+    if (load_bl >= 2)
+        return "Value not allowed!";
+    if (value != 0 && (value < 30 || value > 1440))
+        return "Value not allowed!";
+    return NULL;
+}
+
+const char *http_api_validate_idle_timeout(int value, int load_bl) {
+    if (load_bl >= 2)
+        return "Value not allowed!";
+    if (value < 30 || value > 300)
+        return "Value not allowed!";
+    return NULL;
+}
+
 int http_api_validate_settings(const http_settings_request_t *req,
                                int min_current, int max_current,
                                int load_bl, int current_mode,
@@ -150,6 +174,33 @@ int http_api_validate_settings(const http_settings_request_t *req,
         if (req->cable_lock < 0 || req->cable_lock > 1) {
             errors[count].field = "cablelock";
             errors[count].error = "Value not allowed!";
+            count++;
+        }
+    }
+
+    if (req->has_prio_strategy && count < max_errors) {
+        const char *err = http_api_validate_prio_strategy(req->prio_strategy, load_bl);
+        if (err) {
+            errors[count].field = "prio_strategy";
+            errors[count].error = err;
+            count++;
+        }
+    }
+
+    if (req->has_rotation_interval && count < max_errors) {
+        const char *err = http_api_validate_rotation_interval(req->rotation_interval, load_bl);
+        if (err) {
+            errors[count].field = "rotation_interval";
+            errors[count].error = err;
+            count++;
+        }
+    }
+
+    if (req->has_idle_timeout && count < max_errors) {
+        const char *err = http_api_validate_idle_timeout(req->idle_timeout, load_bl);
+        if (err) {
+            errors[count].field = "idle_timeout";
+            errors[count].error = err;
             count++;
         }
     }

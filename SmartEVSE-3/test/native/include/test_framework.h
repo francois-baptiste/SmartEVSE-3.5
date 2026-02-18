@@ -51,6 +51,14 @@ static const char *tf_current_test = NULL;
     } \
 } while(0)
 
+#define TEST_ASSERT_GREATER_OR_EQUAL(threshold, actual) do { \
+    int _t = (int)(threshold); int _a = (int)(actual); \
+    if (_a < _t) { \
+        printf("\n    FAIL %s:%d: expected >= %d, got %d", __FILE__, __LINE__, _t, _a); \
+        tf_current_failed = 1; \
+    } \
+} while(0)
+
 #define TEST_ASSERT_LESS_OR_EQUAL(threshold, actual) do { \
     int _t = (int)(threshold); int _a = (int)(actual); \
     if (_a > _t) { \

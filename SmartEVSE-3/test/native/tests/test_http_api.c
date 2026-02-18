@@ -325,6 +325,186 @@ void test_solar_import_too_high(void) {
     TEST_ASSERT_TRUE(http_api_validate_solar_max_import(49) != NULL);
 }
 
+// ---- PrioStrategy Validation ----
+
+/*
+ * @feature HTTP API Validation
+ * @req REQ-API-011
+ * @scenario PrioStrategy MODBUS_ADDR (0) is valid on master
+ * @given A master EVSE (load_bl=0)
+ * @when prio_strategy is 0
+ * @then Validation passes
+ */
+void test_prio_strategy_valid_0(void) {
+    TEST_ASSERT_TRUE(http_api_validate_prio_strategy(0, 0) == NULL);
+}
+
+/*
+ * @feature HTTP API Validation
+ * @req REQ-API-011
+ * @scenario PrioStrategy FIRST_CONNECTED (1) is valid
+ */
+void test_prio_strategy_valid_1(void) {
+    TEST_ASSERT_TRUE(http_api_validate_prio_strategy(1, 1) == NULL);
+}
+
+/*
+ * @feature HTTP API Validation
+ * @req REQ-API-011
+ * @scenario PrioStrategy LAST_CONNECTED (2) is valid
+ */
+void test_prio_strategy_valid_2(void) {
+    TEST_ASSERT_TRUE(http_api_validate_prio_strategy(2, 0) == NULL);
+}
+
+/*
+ * @feature HTTP API Input Validation
+ * @req REQ-API-011
+ * @scenario PrioStrategy value 3 is rejected
+ */
+void test_prio_strategy_too_high(void) {
+    TEST_ASSERT_TRUE(http_api_validate_prio_strategy(3, 0) != NULL);
+}
+
+/*
+ * @feature HTTP API Input Validation
+ * @req REQ-API-011
+ * @scenario PrioStrategy negative value is rejected
+ */
+void test_prio_strategy_negative(void) {
+    TEST_ASSERT_TRUE(http_api_validate_prio_strategy(-1, 0) != NULL);
+}
+
+/*
+ * @feature HTTP API Input Validation
+ * @req REQ-API-011
+ * @scenario PrioStrategy on slave is rejected
+ * @given A slave EVSE (load_bl=2)
+ * @when prio_strategy is 0 (valid value)
+ * @then Validation fails because slaves cannot set scheduling
+ */
+void test_prio_strategy_slave(void) {
+    TEST_ASSERT_TRUE(http_api_validate_prio_strategy(0, 2) != NULL);
+}
+
+// ---- RotationInterval Validation ----
+
+/*
+ * @feature HTTP API Validation
+ * @req REQ-API-012
+ * @scenario RotationInterval 0 (disabled) is valid
+ * @given A master EVSE (load_bl=0)
+ * @when rotation_interval is 0
+ * @then Validation passes
+ */
+void test_rotation_interval_zero(void) {
+    TEST_ASSERT_TRUE(http_api_validate_rotation_interval(0, 0) == NULL);
+}
+
+/*
+ * @feature HTTP API Validation
+ * @req REQ-API-012
+ * @scenario RotationInterval at minimum (30) is valid
+ */
+void test_rotation_interval_min(void) {
+    TEST_ASSERT_TRUE(http_api_validate_rotation_interval(30, 0) == NULL);
+}
+
+/*
+ * @feature HTTP API Validation
+ * @req REQ-API-012
+ * @scenario RotationInterval at maximum (1440) is valid
+ */
+void test_rotation_interval_max(void) {
+    TEST_ASSERT_TRUE(http_api_validate_rotation_interval(1440, 0) == NULL);
+}
+
+/*
+ * @feature HTTP API Input Validation
+ * @req REQ-API-012
+ * @scenario RotationInterval in gap (1-29) is rejected
+ */
+void test_rotation_interval_gap(void) {
+    TEST_ASSERT_TRUE(http_api_validate_rotation_interval(15, 0) != NULL);
+}
+
+/*
+ * @feature HTTP API Input Validation
+ * @req REQ-API-012
+ * @scenario RotationInterval above maximum is rejected
+ */
+void test_rotation_interval_too_high(void) {
+    TEST_ASSERT_TRUE(http_api_validate_rotation_interval(1441, 0) != NULL);
+}
+
+/*
+ * @feature HTTP API Input Validation
+ * @req REQ-API-012
+ * @scenario RotationInterval on slave is rejected
+ */
+void test_rotation_interval_slave(void) {
+    TEST_ASSERT_TRUE(http_api_validate_rotation_interval(60, 2) != NULL);
+}
+
+// ---- IdleTimeout Validation ----
+
+/*
+ * @feature HTTP API Validation
+ * @req REQ-API-013
+ * @scenario IdleTimeout at minimum (30) is valid
+ * @given A master EVSE (load_bl=0)
+ * @when idle_timeout is 30
+ * @then Validation passes
+ */
+void test_idle_timeout_min(void) {
+    TEST_ASSERT_TRUE(http_api_validate_idle_timeout(30, 0) == NULL);
+}
+
+/*
+ * @feature HTTP API Validation
+ * @req REQ-API-013
+ * @scenario IdleTimeout at default (60) is valid
+ */
+void test_idle_timeout_default(void) {
+    TEST_ASSERT_TRUE(http_api_validate_idle_timeout(60, 0) == NULL);
+}
+
+/*
+ * @feature HTTP API Validation
+ * @req REQ-API-013
+ * @scenario IdleTimeout at maximum (300) is valid
+ */
+void test_idle_timeout_max(void) {
+    TEST_ASSERT_TRUE(http_api_validate_idle_timeout(300, 0) == NULL);
+}
+
+/*
+ * @feature HTTP API Input Validation
+ * @req REQ-API-013
+ * @scenario IdleTimeout below minimum (29) is rejected
+ */
+void test_idle_timeout_too_low(void) {
+    TEST_ASSERT_TRUE(http_api_validate_idle_timeout(29, 0) != NULL);
+}
+
+/*
+ * @feature HTTP API Input Validation
+ * @req REQ-API-013
+ * @scenario IdleTimeout above maximum (301) is rejected
+ */
+void test_idle_timeout_too_high(void) {
+    TEST_ASSERT_TRUE(http_api_validate_idle_timeout(301, 0) != NULL);
+}
+
+/*
+ * @feature HTTP API Input Validation
+ * @req REQ-API-013
+ * @scenario IdleTimeout on slave is rejected
+ */
+void test_idle_timeout_slave(void) {
+    TEST_ASSERT_TRUE(http_api_validate_idle_timeout(60, 2) != NULL);
+}
+
 // ---- Combined Settings Validation ----
 
 /*
@@ -413,6 +593,52 @@ void test_validate_settings_slave_restrictions(void) {
     TEST_ASSERT_EQUAL_INT(1, count);
 }
 
+/*
+ * @feature HTTP API Settings Validation
+ * @req REQ-API-014
+ * @scenario Valid scheduling settings in combined request
+ * @given A settings request with valid scheduling fields
+ * @when Validated on master (load_bl=1)
+ * @then No errors are returned
+ */
+void test_validate_settings_scheduling_valid(void) {
+    http_settings_request_t req;
+    memset(&req, 0, sizeof(req));
+    req.has_prio_strategy = true;
+    req.prio_strategy = 1;
+    req.has_rotation_interval = true;
+    req.rotation_interval = 60;
+    req.has_idle_timeout = true;
+    req.idle_timeout = 120;
+
+    http_validation_error_t errors[10];
+    int count = http_api_validate_settings(&req, 6, 32, 1, 0, errors, 10);
+    TEST_ASSERT_EQUAL_INT(0, count);
+}
+
+/*
+ * @feature HTTP API Settings Validation
+ * @req REQ-API-014
+ * @scenario Invalid scheduling settings on slave
+ * @given A settings request with scheduling fields
+ * @when Validated on slave (load_bl=2)
+ * @then All three scheduling fields produce errors
+ */
+void test_validate_settings_scheduling_slave(void) {
+    http_settings_request_t req;
+    memset(&req, 0, sizeof(req));
+    req.has_prio_strategy = true;
+    req.prio_strategy = 0;
+    req.has_rotation_interval = true;
+    req.rotation_interval = 60;
+    req.has_idle_timeout = true;
+    req.idle_timeout = 60;
+
+    http_validation_error_t errors[10];
+    int count = http_api_validate_settings(&req, 6, 32, 2, 0, errors, 10);
+    TEST_ASSERT_EQUAL_INT(3, count);
+}
+
 int main(void) {
     TEST_SUITE_BEGIN("HTTP API");
 
@@ -460,12 +686,38 @@ int main(void) {
     RUN_TEST(test_solar_import_zero);
     RUN_TEST(test_solar_import_too_high);
 
+    // PrioStrategy
+    RUN_TEST(test_prio_strategy_valid_0);
+    RUN_TEST(test_prio_strategy_valid_1);
+    RUN_TEST(test_prio_strategy_valid_2);
+    RUN_TEST(test_prio_strategy_too_high);
+    RUN_TEST(test_prio_strategy_negative);
+    RUN_TEST(test_prio_strategy_slave);
+
+    // RotationInterval
+    RUN_TEST(test_rotation_interval_zero);
+    RUN_TEST(test_rotation_interval_min);
+    RUN_TEST(test_rotation_interval_max);
+    RUN_TEST(test_rotation_interval_gap);
+    RUN_TEST(test_rotation_interval_too_high);
+    RUN_TEST(test_rotation_interval_slave);
+
+    // IdleTimeout
+    RUN_TEST(test_idle_timeout_min);
+    RUN_TEST(test_idle_timeout_default);
+    RUN_TEST(test_idle_timeout_max);
+    RUN_TEST(test_idle_timeout_too_low);
+    RUN_TEST(test_idle_timeout_too_high);
+    RUN_TEST(test_idle_timeout_slave);
+
     // Combined validation
     RUN_TEST(test_validate_settings_valid);
     RUN_TEST(test_validate_settings_invalid_min);
     RUN_TEST(test_validate_settings_multiple_errors);
     RUN_TEST(test_validate_settings_empty);
     RUN_TEST(test_validate_settings_slave_restrictions);
+    RUN_TEST(test_validate_settings_scheduling_valid);
+    RUN_TEST(test_validate_settings_scheduling_slave);
 
     TEST_SUITE_RESULTS();
 }

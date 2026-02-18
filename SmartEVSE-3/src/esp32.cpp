@@ -158,6 +158,9 @@ struct SettingsCache {
     char RequiredEVCCID[32];
 #endif
     uint16_t maxTemp;
+    uint8_t PrioStrategy;
+    uint16_t RotationInterval;
+    uint16_t IdleTimeout;
     uint8_t AutoUpdate, LCDlock, CableLock;
     uint16_t LCDPin;
     bool MQTTSmartServer;
@@ -254,6 +257,12 @@ extern EnableC2_t EnableC2;
 extern uint8_t RFIDReader;
 
 extern uint16_t maxTemp;
+extern uint8_t PrioStrategy;
+extern uint16_t RotationInterval;
+extern uint16_t IdleTimeout;
+extern uint32_t ConnectedTime[];
+extern uint8_t ScheduleState[];
+extern uint16_t RotationTimer;
 
 extern uint16_t MaxCapacity;                                                       // Cable limit (A) (limited by the wire in the charge cable, set automatically, or manually if Config=Fixed Cable)
 extern uint16_t ChargeCurrent;                                                     // Calculated Charge Current (Amps *10)
@@ -740,6 +749,27 @@ void mqtt_receive_callback(const String topic, const String payload) {
             request_write_settings();
             break;
 
+        case MQTT_CMD_PRIO_STRATEGY:
+            if (LoadBl < 2) {
+                setItemValue(MENU_PRIO, cmd.prio_strategy);
+                request_write_settings();
+            }
+            break;
+
+        case MQTT_CMD_ROTATION_INTERVAL:
+            if (LoadBl < 2) {
+                setItemValue(MENU_ROTATION, cmd.rotation_interval);
+                request_write_settings();
+            }
+            break;
+
+        case MQTT_CMD_IDLE_TIMEOUT:
+            if (LoadBl < 2) {
+                setItemValue(MENU_IDLE_TIMEOUT, cmd.idle_timeout);
+                request_write_settings();
+            }
+            break;
+
         default:
             return;
     }
@@ -797,6 +827,7 @@ void mqtt_receive_callback(const String topic, const String payload) {
                 _LOG_A("Invalid RFID length received via MQTT (expected 12 or 14 hex chars): %s\n", hexString.c_str());
             }
         }
+    }
 
     // Make sure MQTT updates directly to prevent debounces
     lastMqttUpdate = 10;
@@ -945,6 +976,25 @@ void SetupMQTTClient() {
     optional_payload = MQTTclient.jsna("cablelock_topic", String(MQTTprefix + "/CableLock")) + MQTTclient.jsna("command_topic", String(MQTTprefix + "/Set/CableLock"));
     optional_payload += String(R"(, "options" : ["0", "1"])");
     MQTTclient.announce("Cable Lock", "select", optional_payload);
+
+    //set the parameters for and MQTTclient.announce priority scheduling entities:
+    optional_payload = MQTTclient.jsna("state_topic", String(MQTTprefix + "/PrioStrategy")) + MQTTclient.jsna("command_topic", String(MQTTprefix + "/Set/PrioStrategy"));
+    optional_payload += String(R"(, "options" : ["0", "1", "2"])");
+    MQTTclient.announce("Priority Strategy", "select", optional_payload);
+
+    optional_payload = MQTTclient.jsna("command_topic", String(MQTTprefix + "/Set/RotationInterval")) + MQTTclient.jsna("min", "0") + MQTTclient.jsna("max", "1440") + MQTTclient.jsna("mode","box");
+    optional_payload += MQTTclient.jsna("unit_of_measurement", "min");
+    MQTTclient.announce("Rotation Interval", "number", optional_payload);
+
+    optional_payload = MQTTclient.jsna("command_topic", String(MQTTprefix + "/Set/IdleTimeout")) + MQTTclient.jsna("min", "30") + MQTTclient.jsna("max", "300") + MQTTclient.jsna("mode","box");
+    optional_payload += MQTTclient.jsna("unit_of_measurement", "s");
+    MQTTclient.announce("Idle Timeout", "number", optional_payload);
+
+    optional_payload = MQTTclient.jsna("entity_category","diagnostic");
+    MQTTclient.announce("Rotation Timer", "sensor", optional_payload);
+
+    optional_payload = MQTTclient.jsna("entity_category","diagnostic");
+    MQTTclient.announce("Schedule State", "sensor", optional_payload);
 }
 
 void mqttPublishData() {
@@ -1021,6 +1071,20 @@ void mqttPublishData() {
         MQTTclient.publish(MQTTprefix + "/LoadBl", LoadBl, true, 0);
         MQTTclient.publish(MQTTprefix + "/PairingPin", PairingPin, true, 0);
         MQTTclient.publish(MQTTprefix + "/SolarStopTimer", SolarStopTimer, false, 0);
+        if (LoadBl == 1) {
+            static const char *StrPrioStrategy[] = {"ModbusAddr", "FirstConn", "LastConn"};
+            MQTTclient.publish(MQTTprefix + "/PrioStrategy", PrioStrategy <= 2 ? StrPrioStrategy[PrioStrategy] : "N/A", true, 0);
+            MQTTclient.publish(MQTTprefix + "/RotationInterval", RotationInterval, true, 0);
+            MQTTclient.publish(MQTTprefix + "/IdleTimeout", IdleTimeout, true, 0);
+            MQTTclient.publish(MQTTprefix + "/RotationTimer", RotationTimer, false, 0);
+            static const char *StrSchedState[] = {"Inactive", "Active", "Paused"};
+            String schedStr;
+            for (int i = 0; i < NR_EVSES; i++) {
+                if (i > 0) schedStr += ",";
+                schedStr += (ScheduleState[i] <= 2) ? StrSchedState[ScheduleState[i]] : "N/A";
+            }
+            MQTTclient.publish(MQTTprefix + "/ScheduleState", schedStr, false, 0);
+        }
 }
 
 // SmartEVSE server MQTT client setup - subscribe to Set topics
@@ -1188,6 +1252,9 @@ void read_settings() {
         strncpy(RequiredEVCCID, preferences.getString("RequiredEVCCID", "").c_str(), sizeof(RequiredEVCCID));
 #endif
         maxTemp = preferences.getUShort("maxTemp", MAX_TEMPERATURE);
+        PrioStrategy = preferences.getUChar("PrioStrategy", PRIO_MODBUS_ADDR);
+        RotationInterval = preferences.getUShort("RotationIntvl", 0);
+        IdleTimeout = preferences.getUShort("IdleTimeout", 60);
 
 #if ENABLE_OCPP && defined(SMARTEVSE_VERSION) //run OCPP only on ESP32
         OcppMode = preferences.getUChar("OcppMode", OCPP_MODE);
@@ -1240,6 +1307,9 @@ void read_settings() {
         strncpy(settingsCache.RequiredEVCCID, RequiredEVCCID, sizeof(settingsCache.RequiredEVCCID));
 #endif
         settingsCache.maxTemp = maxTemp;
+        settingsCache.PrioStrategy = PrioStrategy;
+        settingsCache.RotationInterval = RotationInterval;
+        settingsCache.IdleTimeout = IdleTimeout;
         settingsCache.AutoUpdate = AutoUpdate;
         settingsCache.LCDlock = LCDlock;
         settingsCache.CableLock = CableLock;
@@ -1314,6 +1384,9 @@ void write_settings(void) {
     }
 #endif
     PREFS_PUT_USHORT_IF_CHANGED("maxTemp", maxTemp, maxTemp);
+    PREFS_PUT_UCHAR_IF_CHANGED("PrioStrategy", PrioStrategy, PrioStrategy);
+    PREFS_PUT_USHORT_IF_CHANGED("RotationIntvl", RotationInterval, RotationInterval);
+    PREFS_PUT_USHORT_IF_CHANGED("IdleTimeout", IdleTimeout, IdleTimeout);
     PREFS_PUT_UCHAR_IF_CHANGED("AutoUpdate", AutoUpdate, AutoUpdate);
     PREFS_PUT_UCHAR_IF_CHANGED("LCDlock", LCDlock, LCDlock);
     PREFS_PUT_UCHAR_IF_CHANGED("CableLock", CableLock, CableLock);
@@ -1508,7 +1581,7 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
 
         boolean evConnected = pilot != PILOT_12V;                    //when access bit = 1, p.ex. in OFF mode, the STATEs are no longer updated
 
-        DynamicJsonDocument doc(3072); // https://arduinojson.org/v6/assistant/
+        DynamicJsonDocument doc(3200); // https://arduinojson.org/v6/assistant/
         doc["version"] = String(VERSION);
         doc["serialnr"] = serialnr;
         doc["mode"] = mode;
@@ -1574,6 +1647,17 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
         doc["settings"]["lcdlock"] = LCDlock;
         doc["settings"]["lock"] = Lock;
         doc["settings"]["cablelock"] = CableLock;
+        doc["settings"]["prio_strategy"] = PrioStrategy;
+        doc["settings"]["rotation_interval"] = RotationInterval;
+        doc["settings"]["idle_timeout"] = IdleTimeout;
+
+        if (LoadBl == 1) {
+            static const char *StrSchedState[] = {"Inactive", "Active", "Paused"};
+            for (int i = 0; i < NR_EVSES; i++) {
+                doc["schedule"]["state"][i] = (ScheduleState[i] <= 2) ? StrSchedState[ScheduleState[i]] : "N/A";
+            }
+            doc["schedule"]["rotation_timer"] = RotationTimer;
+        }
 #if MODEM
             doc["settings"]["required_evccid"] = RequiredEVCCID;
 #if SMARTEVSE_VERSION < 40
@@ -1897,6 +1981,39 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
             }
         }
 #endif
+        if(request->hasParam("prio_strategy")) {
+            int val = request->getParam("prio_strategy")->value().toInt();
+            const char *err = http_api_validate_prio_strategy(val, LoadBl);
+            if(!err) {
+                setItemValue(MENU_PRIO, val);
+                doc["prio_strategy"] = PrioStrategy;
+            } else {
+                doc["prio_strategy"] = err;
+            }
+        }
+
+        if(request->hasParam("rotation_interval")) {
+            int val = request->getParam("rotation_interval")->value().toInt();
+            const char *err = http_api_validate_rotation_interval(val, LoadBl);
+            if(!err) {
+                setItemValue(MENU_ROTATION, val);
+                doc["rotation_interval"] = RotationInterval;
+            } else {
+                doc["rotation_interval"] = err;
+            }
+        }
+
+        if(request->hasParam("idle_timeout")) {
+            int val = request->getParam("idle_timeout")->value().toInt();
+            const char *err = http_api_validate_idle_timeout(val, LoadBl);
+            if(!err) {
+                setItemValue(MENU_IDLE_TIMEOUT, val);
+                doc["idle_timeout"] = IdleTimeout;
+            } else {
+                doc["idle_timeout"] = err;
+            }
+        }
+
         if(request->hasParam("lcdlock")) {
             int lock = request->getParam("lcdlock")->value().toInt();
             if (lock >= 0 && lock <= 1) {                                   //boundary check

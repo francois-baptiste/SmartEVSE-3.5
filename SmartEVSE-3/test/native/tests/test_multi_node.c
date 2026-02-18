@@ -159,10 +159,10 @@ void test_node_goes_offline_redistributes(void) {
 /*
  * @feature Multi-Node Load Balancing
  * @req REQ-MULTI-005
- * @scenario All nodes receive MinCurrent during power shortage
- * @given Master with 4 EVSEs in STATE_C in Smart mode with very high mains load and low IsetBalanced
+ * @scenario Priority scheduling allocates available power to highest-priority EVSE during shortage
+ * @given Master with 4 EVSEs in STATE_C in Smart mode, available power ~105 dA (enough for 1 EVSE, not 4)
  * @when Balanced current is calculated with insufficient power for all nodes
- * @then Each EVSE receives exactly 60 deciamps (MinCurrent * 10) as the floor allocation
+ * @then Highest-priority EVSE gets all available power, others are paused
  */
 void test_all_nodes_mincurrent_during_shortage(void) {
     setup_master_n_evse(4);
@@ -174,11 +174,14 @@ void test_all_nodes_mincurrent_during_shortage(void) {
 
     evse_calc_balanced_current(&ctx, 0);
 
-    /* In shortage: IsetBalanced gets floored to ActiveEVSE * MinCurrent * 10 = 4*6*10 = 240
-     * Each EVSE gets 240/4 = 60 = MinCurrent * 10 */
-    for (int i = 0; i < 4; i++) {
-        TEST_ASSERT_EQUAL_INT(60, ctx.Balanced[i]);
+    /* Priority scheduling: available ~105 dA (100 + Idifference/4).
+     * EVSE[0] gets MinCurrent(60) + surplus(45) = 105.
+     * EVSEs [1]-[3] are paused (0). NoCurrent stays 0 (deliberate pause). */
+    TEST_ASSERT_GREATER_OR_EQUAL(60, ctx.Balanced[0]);
+    for (int i = 1; i < 4; i++) {
+        TEST_ASSERT_EQUAL_INT(0, ctx.Balanced[i]);
     }
+    TEST_ASSERT_EQUAL_INT(0, ctx.NoCurrent);
 }
 
 /* ---- MaxCircuit limiting with multiple nodes ---- */
