@@ -1,6 +1,6 @@
 # SmartEVSE-3 Test Specification
 
-**37 features** | **460 scenarios** | **460 with requirement IDs**
+**38 features** | **525 scenarios** | **525 with requirement IDs**
 
 ---
 
@@ -35,14 +35,15 @@
 27. [Operating Modes](#operating-modes)
 28. [Phase Switching](#phase-switching)
 29. [Power Availability](#power-availability)
-30. [Serial Message Parsing](#serial-message-parsing)
-31. [Serial Input Validation](#serial-input-validation)
-32. [Battery Current Calculation](#battery-current-calculation)
-33. [Current Sum Calculation](#current-sum-calculation)
-34. [Solar Balancing](#solar-balancing)
-35. [IEC 61851-1 State Transitions](#iec-61851-1-state-transitions)
-36. [10ms Tick Processing](#10ms-tick-processing)
-37. [1-Second Tick Processing](#1-second-tick-processing)
+30. [Priority-Based Power Scheduling](#priority-based-power-scheduling)
+31. [Serial Message Parsing](#serial-message-parsing)
+32. [Serial Input Validation](#serial-input-validation)
+33. [Battery Current Calculation](#battery-current-calculation)
+34. [Current Sum Calculation](#current-sum-calculation)
+35. [Solar Balancing](#solar-balancing)
+36. [IEC 61851-1 State Transitions](#iec-61851-1-state-transitions)
+37. [10ms Tick Processing](#10ms-tick-processing)
+38. [1-Second Tick Processing](#1-second-tick-processing)
 
 ## Authorization & Access Control
 
@@ -363,13 +364,13 @@
 
 > Test: `test_s6_solar_insufficient_starts_timer` in `test_dual_evse.c:376`
 
-### Both get MinCurrent when IsetBalanced is very low
+### Zero available power pauses all EVSEs via priority scheduling
 
 **Requirement:** `REQ-DUAL-S7A`
 
-- **Given** Smart mode, MaxMains=5A, heavy mains load
+- **Given** Smart mode, MaxMains=5A, heavy mains load (IsetBalanced drops to 0)
 - **When** evse_calc_balanced_current
-- **Then** Each gets 60 (MinCurrent * 10), NoCurrent increments
+- **Then** Both EVSEs paused (Balanced=0), NoCurrent increments (true hard shortage)
 
 > Test: `test_s7_mincurrent_violation` in `test_dual_evse.c:412`
 
@@ -381,7 +382,7 @@
 - **When** evse_calc_balanced_current
 - **Then** Each gets 60, NoCurrent stays 0
 
-> Test: `test_s7_barely_enough` in `test_dual_evse.c:438`
+> Test: `test_s7_barely_enough` in `test_dual_evse.c:440`
 
 ### Slave error → master absorbs capacity
 
@@ -391,7 +392,7 @@
 - **When** Recalculation
 - **Then** Master gets 160 (capped by BalancedMax)
 
-> Test: `test_s8_slave_error_master_absorbs` in `test_dual_evse.c:463`
+> Test: `test_s8_slave_error_master_absorbs` in `test_dual_evse.c:465`
 
 ### Slave recovers, current redistributed
 
@@ -401,7 +402,7 @@
 - **When** evse_calc_balanced_current(mod=1)
 - **Then** Both get equal share
 
-> Test: `test_s8_slave_recovers` in `test_dual_evse.c:486`
+> Test: `test_s8_slave_recovers` in `test_dual_evse.c:488`
 
 ### MaxSumMains overridden Idifference limits IsetBalanced
 
@@ -411,7 +412,7 @@
 - **When** evse_calc_balanced_current(mod=0)
 - **Then** IsetBalanced constrained by MaxSumMains
 
-> Test: `test_s9_maxsummains_limits` in `test_dual_evse.c:518`
+> Test: `test_s9_maxsummains_limits` in `test_dual_evse.c:520`
 
 ### MaxSumMains timer expiry stops charging
 
@@ -421,7 +422,7 @@
 - **When** evse_tick_1s (timer expires)
 - **Then** C → C1, LESS_6A set
 
-> Test: `test_s9_maxsummains_timer_expiry` in `test_dual_evse.c:544`
+> Test: `test_s9_maxsummains_timer_expiry` in `test_dual_evse.c:546`
 
 ### Normal mode forces 3P when currently on 1P
 
@@ -431,7 +432,7 @@
 - **When** evse_calc_balanced_current
 - **Then** Switching_Phases_C2 = GOING_TO_SWITCH_3P
 
-> Test: `test_s10_normal_forces_3p` in `test_dual_evse.c:576`
+> Test: `test_s10_normal_forces_3p` in `test_dual_evse.c:578`
 
 ### STATE_C entry applies 1P switch
 
@@ -441,7 +442,7 @@
 - **When** evse_set_state(STATE_C)
 - **Then** Nr_Of_Phases_Charging=1, contactor2 off
 
-> Test: `test_s10_state_c_applies_1p` in `test_dual_evse.c:595`
+> Test: `test_s10_state_c_applies_1p` in `test_dual_evse.c:597`
 
 ### Smart mode with AUTO forces back to 3P
 
@@ -451,7 +452,7 @@
 - **When** evse_check_switching_phases
 - **Then** Switching_Phases_C2 = GOING_TO_SWITCH_3P
 
-> Test: `test_s10_smart_auto_forces_3p` in `test_dual_evse.c:615`
+> Test: `test_s10_smart_auto_forces_3p` in `test_dual_evse.c:617`
 
 ---
 
@@ -1199,6 +1200,72 @@
 
 > Test: `test_solar_import_too_high` in `test_http_api.c:319`
 
+### PrioStrategy value 3 is rejected
+
+**Requirement:** `REQ-API-011`
+
+
+> Test: `test_prio_strategy_too_high` in `test_http_api.c:360`
+
+### PrioStrategy negative value is rejected
+
+**Requirement:** `REQ-API-011`
+
+
+> Test: `test_prio_strategy_negative` in `test_http_api.c:369`
+
+### PrioStrategy on slave is rejected
+
+**Requirement:** `REQ-API-011`
+
+- **Given** A slave EVSE (load_bl=2)
+- **When** prio_strategy is 0 (valid value)
+- **Then** Validation fails because slaves cannot set scheduling
+
+> Test: `test_prio_strategy_slave` in `test_http_api.c:378`
+
+### RotationInterval in gap (1-29) is rejected
+
+**Requirement:** `REQ-API-012`
+
+
+> Test: `test_rotation_interval_gap` in `test_http_api.c:422`
+
+### RotationInterval above maximum is rejected
+
+**Requirement:** `REQ-API-012`
+
+
+> Test: `test_rotation_interval_too_high` in `test_http_api.c:431`
+
+### RotationInterval on slave is rejected
+
+**Requirement:** `REQ-API-012`
+
+
+> Test: `test_rotation_interval_slave` in `test_http_api.c:440`
+
+### IdleTimeout below minimum (29) is rejected
+
+**Requirement:** `REQ-API-013`
+
+
+> Test: `test_idle_timeout_too_low` in `test_http_api.c:481`
+
+### IdleTimeout above maximum (301) is rejected
+
+**Requirement:** `REQ-API-013`
+
+
+> Test: `test_idle_timeout_too_high` in `test_http_api.c:490`
+
+### IdleTimeout on slave is rejected
+
+**Requirement:** `REQ-API-013`
+
+
+> Test: `test_idle_timeout_slave` in `test_http_api.c:499`
+
 ---
 
 ## HTTP API Validation
@@ -1301,6 +1368,78 @@
 
 > Test: `test_solar_import_zero` in `test_http_api.c:310`
 
+### PrioStrategy MODBUS_ADDR (0) is valid on master
+
+**Requirement:** `REQ-API-011`
+
+- **Given** A master EVSE (load_bl=0)
+- **When** prio_strategy is 0
+- **Then** Validation passes
+
+> Test: `test_prio_strategy_valid_0` in `test_http_api.c:330`
+
+### PrioStrategy FIRST_CONNECTED (1) is valid
+
+**Requirement:** `REQ-API-011`
+
+
+> Test: `test_prio_strategy_valid_1` in `test_http_api.c:342`
+
+### PrioStrategy LAST_CONNECTED (2) is valid
+
+**Requirement:** `REQ-API-011`
+
+
+> Test: `test_prio_strategy_valid_2` in `test_http_api.c:351`
+
+### RotationInterval 0 (disabled) is valid
+
+**Requirement:** `REQ-API-012`
+
+- **Given** A master EVSE (load_bl=0)
+- **When** rotation_interval is 0
+- **Then** Validation passes
+
+> Test: `test_rotation_interval_zero` in `test_http_api.c:392`
+
+### RotationInterval at minimum (30) is valid
+
+**Requirement:** `REQ-API-012`
+
+
+> Test: `test_rotation_interval_min` in `test_http_api.c:404`
+
+### RotationInterval at maximum (1440) is valid
+
+**Requirement:** `REQ-API-012`
+
+
+> Test: `test_rotation_interval_max` in `test_http_api.c:413`
+
+### IdleTimeout at minimum (30) is valid
+
+**Requirement:** `REQ-API-013`
+
+- **Given** A master EVSE (load_bl=0)
+- **When** idle_timeout is 30
+- **Then** Validation passes
+
+> Test: `test_idle_timeout_min` in `test_http_api.c:451`
+
+### IdleTimeout at default (60) is valid
+
+**Requirement:** `REQ-API-013`
+
+
+> Test: `test_idle_timeout_default` in `test_http_api.c:463`
+
+### IdleTimeout at maximum (300) is valid
+
+**Requirement:** `REQ-API-013`
+
+
+> Test: `test_idle_timeout_max` in `test_http_api.c:472`
+
 ---
 
 ## HTTP API Settings Validation
@@ -1313,35 +1452,55 @@
 - **When** Validated against current limits
 - **Then** No errors are returned
 
-> Test: `test_validate_settings_valid` in `test_http_api.c:330`
+> Test: `test_validate_settings_valid` in `test_http_api.c:510`
 
 ### Invalid current_min in combined request
 
 **Requirement:** `REQ-API-010`
 
 
-> Test: `test_validate_settings_invalid_min` in `test_http_api.c:351`
+> Test: `test_validate_settings_invalid_min` in `test_http_api.c:531`
 
 ### Multiple invalid fields
 
 **Requirement:** `REQ-API-010`
 
 
-> Test: `test_validate_settings_multiple_errors` in `test_http_api.c:368`
+> Test: `test_validate_settings_multiple_errors` in `test_http_api.c:548`
 
 ### Empty request passes validation
 
 **Requirement:** `REQ-API-010`
 
 
-> Test: `test_validate_settings_empty` in `test_http_api.c:386`
+> Test: `test_validate_settings_empty` in `test_http_api.c:566`
 
 ### Slave restrictions applied
 
 **Requirement:** `REQ-API-010`
 
 
-> Test: `test_validate_settings_slave_restrictions` in `test_http_api.c:400`
+> Test: `test_validate_settings_slave_restrictions` in `test_http_api.c:580`
+
+### Valid scheduling settings in combined request
+
+**Requirement:** `REQ-API-014`
+
+- **Given** A settings request with valid scheduling fields
+- **When** Validated on master (load_bl=1)
+- **Then** No errors are returned
+
+> Test: `test_validate_settings_scheduling_valid` in `test_http_api.c:596`
+
+### Invalid scheduling settings on slave
+
+**Requirement:** `REQ-API-014`
+
+- **Given** A settings request with scheduling fields
+- **When** Validated on slave (load_bl=2)
+- **Then** All three scheduling fields produce errors
+
+> Test: `test_validate_settings_scheduling_slave` in `test_http_api.c:619`
 
 ---
 
@@ -2255,6 +2414,78 @@
 
 > Test: `test_required_evccid` in `test_mqtt_parser.c:547`
 
+### PrioStrategy set to MODBUS_ADDR (0) via MQTT
+
+**Requirement:** `REQ-MQTT-015`
+
+- **Given** A valid MQTT prefix
+- **When** Topic is prefix/Set/PrioStrategy with payload "0"
+- **Then** Command type is MQTT_CMD_PRIO_STRATEGY with value 0
+
+> Test: `test_prio_strategy_modbus_addr` in `test_mqtt_parser.c:570`
+
+### PrioStrategy set to FIRST_CONNECTED (1)
+
+**Requirement:** `REQ-MQTT-015`
+
+
+> Test: `test_prio_strategy_first_connected` in `test_mqtt_parser.c:584`
+
+### PrioStrategy set to LAST_CONNECTED (2)
+
+**Requirement:** `REQ-MQTT-015`
+
+
+> Test: `test_prio_strategy_last_connected` in `test_mqtt_parser.c:594`
+
+### RotationInterval set to 0 (disabled) via MQTT
+
+**Requirement:** `REQ-MQTT-016`
+
+- **Given** A valid MQTT prefix
+- **When** Topic is prefix/Set/RotationInterval with payload "0"
+- **Then** Command type is MQTT_CMD_ROTATION_INTERVAL with value 0
+
+> Test: `test_rotation_interval_zero` in `test_mqtt_parser.c:627`
+
+### RotationInterval set to minimum (30 minutes)
+
+**Requirement:** `REQ-MQTT-016`
+
+
+> Test: `test_rotation_interval_min` in `test_mqtt_parser.c:641`
+
+### RotationInterval set to maximum (1440 minutes = 24h)
+
+**Requirement:** `REQ-MQTT-016`
+
+
+> Test: `test_rotation_interval_max` in `test_mqtt_parser.c:651`
+
+### IdleTimeout set to minimum (30 seconds) via MQTT
+
+**Requirement:** `REQ-MQTT-017`
+
+- **Given** A valid MQTT prefix
+- **When** Topic is prefix/Set/IdleTimeout with payload "30"
+- **Then** Command type is MQTT_CMD_IDLE_TIMEOUT with value 30
+
+> Test: `test_idle_timeout_min` in `test_mqtt_parser.c:684`
+
+### IdleTimeout set to default (60 seconds)
+
+**Requirement:** `REQ-MQTT-017`
+
+
+> Test: `test_idle_timeout_default` in `test_mqtt_parser.c:698`
+
+### IdleTimeout set to maximum (300 seconds)
+
+**Requirement:** `REQ-MQTT-017`
+
+
+> Test: `test_idle_timeout_max` in `test_mqtt_parser.c:708`
+
 ---
 
 ## MQTT Input Validation
@@ -2405,19 +2636,77 @@
 
 > Test: `test_required_evccid_too_long` in `test_mqtt_parser.c:558`
 
+### PrioStrategy value 3 is rejected (out of range)
+
+**Requirement:** `REQ-MQTT-015`
+
+- **Given** A valid MQTT prefix
+- **When** Topic is prefix/Set/PrioStrategy with payload "3"
+- **Then** The parser returns false
+
+> Test: `test_prio_strategy_out_of_range` in `test_mqtt_parser.c:604`
+
+### PrioStrategy negative value is rejected
+
+**Requirement:** `REQ-MQTT-015`
+
+
+> Test: `test_prio_strategy_negative` in `test_mqtt_parser.c:616`
+
+### RotationInterval in gap (1-29) is rejected
+
+**Requirement:** `REQ-MQTT-016`
+
+- **Given** A valid MQTT prefix
+- **When** Topic is prefix/Set/RotationInterval with payload "15"
+- **Then** The parser returns false
+
+> Test: `test_rotation_interval_gap` in `test_mqtt_parser.c:661`
+
+### RotationInterval above maximum is rejected
+
+**Requirement:** `REQ-MQTT-016`
+
+
+> Test: `test_rotation_interval_too_high` in `test_mqtt_parser.c:673`
+
+### IdleTimeout below minimum (29) is rejected
+
+**Requirement:** `REQ-MQTT-017`
+
+- **Given** A valid MQTT prefix
+- **When** Topic is prefix/Set/IdleTimeout with payload "29"
+- **Then** The parser returns false
+
+> Test: `test_idle_timeout_too_low` in `test_mqtt_parser.c:718`
+
+### IdleTimeout above maximum (301) is rejected
+
+**Requirement:** `REQ-MQTT-017`
+
+
+> Test: `test_idle_timeout_too_high` in `test_mqtt_parser.c:730`
+
+### IdleTimeout zero is rejected (minimum is 30)
+
+**Requirement:** `REQ-MQTT-017`
+
+
+> Test: `test_idle_timeout_zero` in `test_mqtt_parser.c:739`
+
 ### Unrecognized topic returns false
 
 **Requirement:** `REQ-MQTT-014`
 
 
-> Test: `test_unrecognized_topic` in `test_mqtt_parser.c:570`
+> Test: `test_unrecognized_topic` in `test_mqtt_parser.c:750`
 
 ### Wrong prefix returns false
 
 **Requirement:** `REQ-MQTT-014`
 
 
-> Test: `test_wrong_prefix` in `test_mqtt_parser.c:579`
+> Test: `test_wrong_prefix` in `test_mqtt_parser.c:759`
 
 ---
 
@@ -2544,13 +2833,13 @@
 
 > Test: `test_node_goes_offline_redistributes` in `test_multi_node.c:130`
 
-### All nodes receive MinCurrent during power shortage
+### Priority scheduling allocates available power to highest-priority EVSE during shortage
 
 **Requirement:** `REQ-MULTI-005`
 
-- **Given** Master with 4 EVSEs in STATE_C in Smart mode with very high mains load and low IsetBalanced
+- **Given** Master with 4 EVSEs in STATE_C in Smart mode, available power ~105 dA (enough for 1 EVSE, not 4)
 - **When** Balanced current is calculated with insufficient power for all nodes
-- **Then** Each EVSE receives exactly 60 deciamps (MinCurrent * 10) as the floor allocation
+- **Then** Highest-priority EVSE gets all available power, others are paused
 
 > Test: `test_all_nodes_mincurrent_during_shortage` in `test_multi_node.c:159`
 
@@ -2562,7 +2851,7 @@
 - **When** Balanced current is calculated
 - **Then** Total distributed current across all nodes does not exceed 240 deciamps (MaxCircuit * 10)
 
-> Test: `test_maxcircuit_limits_total_distribution` in `test_multi_node.c:186`
+> Test: `test_maxcircuit_limits_total_distribution` in `test_multi_node.c:189`
 
 ### MaxCircuit accounts for EV meter baseload in distribution
 
@@ -2572,7 +2861,7 @@
 - **When** Balanced current is calculated with EV meter baseload subtracted
 - **Then** Total distributed current does not exceed (MaxCircuit * 10) minus baseload
 
-> Test: `test_maxcircuit_with_ev_meter_baseload` in `test_multi_node.c:214`
+> Test: `test_maxcircuit_with_ev_meter_baseload` in `test_multi_node.c:217`
 
 ### Six EVSEs in large cluster receive fair distribution
 
@@ -2582,7 +2871,7 @@
 - **When** Balanced current is calculated
 - **Then** All 6 EVSEs receive equal current within 1 deciamp tolerance (integer division rounding)
 
-> Test: `test_six_evse_fair_distribution` in `test_multi_node.c:240`
+> Test: `test_six_evse_fair_distribution` in `test_multi_node.c:243`
 
 ### NoCurrent counter increments during hard power shortage
 
@@ -2592,7 +2881,7 @@
 - **When** Balanced current is calculated and total MinCurrent demand exceeds available power
 - **Then** NoCurrent counter increments above 0 indicating sustained shortage
 
-> Test: `test_nocurrent_increments_on_hard_shortage` in `test_multi_node.c:266`
+> Test: `test_nocurrent_increments_on_hard_shortage` in `test_multi_node.c:269`
 
 ### NoCurrent counter clears when sufficient power is available
 
@@ -2602,7 +2891,7 @@
 - **When** Balanced current is calculated with plenty of available power
 - **Then** NoCurrent counter is cleared to 0
 
-> Test: `test_nocurrent_zero_when_sufficient` in `test_multi_node.c:291`
+> Test: `test_nocurrent_zero_when_sufficient` in `test_multi_node.c:294`
 
 ### Node in STATE_B does not participate in current distribution
 
@@ -2612,7 +2901,7 @@
 - **When** Balanced current is calculated
 - **Then** Only active STATE_C nodes (0 and 2) receive distributed current, each getting 320 deciamps
 
-> Test: `test_state_b_node_gets_no_current` in `test_multi_node.c:316`
+> Test: `test_state_b_node_gets_no_current` in `test_multi_node.c:319`
 
 ### IsetBalanced is capped at the sum of all active node maximums
 
@@ -2622,7 +2911,7 @@
 - **When** Balanced current is calculated with IsetBalanced exceeding ActiveMax (320+80=400)
 - **Then** IsetBalanced is capped to 400, node 0 gets 320 and node 1 gets 80
 
-> Test: `test_isetbalanced_capped_at_active_max` in `test_multi_node.c:341`
+> Test: `test_isetbalanced_capped_at_active_max` in `test_multi_node.c:344`
 
 ### Three EVSEs with all different BalancedMax values
 
@@ -2632,7 +2921,7 @@
 - **When** Balanced current is calculated
 - **Then** Each EVSE capped at its max, remainder redistributed to uncapped EVSEs
 
-> Test: `test_three_evse_all_different_max` in `test_multi_node.c:366`
+> Test: `test_three_evse_all_different_max` in `test_multi_node.c:369`
 
 ### Tight circuit with unequal max: surplus from small EVSE redistributed
 
@@ -2642,7 +2931,7 @@
 - **When** Balanced current is calculated
 - **Then** EVSE[1] gets 60, EVSE[0] gets remainder (250-60=190)
 
-> Test: `test_unequal_max_tight_circuit` in `test_multi_node.c:397`
+> Test: `test_unequal_max_tight_circuit` in `test_multi_node.c:400`
 
 ---
 
@@ -3329,6 +3618,300 @@
 - **Then** Returns a duty cycle value between 950 and 1024 (near the top of the PWM range)
 
 > Test: `test_current_to_duty_80A` in `test_power_availability.c:406`
+
+---
+
+## Priority-Based Power Scheduling
+
+### MODBUS_ADDR strategy produces ascending address order
+
+**Requirement:** `REQ-LB-100`
+
+- **Given** Master (LoadBl=1) with 4 EVSEs in STATE_C
+- **When** evse_sort_priority() is called
+- **Then** Priority[] = {0, 1, 2, 3}
+
+> Test: `test_sort_modbus_addr` in `test_scheduling.c:1`
+
+### FIRST_CONNECTED strategy orders by earliest connection time
+
+**Requirement:** `REQ-LB-101`
+
+- **Given** Master with 3 EVSEs in STATE_C
+- **When** evse_sort_priority() is called
+- **Then** Priority[] = {1, 2, 0, ...} (EVSE[1] first, EVSE[0] last)
+
+> Test: `test_sort_first_connected` in `test_scheduling.c:70`
+
+### LAST_CONNECTED strategy orders by most recent connection time
+
+**Requirement:** `REQ-LB-102`
+
+- **Given** Master with 3 EVSEs in STATE_C
+- **When** evse_sort_priority() is called
+- **Then** Priority[] = {0, 2, 1, ...} (EVSE[0] first, EVSE[1] last)
+
+> Test: `test_sort_last_connected` in `test_scheduling.c:94`
+
+### Disconnected EVSEs are sorted to end regardless of strategy
+
+**Requirement:** `REQ-LB-103`
+
+- **Given** Master with 4 EVSEs: [0]=STATE_C, [1]=STATE_A, [2]=STATE_C, [3]=STATE_A
+- **When** evse_sort_priority() is called
+- **Then** Priority[] = {0, 2, 1, 3} (active EVSEs first, then disconnected)
+
+> Test: `test_sort_disconnected_to_end` in `test_scheduling.c:118`
+
+### Insufficient power for 3 EVSEs: first 2 in priority get MinCurrent
+
+**Requirement:** `REQ-LB-110`
+
+- **Given** Master with 3 EVSEs in STATE_C, MinCurrent=6A, MaxCircuit=20A
+- **When** evse_calc_balanced_current(ctx, 0) is called
+- **Then** Balanced[0] >= 60 and Balanced[1] >= 60 and Balanced[2] == 0
+
+> Test: `test_shortage_first_two_get_current` in `test_scheduling.c:146`
+
+### Power for only 1 EVSE: highest priority gets it all
+
+**Requirement:** `REQ-LB-111`
+
+- **Given** Master with 3 EVSEs in STATE_C, MinCurrent=6A
+- **When** evse_calc_balanced_current(ctx, 0) is called
+- **Then** Balanced[0] == 80 and Balanced[1] == 0 and Balanced[2] == 0
+
+> Test: `test_shortage_one_evse_gets_all` in `test_scheduling.c:177`
+
+### Sufficient power: all EVSEs get current, no scheduling needed
+
+**Requirement:** `REQ-LB-112`
+
+- **Given** Master with 3 EVSEs in STATE_C, MinCurrent=6A
+- **When** evse_calc_balanced_current(ctx, 0) is called
+- **Then** All EVSEs get current, no LESS_6A errors, NoCurrent == 0
+
+> Test: `test_sufficient_power_no_scheduling` in `test_scheduling.c:204`
+
+### Surplus above MinCurrent distributed fairly among active EVSEs
+
+**Requirement:** `REQ-LB-113`
+
+- **Given** Master with 2 EVSEs in STATE_C, MinCurrent=6A, BalancedMax={320,320}
+- **When** evse_calc_balanced_current(ctx, 0) is called
+- **Then** Balanced[0] == 100 and Balanced[1] == 100 (10A each = 6A + 4A surplus)
+
+> Test: `test_surplus_distributed_fairly` in `test_scheduling.c:232`
+
+### Standalone mode (LoadBl=0) does not use priority scheduling
+
+**Requirement:** `REQ-LB-114`
+
+- **Given** Single EVSE (LoadBl=0) in STATE_C, MinCurrent=6A, Mode=SMART
+- **When** evse_calc_balanced_current(ctx, 0) is called
+- **Then** NoCurrent increments (original behavior preserved), no ScheduleState changes
+
+> Test: `test_standalone_no_scheduling` in `test_scheduling.c:263`
+
+### Solar mode: paused EVSEs get NO_SUN error instead of LESS_6A
+
+**Requirement:** `REQ-LB-115`
+
+- **Given** Master with 2 EVSEs in STATE_C, Mode=MODE_SOLAR
+- **When** evse_calc_balanced_current(ctx, 0) is called
+- **Then** Balanced[1] == 0 and BalancedError[1] has NO_SUN set
+
+> Test: `test_solar_paused_gets_no_sun` in `test_scheduling.c:300`
+
+### Capped EVSE surplus redistributed to uncapped ones
+
+**Requirement:** `REQ-LB-116`
+
+- **Given** Master with 3 EVSEs in STATE_C, MinCurrent=6A
+- **When** evse_calc_balanced_current(ctx, 0) is called
+- **Then** Balanced[1] == 80 (capped) and Balanced[0] + Balanced[2] == 160
+
+> Test: `test_capped_surplus_redistribution` in `test_scheduling.c:337`
+
+### Power exactly equals MinCurrent for 1 EVSE
+
+**Requirement:** `REQ-LB-117`
+
+- **Given** Master with 3 EVSEs in STATE_C, MinCurrent=6A
+- **When** evse_calc_balanced_current(ctx, 0) is called
+- **Then** Exactly 1 EVSE has Balanced >= 60, exactly 2 have Balanced == 0
+
+> Test: `test_exactly_one_mincurrent` in `test_scheduling.c:363`
+
+### Zero available power pauses all EVSEs
+
+**Requirement:** `REQ-LB-118`
+
+- **Given** Master with 3 EVSEs in STATE_C, MinCurrent=6A
+- **When** evse_calc_balanced_current(ctx, 0) is called
+- **Then** All Balanced[] == 0, all paused, NoCurrent increments
+
+> Test: `test_zero_power_pauses_all` in `test_scheduling.c:394`
+
+### NoCurrent does NOT increment when priority scheduling pauses some EVSEs
+
+**Requirement:** `REQ-LB-119`
+
+- **Given** Master with 3 EVSEs in STATE_C, MinCurrent=6A
+- **When** evse_calc_balanced_current(ctx, 0) is called
+- **Then** NoCurrent == 0, EVSE[0] is charging
+
+> Test: `test_no_current_not_incremented_on_deliberate_pause` in `test_scheduling.c:422`
+
+### EVSE drawing <1A when IdleTimer expires gets paused
+
+**Requirement:** `REQ-LB-120`
+
+- **Given** Master with 2 EVSEs in STATE_C, EVSE[0] active, EVSE[1] paused
+- **When** evse_schedule_tick_1s() is called
+- **Then** EVSE[0] paused, EVSE[1] activated with IdleTimer[1] = 0
+
+> Test: `test_idle_evse_paused_at_timeout` in `test_scheduling.c:450`
+
+### EVSE not paused before IdleTimeout expires (anti-flap)
+
+**Requirement:** `REQ-LB-121`
+
+- **Given** EVSE[0] active with IdleTimer[0] = 30, IdleTimeout = 60
+- **When** evse_schedule_tick_1s() is called
+- **Then** EVSE[0] remains active
+
+> Test: `test_antiflap_not_paused_early` in `test_scheduling.c:479`
+
+### EVSE drawing power when IdleTimer expires stays active
+
+**Requirement:** `REQ-LB-122`
+
+- **Given** EVSE[0] active with IdleTimer[0] = 59, IdleTimeout = 60
+- **When** evse_schedule_tick_1s() is called
+- **Then** EVSE[0] stays active, RotationTimer starts if RotationInterval > 0
+
+> Test: `test_charging_evse_stays_active` in `test_scheduling.c:505`
+
+### Full idle cycle: all EVSEs tried, recircle to first
+
+**Requirement:** `REQ-LB-123`
+
+- **Given** 3 EVSEs in STATE_C, EVSE[2] active (last tried), EVSE[0] and [1] paused
+- **When** evse_schedule_tick_1s() is called
+- **Then** EVSE[2] paused, EVSE[0] reactivated (wraps around)
+
+> Test: `test_idle_cycle_wraps_around` in `test_scheduling.c:534`
+
+### RotationTimer expiry pauses current EVSE and activates next
+
+**Requirement:** `REQ-LB-140`
+
+- **Given** 3 EVSEs in STATE_C, EVSE[0] active, RotationInterval=30
+- **When** evse_schedule_tick_1s() is called
+- **Then** EVSE[0] paused, EVSE[1] activated, RotationTimer reset to 1800
+
+> Test: `test_rotation_timer_expires` in `test_scheduling.c:567`
+
+### RotationInterval=0 disables rotation entirely
+
+**Requirement:** `REQ-LB-141`
+
+- **Given** 2 EVSEs, EVSE[0] active, RotationInterval = 0
+- **When** Checking ScheduleState
+- **Then** EVSE[0] still active (never rotated)
+
+> Test: `test_rotation_disabled` in `test_scheduling.c:598`
+
+### Rotation wraps from last priority to first
+
+**Requirement:** `REQ-LB-142`
+
+- **Given** 3 EVSEs in priority order {0,1,2}, EVSE[2] active
+- **When** evse_schedule_tick_1s() is called
+- **Then** EVSE[2] paused, EVSE[0] activated
+
+> Test: `test_rotation_wraps_to_first` in `test_scheduling.c:628`
+
+### Rotation skips disconnected EVSEs (STATE_A)
+
+**Requirement:** `REQ-LB-143`
+
+- **Given** 3 EVSEs: [0] active, [1] STATE_A disconnected, [2] paused
+- **When** evse_schedule_tick_1s() is called
+- **Then** EVSE[0] paused, EVSE[2] activated (EVSE[1] skipped)
+
+> Test: `test_rotation_skips_disconnected` in `test_scheduling.c:657`
+
+### Newly activated EVSE gets idle check before rotation timer applies
+
+**Requirement:** `REQ-LB-144`
+
+- **Given** EVSE[1] just activated via rotation, IdleTimeout=60, RotationInterval=30
+- **When** 60 seconds pass
+- **Then** EVSE[1] paused due to idle (not waiting for rotation)
+
+> Test: `test_idle_check_before_rotation` in `test_scheduling.c:687`
+
+### Power increases: paused EVSE reactivated immediately
+
+**Requirement:** `REQ-LB-150`
+
+- **Given** 3 EVSEs, EVSE[0] active, EVSE[1] and [2] paused
+- **When** evse_calc_balanced_current(ctx, 0) is called with new power
+- **Then** EVSE[1] reactivated, IdleTimer reset
+
+> Test: `test_power_increase_reactivates` in `test_scheduling.c:723`
+
+### Reactivation follows priority order
+
+**Requirement:** `REQ-LB-151`
+
+- **Given** 3 EVSEs paused, PrioStrategy=PRIO_MODBUS_ADDR
+- **When** evse_calc_balanced_current(ctx, 0) is called
+- **Then** EVSE[0] and EVSE[1] activated (not [0] and [2])
+
+> Test: `test_reactivation_follows_priority` in `test_scheduling.c:758`
+
+### Original bug: 2 EVSEs, power drops, only 1 stops (no oscillation)
+
+**Requirement:** `REQ-LB-160`
+
+- **Given** Master with 2 EVSEs in STATE_C, MinCurrent=6A, MaxCircuit=11A
+- **When** evse_calc_balanced_current(ctx, 0) is called
+- **Then** Exactly 1 EVSE continues, 1 paused, NoCurrent == 0
+
+> Test: `test_regression_no_oscillation` in `test_scheduling.c:790`
+
+### 6 EVSEs, power for 5: lowest priority paused
+
+**Requirement:** `REQ-LB-161`
+
+- **Given** Master with 6 EVSEs in STATE_C, MinCurrent=6A
+- **When** evse_calc_balanced_current(ctx, 0) is called
+- **Then** EVSEs [0]-[4] receive current, EVSE[5] paused
+
+> Test: `test_six_evse_lowest_paused` in `test_scheduling.c:820`
+
+### Node goes offline: removed from scheduling
+
+**Requirement:** `REQ-LB-162`
+
+- **Given** 3 EVSEs, EVSE[1] goes offline (STATE_A)
+- **When** evse_schedule_tick_1s() runs
+- **Then** EVSE[1] gets ScheduleState = SCHED_INACTIVE
+
+> Test: `test_offline_node_removed` in `test_scheduling.c:845`
+
+### New EVSE join during shortage doesn't displace active ones
+
+**Requirement:** `REQ-LB-163`
+
+- **Given** 2 EVSEs charging, power for 2 at MinCurrent
+- **When** evse_calc_balanced_current(ctx, 1) is called
+- **Then** EVSE[0] and EVSE[1] keep allocation, EVSE[2] gets 0
+
+> Test: `test_new_evse_doesnt_displace` in `test_scheduling.c:872`
 
 ---
 
