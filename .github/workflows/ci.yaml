@@ -97,9 +97,13 @@ jobs:
       - name: Install PlatformIO
         run: pip install --upgrade platformio
       - name: Build ESP32 release
-        run: pio run -e release -d SmartEVSE-3/ 2>&1 | tee esp32-build.log
+        run: |
+          set -o pipefail
+          pio run -e release -d SmartEVSE-3/ 2>&1 | tee esp32-build.log
       - name: Build CH32
-        run: pio run -e ch32 -d SmartEVSE-3/ 2>&1 | tee ch32-build.log
+        run: |
+          set -o pipefail
+          pio run -e ch32 -d SmartEVSE-3/ 2>&1 | tee ch32-build.log
       - name: Check firmware memory budget
         run: |
           check_budget() {
