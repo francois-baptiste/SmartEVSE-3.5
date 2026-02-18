@@ -61,10 +61,30 @@ bool mqtt_parse_rgb(const char *payload, uint8_t *r, uint8_t *g, uint8_t *b) {
     return true;
 }
 
+/*
+ * mqtt_parse_command — Parse an MQTT topic+payload into a typed command struct.
+ *
+ * Matches the topic against known SmartEVSE Set suffixes (after the device
+ * prefix), validates the payload, and populates the output command struct.
+ *
+ * Returns true if the topic matched a known command AND the payload was valid.
+ * Returns false if the topic is unrecognized or the payload fails validation.
+ *
+ * Command groups handled:
+ *   - Mode control:     /Set/Mode, /Set/CustomButton
+ *   - Current limits:   /Set/CurrentOverride, /Set/CurrentMaxSumMains, /Set/CPPWMOverride
+ *   - Meter feeds:      /Set/MainsMeter (L1:L2:L3), /Set/EVMeter (L1:L2:L3:W:Wh)
+ *   - Home battery:     /Set/HomeBatteryCurrent
+ *   - Vehicle ID:       /Set/RequiredEVCCID
+ *   - LED colors:       /Set/Color{Off,Normal,Smart,Solar,Custom} (R,G,B)
+ *   - Hardware config:  /Set/CableLock, /Set/EnableC2
+ *   - Scheduling:       /Set/PrioStrategy, /Set/RotationInterval, /Set/IdleTimeout
+ */
 bool mqtt_parse_command(const char *prefix, const char *topic,
                         const char *payload, mqtt_command_t *out) {
     memset(out, 0, sizeof(*out));
 
+    /* Mode control: Off/Normal/Solar/Smart/Pause */
     if (match_topic(prefix, topic, "/Set/Mode")) {
         out->cmd = MQTT_CMD_MODE;
         if (strcmp(payload, "Off") == 0)
@@ -88,6 +108,7 @@ bool mqtt_parse_command(const char *prefix, const char *topic,
         return true;
     }
 
+    /* Current limits and PWM override */
     if (match_topic(prefix, topic, "/Set/CurrentOverride")) {
         out->cmd = MQTT_CMD_CURRENT_OVERRIDE;
         out->current_override = (uint16_t)atoi(payload);
@@ -114,6 +135,7 @@ bool mqtt_parse_command(const char *prefix, const char *topic,
         return false;
     }
 
+    /* Meter data feeds: mains (3 phase currents) and EV (3 phase + power + energy) */
     if (match_topic(prefix, topic, "/Set/MainsMeter")) {
         out->cmd = MQTT_CMD_MAINS_METER;
         return mqtt_parse_mains_meter(payload, &out->mains_meter.L1,
@@ -126,12 +148,14 @@ bool mqtt_parse_command(const char *prefix, const char *topic,
                                    &out->ev_meter.L3, &out->ev_meter.W, &out->ev_meter.Wh);
     }
 
+    /* Home battery current: positive = charging, negative = discharging */
     if (match_topic(prefix, topic, "/Set/HomeBatteryCurrent")) {
         out->cmd = MQTT_CMD_HOME_BATTERY_CURRENT;
         out->home_battery_current = (int16_t)atoi(payload);
         return true;
     }
 
+    /* Vehicle ID for ISO 15118 authorization */
     if (match_topic(prefix, topic, "/Set/RequiredEVCCID")) {
         out->cmd = MQTT_CMD_REQUIRED_EVCCID;
         size_t len = strlen(payload);
@@ -158,6 +182,7 @@ bool mqtt_parse_command(const char *prefix, const char *topic,
         }
     }
 
+    /* Hardware configuration: cable lock and second contactor (C2) */
     if (match_topic(prefix, topic, "/Set/CableLock")) {
         out->cmd = MQTT_CMD_CABLE_LOCK;
         out->cable_lock = (strcmp(payload, "1") == 0) ? 1 : 0;
@@ -184,6 +209,7 @@ bool mqtt_parse_command(const char *prefix, const char *topic,
         return false;
     }
 
+    /* Priority scheduling settings (Master only, see priority-scheduling.md) */
     if (match_topic(prefix, topic, "/Set/PrioStrategy")) {
         out->cmd = MQTT_CMD_PRIO_STRATEGY;
         int val = atoi(payload);
