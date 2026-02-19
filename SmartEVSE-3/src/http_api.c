@@ -90,11 +90,32 @@ const char *http_api_validate_idle_timeout(int value, int load_bl) {
     return NULL;
 }
 
+/*
+ * http_api_validate_settings() — Validate all fields in an HTTP POST /settings request.
+ *
+ * Iterates over each field present in @req and delegates to the appropriate
+ * per-field validator. Validation errors are written into the @errors array
+ * (up to @max_errors entries). Fields absent from the request are skipped.
+ *
+ * @req          Parsed settings request; has_* flags indicate which fields are present.
+ * @min_current  Configured minimum charge current (Amps), used for override_current bounds.
+ * @max_current  Configured maximum charge current (Amps), used for override_current bounds.
+ * @load_bl      Load-balancing role: 0=Standalone, 1=Master, >=2=Node/Slave.
+ *               Many settings are Master-only and are rejected when load_bl >= 2.
+ * @current_mode Charge mode: 0=Normal, 1=Smart, 2=Solar.
+ *               override_current is only accepted in Normal and Smart modes.
+ * @errors       Output array of validation errors (field name + message pairs).
+ * @max_errors   Capacity of the @errors array; collection stops when full.
+ *
+ * Returns the number of validation errors found (0 = all fields valid).
+ */
 int http_api_validate_settings(const http_settings_request_t *req,
                                int min_current, int max_current,
                                int load_bl, int current_mode,
                                http_validation_error_t *errors, int max_errors) {
     int count = 0;
+
+    /* --- Current limits --- */
 
     if (req->has_current_min && count < max_errors) {
         const char *err = http_api_validate_current_min(req->current_min, load_bl);
@@ -114,18 +135,18 @@ int http_api_validate_settings(const http_settings_request_t *req,
         }
     }
 
-    if (req->has_stop_timer && count < max_errors) {
-        const char *err = http_api_validate_stop_timer(req->stop_timer);
-        if (err) {
-            errors[count].field = "stop_timer";
-            errors[count].error = err;
+    if (req->has_max_sum_mains_time && count < max_errors) {
+        // Master-only; range 0–60 minutes
+        if (load_bl >= 2 || req->max_sum_mains_time < 0 || req->max_sum_mains_time > 60) {
+            errors[count].field = "max_sum_mains_time";
+            errors[count].error = "Value not allowed!";
             count++;
         }
     }
 
     if (req->has_override_current && count < max_errors) {
-        // Override current only valid in Normal or Smart mode
-        if (current_mode == 0 || current_mode == 1) { // MODE_NORMAL=0, MODE_SMART=1
+        // Override current only valid in Normal or Smart mode (MODE_NORMAL=0, MODE_SMART=1)
+        if (current_mode == 0 || current_mode == 1) {
             const char *err = http_api_validate_override_current(
                 req->override_current, min_current, max_current, load_bl);
             if (err) {
@@ -135,6 +156,19 @@ int http_api_validate_settings(const http_settings_request_t *req,
             }
         }
     }
+
+    /* --- Timers --- */
+
+    if (req->has_stop_timer && count < max_errors) {
+        const char *err = http_api_validate_stop_timer(req->stop_timer);
+        if (err) {
+            errors[count].field = "stop_timer";
+            errors[count].error = err;
+            count++;
+        }
+    }
+
+    /* --- Solar settings --- */
 
     if (req->has_solar_start && count < max_errors) {
         const char *err = http_api_validate_solar_start(req->solar_start_current);
@@ -154,15 +188,10 @@ int http_api_validate_settings(const http_settings_request_t *req,
         }
     }
 
-    if (req->has_max_sum_mains_time && count < max_errors) {
-        if (load_bl >= 2 || req->max_sum_mains_time < 0 || req->max_sum_mains_time > 60) {
-            errors[count].field = "max_sum_mains_time";
-            errors[count].error = "Value not allowed!";
-            count++;
-        }
-    }
+    /* --- Hardware settings --- */
 
     if (req->has_lcd_lock && count < max_errors) {
+        // Boolean flag: 0=unlocked, 1=locked
         if (req->lcd_lock < 0 || req->lcd_lock > 1) {
             errors[count].field = "lcdlock";
             errors[count].error = "Value not allowed!";
@@ -171,12 +200,15 @@ int http_api_validate_settings(const http_settings_request_t *req,
     }
 
     if (req->has_cable_lock && count < max_errors) {
+        // Boolean flag: 0=disabled, 1=enabled
         if (req->cable_lock < 0 || req->cable_lock > 1) {
             errors[count].field = "cablelock";
             errors[count].error = "Value not allowed!";
             count++;
         }
     }
+
+    /* --- Priority scheduling (Master-only) --- */
 
     if (req->has_prio_strategy && count < max_errors) {
         const char *err = http_api_validate_prio_strategy(req->prio_strategy, load_bl);
