@@ -5,10 +5,9 @@
  * Uses DMA for rx/tx data transfer, and supports interrupt-driven packet reception.
  */
 
+#if defined(SMARTEVSE_VERSION) && SMARTEVSE_VERSION >= 30 && SMARTEVSE_VERSION < 40
+
 #include <Arduino.h>
-
-#if SMARTEVSE_VERSION >= 30 && SMARTEVSE_VERSION < 40
-
 #include "ch390.h"
 #include "network_common.h"
 #include <string.h>

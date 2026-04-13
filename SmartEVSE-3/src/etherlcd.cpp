@@ -45,10 +45,9 @@
  * The LCD is addressed via a separate IDF SPI device with CS=GPIO0 (LCD_CS).
  */
 
+#if defined(SMARTEVSE_VERSION) && SMARTEVSE_VERSION >= 30 && SMARTEVSE_VERSION < 40
+
 #include <Arduino.h>
-
-#if SMARTEVSE_VERSION >= 30 && SMARTEVSE_VERSION < 40
-
 #include "debug.h"
 #include "etherlcd.h"
 #include "driver/spi_master.h"
