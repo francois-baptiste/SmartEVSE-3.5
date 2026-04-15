@@ -27,6 +27,7 @@
 #include <MicroOcpp/Core/Configuration.h>
 #include "ocpp_logic.h"
 #include "http_auth.h"          // Plan 16 Phase 1 — HTTP auth decision (pure C)
+#include "pin_rate_limit.h"     // Plan 16 Phase 2 — brute-force limiter for /lcd-verify-password
 #include "ocpp_telemetry.h"
 #endif //ENABLE_OCPP
 
@@ -1162,6 +1163,26 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
         return true;
 
     } else if (mg_http_match_uri(hm, "/lcd-verify-password") && !memcmp("POST", hm->method.buf, hm->method.len)) {
+        /* Plan 16 Phase 2 — brute-force limiter. Single global counter
+         * (not per-IP) sized to the LAN trust model in the design doc.
+         * On cooldown, return 429 Retry-After and do NOT attempt the PIN
+         * compare — a timing side-channel here would let an attacker keep
+         * probing around the rate limit. */
+        static pin_rate_limit_t g_pin_rl = {0};
+        uint32_t now = (uint32_t)millis();
+        if (pin_rl_check(&g_pin_rl, now) == PIN_RL_DENY_COOLDOWN) {
+            uint32_t retry = pin_rl_retry_after_seconds(&g_pin_rl, now);
+            char hdr[96];
+            snprintf(hdr, sizeof(hdr),
+                     "Content-Type: application/json\r\nRetry-After: %u\r\n",
+                     (unsigned)retry);
+            mg_http_reply(c, 429, hdr,
+                          "{\"success\":false,\"rate_limited\":true,"
+                          "\"retry_after\":%u}\r\n",
+                          (unsigned)retry);
+            return true;
+        }
+
         char password[32];
         mg_http_get_var(&hm->body, "password", password, sizeof(password));
         DynamicJsonDocument doc(256);
@@ -1174,9 +1195,11 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
              * treats ts==0 as "never set" and would skip expiration. */
             uint32_t ts = (uint32_t)millis();
             LCDPasswordOkSince = (ts == 0) ? 1 : ts;
+            pin_rl_record_success(&g_pin_rl);   // Phase 2
             doc["success"] = true;
         } else {
             LCDPasswordOkSince = 0;
+            pin_rl_record_failure(&g_pin_rl, now);  // Phase 2
             doc["success"] = false;
         }
 
