@@ -135,6 +135,29 @@ jobs:
           # CH32: 64KB flash, 20KB RAM - much tighter
           check_budget ch32-build.log "CH32" 95 90 || result=1
           exit $result
+      - name: SECURITY M-2 — verify /automated_testing endpoint is NOT in release firmware
+        # The /automated_testing endpoint allows arbitrary unauthenticated
+        # mutation of charging parameters. Source is gated by
+        # `#if AUTOMATED_TESTING` and the flag is intentionally not defined
+        # in platformio.ini, so the endpoint compiles out of release builds.
+        # This step asserts that contract — if the URI string appears in
+        # the release binary the build fails (someone added the flag via
+        # PLATFORMIO_BUILD_FLAGS or otherwise sneaked it past the .ini).
+        run: |
+          set -e
+          BIN=SmartEVSE-3/.pio/build/release/firmware.bin
+          if [ ! -f "$BIN" ]; then
+            echo "ERROR: $BIN not found — release build did not produce a binary"
+            exit 1
+          fi
+          if strings "$BIN" | grep -q "/automated_testing"; then
+            echo "ERROR: /automated_testing URI string found in release firmware."
+            echo "       This endpoint must be compiled out (#if AUTOMATED_TESTING)."
+            echo "       Check platformio.ini and PLATFORMIO_BUILD_FLAGS for an"
+            echo "       accidentally-defined AUTOMATED_TESTING flag."
+            exit 1
+          fi
+          echo "OK: /automated_testing endpoint is not present in release firmware."
 
   traceability:
     needs: [native-tests]
