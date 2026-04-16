@@ -1390,7 +1390,16 @@ void mqttPublishData() {
             mqtt_pub_int(MQTT_SLOT_WIFI_RSSI, "/WiFiRSSI", WiFi.RSSI(), false, now_s);
         }
         mqtt_pub_int(MQTT_SLOT_LOAD_BL, "/LoadBl", LoadBl, true, now_s);
-        mqtt_pub_str(MQTT_SLOT_PAIRING_PIN, "/PairingPin", PairingPin.c_str(), true, now_s);
+        /* SECURITY M-7 (CWE-200): PIN must NOT be retained. With retain=true the
+         * broker hands the last PIN to every future subscriber forever — anyone
+         * with topic access (incl. compromised brokers / WAN-exposed brokers)
+         * trivially recovers the pairing secret. With retain=false the PIN is
+         * only delivered to clients connected during the active pairing window
+         * (the publish loop runs every 5 s while PairingPin is set; the
+         * smartphone app is normally connected during pairing). The
+         * mqttSmartEVSEPublishData() function below contains the migration
+         * cleanup that wipes any legacy retained PIN once on first publish. */
+        mqtt_pub_str(MQTT_SLOT_PAIRING_PIN, "/PairingPin", PairingPin.c_str(), false, now_s);
         mqtt_pub_str(MQTT_SLOT_FIRMWARE_VERSION, "/FirmwareVersion", VERSION, true, now_s);
         mqtt_pub_int(MQTT_SLOT_SOLAR_STOP_TIMER, "/SolarStopTimer", SolarStopTimer, false, now_s);
         mqtt_pub_int(MQTT_SLOT_CURRENT_MAX_SUM_MAINS, "/CurrentMaxSumMains", MaxSumMains, true, now_s);
@@ -1463,7 +1472,17 @@ void mqttSmartEVSEPublishData() {
         MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/EVEnergyCharged", String(EVMeter.EnergyCharged), true, 0);
         MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/EVImportActiveEnergy", String(EVMeter.Import_active_energy), false, 0);
     }
-    MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/PairingPin", PairingPin, true, 0);
+    /* SECURITY M-7 (CWE-200): on first call after boot, wipe any legacy
+     * retained PIN from the broker (devices that ran prior firmware left a
+     * retained PIN behind for new subscribers to harvest). After this one-shot
+     * cleanup, all future PIN publishes use retain=false so the PIN is only
+     * delivered to clients connected during the active pairing window. */
+    static bool retained_pin_cleanup_done = false;
+    if (!retained_pin_cleanup_done) {
+        MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/PairingPin", String(""), true, 0);
+        retained_pin_cleanup_done = true;
+    }
+    MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/PairingPin", PairingPin, false, 0);
     MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/MaxCurrent", String(MaxCurrent * 10), true, 0);
 }
 
