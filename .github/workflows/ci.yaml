@@ -274,9 +274,51 @@ jobs:
           fi
           echo "Version match confirmed."
 
+  mutation-testing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Run mutation testing on pure-C modules
+        # Probes whether unit tests genuinely cover their code by mutating
+        # source and confirming the suite catches the mutation. A surviving
+        # mutant is a coverage gap.
+        #
+        # Modules added incrementally as their suites reach the 75% bar.
+        # New entry process: run locally to confirm score >= 75, then add
+        # to the loop below. session_log.c currently scores 60% — listed
+        # in the test-only block to surface the gap without blocking CI.
+        run: |
+          set -e
+          # Gating modules — must pass threshold or CI fails.
+          for module in capacity_peak; do
+            echo "::group::Mutation testing (gating): $module"
+            python3 scripts/mutate.py \
+              --source ../../src/${module}.c \
+              --test tests/test_${module}.c \
+              --threshold 75 \
+              --json reports/${module}.json
+            echo "::endgroup::"
+          done
+          # Tracking modules — report only, no threshold enforcement.
+          for module in session_log; do
+            echo "::group::Mutation testing (tracking): $module"
+            python3 scripts/mutate.py \
+              --source ../../src/${module}.c \
+              --test tests/test_${module}.c \
+              --json reports/${module}.json || true
+            echo "::endgroup::"
+          done
+        working-directory: SmartEVSE-3/test/native
+      - name: Upload mutation reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: mutation-reports
+          path: SmartEVSE-3/test/native/reports/
+
   ci-passed:
     if: always()
-    needs: [native-tests, firmware-build, static-analysis, memory-sanitizers, valgrind, traceability, bdd-tests, ocpp-compatibility, modbus-compatibility, version-check]
+    needs: [native-tests, firmware-build, static-analysis, memory-sanitizers, valgrind, traceability, bdd-tests, ocpp-compatibility, modbus-compatibility, mutation-testing, version-check]
     runs-on: ubuntu-latest
     steps:
       - name: Check results
@@ -289,7 +331,8 @@ jobs:
              [ "${{ needs.traceability.result }}" != "success" ] || \
              [ "${{ needs.bdd-tests.result }}" != "success" ] || \
              [ "${{ needs.ocpp-compatibility.result }}" != "success" ] || \
-             [ "${{ needs.modbus-compatibility.result }}" != "success" ]; then
+             [ "${{ needs.modbus-compatibility.result }}" != "success" ] || \
+             [ "${{ needs.mutation-testing.result }}" != "success" ]; then
             echo "One or more jobs failed"
             exit 1
           fi
