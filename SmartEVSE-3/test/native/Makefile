@@ -110,6 +110,9 @@ $(BUILD)/test_http_auth: $(TEST_DIR)/test_http_auth.c $(SRC_DIR)/http_auth.c $(S
 $(BUILD)/test_pin_rate_limit: $(TEST_DIR)/test_pin_rate_limit.c $(SRC_DIR)/pin_rate_limit.c $(SRC_DIR)/pin_rate_limit.h include/*.h | $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(TEST_DIR)/test_pin_rate_limit.c $(SRC_DIR)/pin_rate_limit.c
 
+$(BUILD)/test_reconnect_backoff: $(TEST_DIR)/test_reconnect_backoff.c $(SRC_DIR)/reconnect_backoff.c $(SRC_DIR)/reconnect_backoff.h include/*.h | $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(TEST_DIR)/test_reconnect_backoff.c $(SRC_DIR)/reconnect_backoff.c
+
 $(BUILD)/test_solar_debug_json: $(TEST_DIR)/test_solar_debug_json.c $(SOLAR_DEBUG_JSON_SRC) $(SRC_DIR)/solar_debug_json.h include/*.h | $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(TEST_DIR)/test_solar_debug_json.c $(SOLAR_DEBUG_JSON_SRC)
 

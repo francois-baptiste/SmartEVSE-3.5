@@ -11,6 +11,7 @@
 #include "glcd.h"
 #include "esp32.h"
 #include "http_api.h"
+#include "reconnect_backoff.h"
 #include <ArduinoJson.h>
 
 #include <HTTPClient.h>
@@ -1023,6 +1024,10 @@ struct mg_str empty = mg_str_n("", 0UL);
 
 #if MQTT && MQTT_ESP == 0
 char s_mqtt_url[80];
+// SECURITY M-6: backoff state for the Mongoose MQTT reconnect path.
+// File-scope static so timer_fn and the MG_EV_CLOSE / MG_EV_MQTT_OPEN
+// branches share one logical instance.
+static reconnect_backoff_t mqtt_backoff = {0};
 //TODO perhaps integrate multiple fn callback functions?
 static void fn_mqtt(struct mg_connection *c, int ev, void *ev_data) {
     if (ev == MG_EV_OPEN) {
@@ -1042,6 +1047,9 @@ static void fn_mqtt(struct mg_connection *c, int ev, void *ev_data) {
         // MQTT connect is successful
         _LOG_V("%lu CONNECTED to %s\n", c->id, s_mqtt_url);
         MQTTclient.connected = true;
+        // SECURITY M-6: clear backoff on successful connection so the next
+        // failure starts at 1 s rather than the prior tier.
+        reconnect_backoff_record_success(&mqtt_backoff);
         SetupMQTTClient();
     } else if (ev == MG_EV_MQTT_MSG) {
         // When we get echo response, print it
@@ -1052,14 +1060,35 @@ static void fn_mqtt(struct mg_connection *c, int ev, void *ev_data) {
         mqtt_receive_callback(topic2, mm->data.buf);
     } else if (ev == MG_EV_CLOSE) {
         _LOG_V("%lu CLOSED\n", c->id);
+        bool was_connected = MQTTclient.connected;
         MQTTclient.connected = false;
         MQTTclient.s_conn = NULL;  // Mark that we're closed
+        // SECURITY M-6: every CLOSE without a successful OPEN counts as a
+        // failed attempt. Arm the backoff so the next timer_fn waits before
+        // retrying. If we were connected (intentional disconnect or broker
+        // dropped a healthy session), don't penalise — record_success was
+        // already called on OPEN, so the backoff state is clean.
+        if (!was_connected) {
+            reconnect_backoff_record_failure(&mqtt_backoff, (uint32_t)millis());
+        }
     }
 }
 
-// Timer function - recreate client connection if it is closed
+// Timer function - recreate client connection if it is closed.
+// SECURITY M-6 (CWE-799): the timer ticks every 3 s but the actual
+// mg_mqtt_connect() call is gated by an exponential backoff. A failing
+// broker no longer triggers a 20-attempts-per-minute storm; the schedule
+// (1 / 2 / 4 / 8 / 16 / 30 s capped) bounds reconnect rate to ~2/min
+// after a few failures, with full reset on a successful connection.
 static void timer_fn(void *arg) {
     struct mg_mgr *mgr = (struct mg_mgr *) arg;
+
+    if (MQTTclient.s_conn != NULL) return;          // already connected / connecting
+    uint32_t now_ms = (uint32_t)millis();
+    if (!reconnect_backoff_should_attempt(&mqtt_backoff, now_ms)) {
+        return;
+    }
+
     struct mg_mqtt_opts opts;
     memset(&opts, 0, sizeof(opts));
     opts.clean = false;
@@ -1078,7 +1107,8 @@ static void timer_fn(void *arg) {
     //mqtt[s]://[username][:password]@host.domain[:port]
     snprintf(s_mqtt_url, sizeof(s_mqtt_url), "mqtt://%s:%i", MQTTHost.c_str(), MQTTPort);
 
-    if (MQTTclient.s_conn == NULL) MQTTclient.s_conn = mg_mqtt_connect(mgr, s_mqtt_url, &opts, fn_mqtt, NULL);
+    reconnect_backoff_record_attempt(&mqtt_backoff, now_ms);
+    MQTTclient.s_conn = mg_mqtt_connect(mgr, s_mqtt_url, &opts, fn_mqtt, NULL);
 }
 #endif
 
