@@ -1,27 +1,28 @@
 # Load Balancing Stability
 
-This page documents the multi-node load balancing stability improvements added in
-this fork. These changes address current oscillation, uneven distribution, and
-diagnostic visibility when multiple SmartEVSEs share one mains connection.
+This page documents the multi-node load balancing stability behaviour:
+oscillation detection, measurement filtering, per-EVSE rate limiting, and
+diagnostic snapshots when multiple modules share one mains connection.
 
-Upstream issue addressed:
+Background — community report that motivated the work:
 [#316](https://github.com/dingo35/SmartEVSE-3.5/issues/316) (oscillation in smart
-mode power sharing)
+mode power sharing).
 
 ## Overview
 
-The upstream load balancing algorithm (`CalcBalancedCurrent`) recalculates current
-distribution from scratch every ~2 seconds. It uses asymmetric gain (fast decrease,
-slow increase) and has no awareness of measurement noise, control loop dynamics, or
-EV charge controller response lag. In multi-node setups (2-8 EVSEs), this causes:
+The original load balancing algorithm (`CalcBalancedCurrent`) recalculated
+current distribution from scratch every ~2 seconds, with asymmetric gain (fast
+decrease, slow increase) and no awareness of measurement noise, control-loop
+dynamics, or EV charge-controller response lag. In multi-node setups (2–8
+modules), that caused:
 
-- **Current oscillation** — allocations swing up and down between cycles
-- **Uneven distribution** — some EVSEs get more than their fair share
-- **Contactor stress** — sudden current jumps stress relays and EV electronics
-- **False shortage detection** — measurement noise triggers unnecessary throttling
+- **Current oscillation** — allocations swung up and down between cycles
+- **Uneven distribution** — some modules got more than their fair share
+- **Contactor stress** — sudden current jumps stressed relays and EV electronics
+- **False shortage detection** — measurement noise triggered unnecessary throttling
 
-This fork adds oscillation detection, measurement filtering, per-EVSE rate limiting,
-and a diagnostic snapshot for monitoring.
+The current implementation adds oscillation detection, measurement filtering,
+per-EVSE rate limiting, and a diagnostic snapshot for monitoring.
 
 ## New features
 

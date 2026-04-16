@@ -1,23 +1,26 @@
 # Solar & Smart Mode Stability
 
-This page documents the solar and smart mode stability improvements added in this
-fork. These changes address current oscillation, stop/start cycling, slow phase
+This page documents the solar and smart mode stability behaviour: current
+smoothing, dead bands, ramp rate limiting, phase switching timers, and
+stop/start cycling prevention. These address oscillation, slow phase
 switching, and compatibility with EVs like the Renault Zoe.
 
-Upstream issues addressed:
+Background — community reports that motivated the work:
 [#335](https://github.com/dingo35/SmartEVSE-3.5/issues/335),
 [#327](https://github.com/dingo35/SmartEVSE-3.5/issues/327),
-[#316](https://github.com/dingo35/SmartEVSE-3.5/issues/316)
+[#316](https://github.com/dingo35/SmartEVSE-3.5/issues/316).
 
 ## Overview
 
-The upstream solar/smart regulation algorithm uses fixed-step adjustments on a
-fast tick (100ms) with no damping, no hysteresis, and no awareness of measurement
-latency. This causes oscillation, unnecessary phase switches, stop/start cycling,
-and poor behavior with vehicles that respond slowly to current changes.
+The original solar/smart regulation algorithm used fixed-step adjustments on
+a fast tick (100 ms) with no damping, no hysteresis, and no awareness of
+measurement latency. That caused oscillation, unnecessary phase switches,
+stop/start cycling, and poor behaviour with vehicles that respond slowly to
+current changes.
 
-This fork adds configurable smoothing, dead bands, ramp rate limiting, improved
-phase switching timers, and stop/start cycling prevention.
+The current implementation adds configurable smoothing, dead bands, ramp
+rate limiting, improved phase switching timers, and stop/start cycling
+prevention.
 
 ## New settings
 

@@ -1,18 +1,24 @@
-# Upstream Differences
+# Differences from the reference codebase
 
-This document tracks all differences between this fork
-([basmeerman/SmartEVSE-3.5](https://github.com/basmeerman/SmartEVSE-3.5)) and the
-upstream repository ([dingo35/SmartEVSE-3.5](https://github.com/dingo35/SmartEVSE-3.5)).
+This is a maintainer-facing document describing how this firmware
+diverges from the [reference codebase
+(`dingo35/SmartEVSE-3.5`)](https://github.com/dingo35/SmartEVSE-3.5).
+It is intended for contributors deciding whether a behaviour, fix, or
+feature originates here or upstream, and for porting changes between
+the two.
 
-For feature details and configuration, see [Features](features.md).
+For end-user feature documentation see [Features](features.md). For
+operational guidance see the audience guides
+([installer](guide-installer.md), [owner](guide-owner.md),
+[integrator](guide-integrator.md)).
 
 ---
 
-## Architecture Changes
+## Architecture changes
 
-These are structural changes that affect the entire codebase — not specific features.
+Structural changes that affect the entire codebase — not specific features.
 
-| Change | Upstream state | Fork state |
+| Change | Reference state | This codebase |
 |--------|---------------|------------|
 | State machine location | Inline in `main.cpp` (~3,000 lines) | Extracted to `evse_state_machine.c` (pure C) |
 | State representation | ~70 scattered globals | `evse_ctx_t` context struct |
@@ -28,7 +34,7 @@ These are structural changes that affect the entire codebase — not specific fe
 
 ### Smart & Solar Mode
 
-Addresses upstream issues
+Background — community reports:
 [#327](https://github.com/dingo35/SmartEVSE-3.5/issues/327),
 [#335](https://github.com/dingo35/SmartEVSE-3.5/issues/335),
 [#316](https://github.com/dingo35/SmartEVSE-3.5/issues/316).
@@ -47,7 +53,7 @@ Addresses upstream issues
 
 ### Load Balancing
 
-Addresses upstream issue
+Background — community report:
 [#316](https://github.com/dingo35/SmartEVSE-3.5/issues/316).
 
 | Improvement | Why | Details |
@@ -79,7 +85,7 @@ Addresses upstream issue
 
 ### MQTT & Home Assistant
 
-Addresses upstream issues
+Background — community reports:
 [#320](https://github.com/dingo35/SmartEVSE-3.5/issues/320),
 [#294](https://github.com/dingo35/SmartEVSE-3.5/issues/294),
 [PR #338](https://github.com/dingo35/SmartEVSE-3.5/pull/338).
@@ -194,11 +200,19 @@ Findings from the security review (see internal report; most issues are inherite
 
 ---
 
-## Contributing Upstream
+## Contributing changes to the reference codebase
 
-When contributing improvements back to upstream:
+When porting a change to the reference codebase
+(`dingo35/SmartEVSE-3.5`):
 
-- **Submit small, focused PRs** — dingo35 is conservative about large changes
-- **Do not bundle test infrastructure with feature changes**
-- **Follow upstream conventions** — they may differ from this fork
-- **Never modify upstream repos without explicit user approval**
+- **Submit small, focused PRs** — the upstream maintainer is
+  conservative about large changes.
+- **Do not bundle test infrastructure with feature changes** — the
+  reference codebase has a different test approach; bundling slows
+  review.
+- **Follow the reference codebase's conventions** — naming, commit
+  style, and code organisation differ.
+- **Rewrite the commit message in plain technical English** — strip
+  AI-generated tone (no "Co-Authored-By: Claude" trailers, no
+  multi-paragraph rationale unless the maintainer asks).
+- **Never modify other-owned repos without explicit user approval.**

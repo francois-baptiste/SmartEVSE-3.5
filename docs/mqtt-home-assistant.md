@@ -1,15 +1,16 @@
 # MQTT & Home Assistant Integration
 
-This page documents the MQTT improvements in this fork for Home Assistant users.
-These changes fix broken discovery payloads, reduce message volume, add missing
-entities, and align entity naming with HA 2025.10+ conventions.
+This page documents the MQTT behaviour and Home Assistant entity layout:
+discovery payloads, message reduction, entity naming aligned with HA
+2025.10+ conventions, and the energy zero-value guard that prevents corrupted
+HA long-term statistics.
 
-Upstream issues addressed:
+Background — community reports that motivated current behaviour:
 [#320](https://github.com/dingo35/SmartEVSE-3.5/issues/320) (MaxSumMains via MQTT),
 [#294](https://github.com/dingo35/SmartEVSE-3.5/issues/294) (per-phase kWh),
-upstream [PR #338](https://github.com/dingo35/SmartEVSE-3.5/pull/338) (energy zero-guard)
+[PR #338](https://github.com/dingo35/SmartEVSE-3.5/pull/338) (energy zero-guard).
 
-## Changes from upstream
+## HA-compatibility behaviour
 
 ### Discovery payload fixes
 
@@ -24,8 +25,7 @@ upstream [PR #338](https://github.com/dingo35/SmartEVSE-3.5/pull/338) (energy ze
 
 Energy values (Import/Export Active Energy) are only published when > 0. Publishing
 zero to a `total_increasing` sensor corrupts Home Assistant's 24h/7d/30d statistics,
-showing phantom consumption. This is the same fix as upstream
-[PR #338](https://github.com/dingo35/SmartEVSE-3.5/pull/338).
+showing phantom consumption. See [PR #338](https://github.com/dingo35/SmartEVSE-3.5/pull/338).
 
 ### Entity naming (HA 2025.10+)
 
