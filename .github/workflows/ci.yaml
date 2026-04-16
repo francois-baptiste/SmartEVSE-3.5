@@ -135,29 +135,51 @@ jobs:
           # CH32: 64KB flash, 20KB RAM - much tighter
           check_budget ch32-build.log "CH32" 95 90 || result=1
           exit $result
-      - name: SECURITY M-2 — verify /automated_testing endpoint is NOT in release firmware
+      - name: SECURITY M-2 — verify /automated_testing endpoint is NOT in firmware artifacts
         # The /automated_testing endpoint allows arbitrary unauthenticated
         # mutation of charging parameters. Source is gated by
         # `#if AUTOMATED_TESTING` and the flag is intentionally not defined
         # in platformio.ini, so the endpoint compiles out of release builds.
-        # This step asserts that contract — if the URI string appears in
-        # the release binary the build fails (someone added the flag via
-        # PLATFORMIO_BUILD_FLAGS or otherwise sneaked it past the .ini).
+        # This step scans every firmware artifact under SmartEVSE-3/.pio/
+        # for the literal URI string. If present, the build fails —
+        # someone added the flag via PLATFORMIO_BUILD_FLAGS or otherwise
+        # sneaked it past the .ini. Using find avoids depending on the
+        # exact output-path convention, which has varied by PIO version
+        # and breaks when PLATFORMIO_BUILD_DIR is set.
         run: |
           set -e
-          BIN=SmartEVSE-3/.pio/build/release/firmware.bin
-          if [ ! -f "$BIN" ]; then
-            echo "ERROR: $BIN not found — release build did not produce a binary"
+          # Collect all firmware artifacts. Using `find` avoids depending on
+          # PIO's exact output-path convention (varies by version, breaks with
+          # PLATFORMIO_BUILD_DIR override).
+          artifact_list=$(find SmartEVSE-3/.pio -type f \
+                            \( -name 'firmware.bin' -o -name 'firmware.elf' \) \
+                            2>/dev/null || true)
+          if [ -z "$artifact_list" ]; then
+            echo "ERROR: no firmware artifacts found under SmartEVSE-3/.pio/"
+            echo "Directory listing:"
+            find SmartEVSE-3/.pio -maxdepth 4 -type f 2>/dev/null | head -30 || echo "  (no .pio dir)"
             exit 1
           fi
-          if strings "$BIN" | grep -q "/automated_testing"; then
-            echo "ERROR: /automated_testing URI string found in release firmware."
-            echo "       This endpoint must be compiled out (#if AUTOMATED_TESTING)."
-            echo "       Check platformio.ini and PLATFORMIO_BUILD_FLAGS for an"
-            echo "       accidentally-defined AUTOMATED_TESTING flag."
+          count=$(echo "$artifact_list" | wc -l | tr -d ' ')
+          echo "Scanning $count firmware artifact(s):"
+          echo "$artifact_list" | sed 's/^/  /'
+          failed=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            if strings "$f" | grep -q "/automated_testing"; then
+              echo "ERROR: /automated_testing URI string found in $f"
+              failed=1
+            fi
+          done <<< "$artifact_list"
+          if [ $failed -ne 0 ]; then
+            echo
+            echo "The /automated_testing endpoint must be compiled out"
+            echo "(#if AUTOMATED_TESTING in http_handlers.cpp)."
+            echo "Check platformio.ini and PLATFORMIO_BUILD_FLAGS for an"
+            echo "accidentally-defined AUTOMATED_TESTING flag."
             exit 1
           fi
-          echo "OK: /automated_testing endpoint is not present in release firmware."
+          echo "OK: /automated_testing endpoint is not present in any firmware artifact."
 
   traceability:
     needs: [native-tests]
