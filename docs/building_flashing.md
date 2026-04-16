@@ -1,14 +1,14 @@
 # Building the firmware
-You can get the latest release off of https://github.com/dingo35/SmartEVSE-3.5/releases, but if you want to build it yourself:
+You can get the latest release off the [releases page](https://github.com/basmeerman/SmartEVSE-3.5/releases), but if you want to build it yourself:
 * Install platformio-core https://docs.platformio.org/en/latest/core/installation/methods/index.html
-* Clone this github project, cd to the smartevse directory where platformio.ini is located
+* Clone this repository, cd to the SmartEVSE directory where `platformio.ini` is located
 * Compile firmware.bin: `platformio run` (or `pio run`) <br>
 
 Following these instructions on Linux you would create firmware.bin in directory /path/to/SmartEVSE-3.5/SmartEVSE-3/.pio/build/release as follows:
 ```
 sudo apt install platformio
-git clone https://github.com/dingo35/SmartEVSE-3.5.git
-cd SmartEVSE-3.5/SmartEVSE
+git clone https://github.com/basmeerman/SmartEVSE-3.5.git
+cd SmartEVSE-3.5/SmartEVSE-3
 pio run
 ```
 
@@ -70,13 +70,13 @@ this should generate a fresh src/packed_fs.c file.
        ```
     3. Flash it with a 3rd party tool:
        A nice 3rd party tool can be found here: https://github.com/marcelstoer/nodemcu-pyflasher
-       Follow the instructions in the screenshot posted here: https://github.com/dingo35/SmartEVSE-3.5/issues/79
+       For visual instructions see [issue #79](https://github.com/dingo35/SmartEVSE-3.5/issues/79).
        Remember to flash to both partitions, `0x10000` and `0x1c0000` !!!
 
 # I think I bricked my SmartEVSE
 Luckily, there are no known instances of people who bricked their SmartEVSE.
 
-Get your preferred firmware.bin from the asset zip you can download from https://github.com/dingo35/SmartEVSE-3.5/releases, and follow the
+Get your preferred firmware.bin from the asset zip on the [releases page](https://github.com/basmeerman/SmartEVSE-3.5/releases), and follow the
 instructions in [Flashing the firmware](#flashing-the-firmware).
 
 If all else fails, follow the [Building the Firmware](#building-the-firmware) instructions, and flash following the "pio run -t upload" path; always works!!!

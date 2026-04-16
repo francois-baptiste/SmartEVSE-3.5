@@ -1,8 +1,8 @@
-# Features & Unique Selling Points
+# Features
 
-This document details the features of the SmartEVSE firmware and the specific
-improvements made in this fork. For a summary of differences with the upstream
-repository, see [Upstream Differences](upstream-differences.md).
+This document details the features of the firmware. For a per-release
+changelog and the relationship to other branches, see
+[Upstream Differences](upstream-differences.md).
 
 ---
 
@@ -39,12 +39,12 @@ Charges from solar surplus with configurable start/stop thresholds and import
 allowance. Supports automatic 1P/3P phase switching based on available power
 (requires CONTACT 2 wiring).
 
-### Fork Improvements
+### Stability behaviour
 
-These address oscillation and stability issues reported in upstream
+Background — community reports that motivated the work:
 [#327](https://github.com/dingo35/SmartEVSE-3.5/issues/327),
 [#335](https://github.com/dingo35/SmartEVSE-3.5/issues/335),
-[#316](https://github.com/dingo35/SmartEVSE-3.5/issues/316):
+[#316](https://github.com/dingo35/SmartEVSE-3.5/issues/316).
 
 - **EMA current smoothing** — configurable exponential moving average filter
   dampens oscillation by smoothing noisy meter readings. Higher alpha values
@@ -53,8 +53,8 @@ These address oscillation and stability issues reported in upstream
   difference is within a configurable band (e.g., ±0.5A). Prevents unnecessary
   contactor cycling from measurement noise.
 - **Symmetric ramp rates** — equal ramp-up and ramp-down speeds prevent the
-  overshoot/undershoot oscillation caused by the upstream's asymmetric
-  regulation (fast up, slow down).
+  overshoot/undershoot oscillation caused by an asymmetric regulation profile
+  (fast up, slow down).
 - **Tiered phase switching timers** — separate fast timer for severe overload
   (e.g., 30s) and configurable hold-down guard (e.g., 5 minutes) to prevent
   rapid 1P/3P cycling.
@@ -74,9 +74,9 @@ Up to 8 SmartEVSEs share one mains connection without overloading it. Supports
 priority-based power scheduling with configurable rotation intervals and
 delayed charging.
 
-### Fork Improvements
+### Stability behaviour
 
-Addresses upstream [#316](https://github.com/dingo35/SmartEVSE-3.5/issues/316):
+Background — see [#316](https://github.com/dingo35/SmartEVSE-3.5/issues/316).
 
 - **Oscillation dampening** — detects current hunting via sign-flip detection
   on Idifference, adaptively increases the regulation divisor to slow down
@@ -106,7 +106,7 @@ Configuration: [Load Balancing Stability](load-balancing-stability.md)
 - **RFID reader** — restrict usage to up to 100 registered cards
 - **OCPP 1.6j** — backend authorization with Tap Electric, Tibber, SteVe, Monta
 
-### Fork Improvements
+### Behaviour notes
 
 - **Fixed RFID toggle bug** — `AccessStatus` is now cleared on all disconnect
   paths (including Tesla C→B→A), preventing the next RFID swipe from toggling
@@ -142,12 +142,12 @@ Configuration: [OCPP setup](ocpp.md)
 - **MQTT API** — communication with Home Assistant and other software
 - **Auto-discovery** — automatic HA entity setup
 
-### Fork Improvements
+### Behaviour notes
 
-Addresses upstream
+Background — see issues
 [#320](https://github.com/dingo35/SmartEVSE-3.5/issues/320),
 [#294](https://github.com/dingo35/SmartEVSE-3.5/issues/294),
-[PR #338](https://github.com/dingo35/SmartEVSE-3.5/pull/338):
+and [PR #338](https://github.com/dingo35/SmartEVSE-3.5/pull/338).
 
 - **Change-only publishing** — 70-97% message reduction by only publishing
   changed values, with configurable heartbeat interval (default 60s).
@@ -181,7 +181,7 @@ Configuration: [MQTT & Home Assistant](mqtt-home-assistant.md)
 - **Sensorbox v1/v2** — CT or P1 input
 - **API/MQTT external feed** — external current data via REST or MQTT
 
-### Fork Improvements
+### Behaviour notes
 
 - **New meter types: Orno WE-517 (3P) and WE-516 (1P)** — community-requested
   bidirectional energy meters.
@@ -213,7 +213,7 @@ Configuration: [Power Input Methods](power-input-methods.md)
 REST API integration with [EVCC](https://evcc.io/) energy management system.
 WiFi-only setup — no RS485 Modbus wiring required.
 
-### Fork Improvements
+### Behaviour notes
 
 - **IEC 61851-1 state mapping** — pure C function maps internal SmartEVSE
   states to standard IEC 61851 letters (A-F), with correct soft/hard error
@@ -231,7 +231,7 @@ Configuration: [EVCC Integration](evcc-integration.md)
 
 ## Diagnostic Telemetry
 
-*New in this fork.*
+
 ([PR #84](https://github.com/basmeerman/SmartEVSE-3.5/pull/84))
 
 - **Ring buffer event capture** — captures state machine events, errors, meter
@@ -249,7 +249,7 @@ Configuration: [EVCC Integration](evcc-integration.md)
 
 ## Capacity Tariff Peak Tracking
 
-*New in this fork.*
+
 
 European capacity tariff structures -- such as the Belgian Fluvius
 capaciteitstarief (live since January 2023) and the German par14a EnWG --
@@ -285,7 +285,7 @@ Configuration: [MQTT & Home Assistant](mqtt-home-assistant.md) (capacity topics)
 
 ## CircuitMeter — Subpanel Metering
 
-*New in this fork.*
+
 
 A third energy meter instance for monitoring subpanel circuits. CircuitMeter
 addresses two needs:
@@ -326,7 +326,7 @@ Configuration: [Configuration](configuration.md#circuitmeter),
 
 ## ERE Session Logging
 
-*New in this fork.*
+
 ([PR #89](https://github.com/basmeerman/SmartEVSE-3.5/pull/89))
 
 - **Charge session tracking** — automatic session recording on every charge
@@ -354,7 +354,7 @@ Configuration: [ERE Session Logging](ere-session-logging.md)
 - LCD remote control via WebSockets
 - Firmware upgradable through USB-C or built-in webserver
 
-### Fork Improvements
+### Behaviour notes
 
 ([PR #85](https://github.com/basmeerman/SmartEVSE-3.5/pull/85))
 
