@@ -103,9 +103,9 @@ function applyWsData(d) {
     if (d.override_current !== undefined)
         $id('override_current').textContent = (d.override_current / 10).toFixed(1) + " A";
     if (d.current_min !== undefined)
-        $id('current_min').textContent = (d.current_min / 10).toFixed(1) + " A";
+        $id('current_min').textContent = d.current_min + " A";
     if (d.current_max !== undefined)
-        $id('current_max').textContent = (d.current_max / 10).toFixed(1) + " A";
+        $id('current_max').textContent = d.current_max + " A";
 
     /* Phase currents - update cache and recompute totals */
     var phaseChanged = false;
@@ -444,7 +444,10 @@ function loadData() {
 
             if (data.mqtt) {
                 var mqttEl = $id('mqtt');
+                var mqttOk = data.mqtt.status === 'Connected';
                 mqttEl.textContent = data.mqtt.status || 'N/A';
+                mqttEl.className = 'chip ' + (mqttOk ? 'chip-green' : 'chip-red');
+                mqttEl.title = mqttOk ? 'MQTT broker connected' : 'MQTT broker disconnected';
                 showEl(mqttEl);
                 showById('mqtt_config');
             } else {
@@ -549,17 +552,37 @@ function loadData() {
                     data.settings.capacity_headroom);
             }
 
+            // Format a Date as local YYYY-MM-DDTHH:MM for <input type="datetime-local">.
+            // Must use LOCAL time — toISOString() returns UTC which the backend's
+            // mktime() would misinterpret as local, shifting the schedule by the
+            // timezone offset and potentially clearing it as "in the past".
+            function toLocalDT(d) {
+                var p = function(n) { return n < 10 ? '0' + n : '' + n; };
+                return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate())
+                    + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+            }
             if (data.settings.starttime) {
-                $id('starttime_date_time').textContent = new Date(data.settings.starttime * 1000).toLocaleDateString() + " " + new Date(data.settings.starttime * 1000).toLocaleTimeString();
+                var st = new Date(data.settings.starttime * 1000);
+                $id('starttime_date_time').textContent = st.toLocaleDateString() + " " + st.toLocaleTimeString();
+                var stInput = $id('starttime');
+                if (stInput && !stInput.matches(':focus')) {
+                    stInput.value = toLocalDT(st);
+                }
             } else {
                 $id('starttime_date_time').textContent = "none";
             }
             if (data.settings.stoptime) {
-                $id('stoptime_date_time').textContent = new Date(data.settings.stoptime * 1000).toLocaleDateString() + " " + new Date(data.settings.stoptime * 1000).toLocaleTimeString();
+                var sp = new Date(data.settings.stoptime * 1000);
+                $id('stoptime_date_time').textContent = sp.toLocaleDateString() + " " + sp.toLocaleTimeString();
+                var spInput = $id('stoptime');
+                if (spInput && !spInput.matches(':focus')) {
+                    spInput.value = toLocalDT(sp);
+                }
             } else {
                 $id('stoptime_date_time').textContent = "none";
             }
             $id('repeat').textContent = data.settings.repeat == 1 ? "Daily" : "none";
+            $id('daily_repeat').checked = data.settings.repeat == 1;
 
             $id('battery_current').textContent = (data.home_battery.current / 10).toFixed(1) + " A";
 
@@ -743,16 +766,21 @@ function setIdleTimeout() {
 
 /* ========== Mode activation ========== */
 function activate(mode) {
-    var starttime = $qs('input[name="starttime"]').value;
-    var stoptime = $qs('input[name="stoptime"]').value;
-    var repeat2 = +$qs('#daily_repeat').checked;
-
-    var params = new URLSearchParams({
-        mode: '' + mode,
-        starttime: starttime,
-        stoptime: stoptime,
-        repeat: '' + repeat2
-    });
+    var params = new URLSearchParams({ mode: '' + mode });
+    // Schedule params (starttime/stoptime/repeat) only make sense for
+    // charging modes (1=Normal, 2=Solar, 3=Smart). OFF (0) and PAUSE (4)
+    // just switch access state — sending schedule params would
+    // unnecessarily trigger the backend's schedule parser and risk
+    // overwriting or clearing a stored schedule.
+    if ([1, 2, 3].includes(mode)) {
+        var starttime = $qs('input[name="starttime"]').value;
+        if (starttime) {
+            params.append('starttime', starttime);
+            var stoptime = $qs('input[name="stoptime"]').value;
+            if (stoptime) params.append('stoptime', stoptime);
+            params.append('repeat', '' + (+$qs('#daily_repeat').checked));
+        }
+    }
     if ([1, 2, 3].includes(mode)) {
         /* Only send override_current when the dropdown is NOT disabled.
          * On slave nodes (LoadBl >= 2) the dropdown is disabled via
@@ -811,6 +839,38 @@ function configureMqtt() {
     fetch("/settings?" + query, { method: 'POST' , body: '' });
     alert('Settings applied');
     toggleMqttEdit();
+}
+
+/* ========== Control & Schedule save ========== */
+/* Batches all Control & Schedule settings into one POST — same pattern
+ * as Save MQTT / Save OCPP. Includes solar thresholds, override current,
+ * schedule (starttime/stoptime/repeat), and lock toggles. */
+function saveControlSchedule() {
+    var params = {
+        solar_start_current: $id('solar_start_current').value,
+        solar_max_import:    $id('solar_max_import_current').value,
+        stop_timer:          $id('solar_stop_time').value,
+        lcdlock:             $id('lcdlock').checked ? 1 : 0
+    };
+    var cableLockEl = $id('cablelock');
+    if (cableLockEl) params.cablelock = cableLockEl.checked ? 1 : 0;
+    var overrideEl = $id('mode_override_current');
+    if (overrideEl && !overrideEl.disabled) {
+        params.override_current = '' + (overrideEl.value * 10);
+    }
+    // Schedule — starttime/stoptime/repeat can now be saved without a mode param
+    var starttime = $qs('input[name="starttime"]').value;
+    if (starttime) {
+        params.starttime = starttime;
+        var stoptime = $qs('input[name="stoptime"]').value;
+        if (stoptime) params.stoptime = stoptime;
+        params.repeat = '' + (+$qs('#daily_repeat').checked);
+    }
+    var query = Object.keys(params)
+        .map(function(k) { return k + '=' + encodeURIComponent(params[k]); })
+        .join('&');
+    fetch('/settings?' + query, { method: 'POST', body: '' })
+        .then(function() { loadData(); alert('Settings saved'); });
 }
 
 /* ========== Checkbox toggles ========== */
@@ -883,14 +943,6 @@ function reboot(event) {
             document.body.innerHTML = '<div id="errorMsg" class="alert alert-danger" role="alert"></div>';
             $qs('#errorMsg').innerText = 'Error: ' + error;
         });
-}
-
-function gotoDoc(event) {
-    var version = $id('version').dataset.version || '';
-    var gitHub = 'https://github.com/dingo35/SmartEVSE-3.5/tree/';
-    var docPath = version.startsWith('v') ? version : 'master?tab=readme-ov-file';
-    window.location.href = gitHub + docPath + '#documentation';
-    event && event.preventDefault();
 }
 
 function postPWM(value) {
@@ -1362,4 +1414,173 @@ fetch('/diag/status').then(function(r) { return r.json(); }).then(function(d) {
     /* Start data polling, then connect WebSocket for real-time updates */
     loadData();
     setTimeout(connectDataWs, 2000);
+
+    /* ========== Hover tooltips ========== */
+    /* Tooltips on LABELS and CONTAINERS (not value spans) so hovering the
+     * description text shows the explanation. Applied to the closest
+     * meaningful parent — .form-row, .detail-item, .info-row, or the
+     * element itself for buttons. */
+    var TIPS = {
+        /* Hero — tooltips on elements not covered by HTML title= attributes */
+        '#state':                'IEC 61851 charging state: A = no car, B = connected, C = charging, E = error',
+        '#mode':                 'Active charging mode: Off, Normal, Solar, Smart, or Pause',
+        '.power-big':            'Power being delivered to the car right now (W)',
+        '.energy-row':           'Session energy (kWh) and current offered via the CP pilot (A)',
+        /* Mode buttons */
+        '#mode_0': 'Disable charging completely',
+        '#mode_4': 'Pause active session without disconnecting the car',
+        '#mode_1': 'Charge at a fixed current per phase (Override Current)',
+        '#mode_2': 'Charge from solar surplus only (requires mains meter)',
+        '#mode_3': 'Charge as fast as possible without overloading the mains (requires mains meter)',
+        /* Mains, EV meter, current limits, capacity detail items —
+         * tooltips applied directly in HTML via title= on .detail-item
+         * and .phase-bar-row elements. Not duplicated here. */
+        /* Home battery */
+        '#battery_status':              'Home battery integration status',
+        '#battery_current':             'Home battery charge/discharge current (A)',
+        '#battery_last_update_date':    'Date of the last home-battery data update',
+        '#battery_last_update_time':    'Time of the last home-battery data update',
+        '#phase_original_total':        'Total mains current before home-battery compensation (A)',
+        '#phase_original_1':            'L1 mains current before home-battery compensation (A)',
+        '#phase_original_2':            'L2 before compensation (A)',
+        '#phase_original_3':            'L3 before compensation (A)',
+        /* EV state (modem / ISO 15118) */
+        '#evccid':           'ISO 15118 EV Communication Controller ID',
+        '#computed_soc':     'Current state of charge reported by the EV (%)',
+        '#initial_soc':      'State of charge when the session started (%)',
+        '#full_soc':         'Target state of charge for this session (%)',
+        '#full_at':          'Estimated time until the target SoC is reached',
+        '#energy_capacity':  'EV battery capacity as reported by the vehicle (kWh)',
+        /* Solar settings */
+        '#solar_start_current':      'Per-phase export (A) sustained before solar charging starts',
+        '#solar_max_import_current': 'Grid top-up per phase (A) to reach the 6 A minimum',
+        '#solar_stop_time':          'Minutes below threshold before solar charging stops',
+        /* Override, schedule, locks — tooltips now in HTML title=
+         * attributes on the .form-label spans. Not duplicated here. */
+        /* Load balancing */
+        '#prio_strategy':     'How current is distributed when multiple cars charge simultaneously',
+        '#rotation_interval': 'Minutes between priority rotation among chargers (0 = off)',
+        '#idle_timeout':      'Seconds before an idle (plugged-in, not charging) car loses its allocation',
+        '#schedule_state':    'Current load-balancing scheduling state',
+        '#rotation_timer':    'Seconds until the next priority rotation',
+        /* Capacity tariff — tooltips now in HTML on .detail-item and
+         * .form-label elements. Not duplicated here. */
+        /* MQTT */
+        '#mqtt_host':          'Broker hostname or IP. Leave empty to disable MQTT.',
+        '#mqtt_port':          'Broker port: usually 1883 (plain) or 8883 (TLS)',
+        '#mqtt_username':      'Broker username. Leave empty for anonymous.',
+        '#mqtt_password':      'Broker password. Leave empty to keep existing.',
+        '#mqtt_topic_prefix':  'MQTT topic root — default: SmartEVSE-<serial>',
+        '#mqtt_tls':           'Enable TLS encryption for the broker connection',
+        '#mqtt_change_only':   'Only publish when a value changes (reduces MQTT traffic 70-97%)',
+        '#mqtt_heartbeat':     'Seconds between forced re-publish of unchanged values',
+        '#mqtt_ca_cert':       'PEM-encoded CA certificate for TLS. Empty = Let\'s Encrypt default.',
+        /* OCPP */
+        '#enable_ocpp':            'Enable OCPP 1.6j backend connection',
+        '#ocpp_ws_status':         'WebSocket connection status to the OCPP backend',
+        '#ocpp_backend_url':       'WebSocket URL provided by your OCPP provider (ws:// or wss://)',
+        '#ocpp_cb_id':             'Charge Box ID — identifies this charger at the backend',
+        '#ocpp_auth_key':          'SP2 Basic-Auth password. Leave empty to keep existing.',
+        '#ocpp_auto_auth':         'Auto-authorize every plug-in without RFID (FreeVend mode)',
+        '#ocpp_auto_auth_idtag':   'Default idTag sent for auto-authorized sessions',
+        /* Diagnostics */
+        '#diag_profile': 'Capture profile: general, solar, loadbal, modbus, or fast'
+    };
+    /* Apply tooltips. For detail-item children, walk up to the parent row
+     * so the tooltip fires on the label text, not only the value span. */
+    Object.keys(TIPS).forEach(function(sel) {
+        var el = $qs(sel);
+        if (!el) return;
+        /* If the element is inside a .detail-item, apply to the item row;
+         * otherwise apply directly. Never overwrite an existing title. */
+        var target = el.closest ? (el.closest('.detail-item') || el) : el;
+        if (!target.title) target.title = TIPS[sel];
+    });
+
+    /* ========== Contextual help links ========== */
+    var DOCS = 'https://github.com/basmeerman/SmartEVSE-3.5/blob/master/docs/';
+
+    function mkHelp(page) {
+        var a = document.createElement('a');
+        a.href = DOCS + page;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.className = 'help-link';
+        a.title = 'Documentation';
+        a.textContent = '?';
+        return a;
+    }
+
+    /* Field-level help links. For controls inside a .form-row, the link is
+     * appended as the LAST child of the row (right-aligned), not inline
+     * between the input and adjacent elements. */
+    var HELP = {
+        '#solar_start_current':      'solar-smart-stability.md#current-regulation',
+        '#mode_override_current':    'guide-owner.md#3-starting-a-charge-session',
+        '#starttime':                'guide-owner.md#scheduled--delayed',
+        '#lock_row':                 'guide-owner.md#8-access-control',
+        '#capacity_limit_input':     'guide-owner.md#7-common-adjustments',
+        '#mqtt_host':                'guide-integrator.md#setup',
+        '#mqtt_password':            'security.md#4-secret-redaction-in-get-settings',
+        '#mqtt_tls':                 'guide-integrator.md#tls',
+        '#mqtt_change_only':         'guide-integrator.md#change-only-publishing',
+        '#ocpp_backend_url':         'guide-integrator.md#setup-1',
+        '#ocpp_auth_key':            'security.md#4-secret-redaction-in-get-settings',
+        '#enable_ocpp':              'guide-integrator.md#6-ocpp-backends',
+        '#prio_strategy':            'priority-scheduling.md',
+        '#rotation_interval':        'priority-scheduling.md',
+        '#idle_timeout':             'priority-scheduling.md',
+        '#diag_profile':             'troubleshooting.md#11-capturing-a-debug-log'
+    };
+    Object.keys(HELP).forEach(function(sel) {
+        var el = $qs(sel);
+        if (!el) return;
+        var a = mkHelp(HELP[sel]);
+        /* Append to the end of the .form-row (right side), or after the
+         * element's parent label if not in a form-row. */
+        var row = el.closest ? el.closest('.form-row') : null;
+        if (row) {
+            row.appendChild(a);
+        } else {
+            var parent = el.parentNode;
+            if (parent) parent.appendChild(a);
+        }
+    });
+
+    /* Section-toggle headers — match by card-title text */
+    var SECTION_HELP = {
+        'Mains Phases':         'guide-installer.md#7-meter-selection',
+        'Current Limits':       'configuration.md#min',
+        'Diagnostics':          'troubleshooting.md#11-capturing-a-debug-log',
+        'Load Balancing':       'guide-owner.md#9-multi-charger-setup-masterslave',
+        'Capacity Tariff':      'guide-owner.md#7-common-adjustments',
+        'Control & Schedule':   'guide-owner.md#3-starting-a-charge-session',
+        'MQTT Configuration':   'guide-integrator.md#3-home-assistant-via-mqtt',
+        'OCPP Configuration':   'guide-integrator.md#6-ocpp-backends'
+    };
+    $qa('.section-toggle .card-title').forEach(function(title) {
+        var text = title.textContent.trim();
+        if (SECTION_HELP[text]) {
+            var a = mkHelp(SECTION_HELP[text]);
+            a.onclick = function(e) { e.stopPropagation(); };
+            title.appendChild(a);
+        }
+    });
+    /* EV Meter card-title is dynamic (set by JS from meter description) —
+     * inject the help link on the static wrapper instead. */
+    var evmTitle = $qs('#evmeter_description');
+    if (evmTitle) {
+        var ct = evmTitle.closest ? evmTitle.closest('.card-title') : null;
+        if (ct) {
+            var a = mkHelp('guide-installer.md#7-meter-selection');
+            a.onclick = function(e) { e.stopPropagation(); };
+            ct.appendChild(a);
+        }
+    }
+    /* Hero status — help link at end of status-value row */
+    var heroStatus = $qs('.hero .status-value');
+    if (heroStatus) heroStatus.appendChild(mkHelp('guide-owner.md#4-reading-the-dashboard'));
+    /* Mode bar — help link at end */
+    var modeBar = $id('form_mode');
+    if (modeBar) modeBar.appendChild(mkHelp('guide-owner.md#2-the-five-modes'));
 })();

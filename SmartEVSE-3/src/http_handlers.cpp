@@ -580,60 +580,58 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
             doc["custombutton"] = CustomButton;
         }
 
-        if(request->hasParam("mode")) {
-            String mode = request->getParam("mode")->value();
-
-            //first check if we have a delayed mode switch
-            if(request->hasParam("starttime")) {
-                String DelayedStartTimeStr = request->getParam("starttime")->value();
-                //string time_str = "2023-04-14T11:31";
-                if (!StoreTimeString(DelayedStartTimeStr, &DelayedStartTime)) {
-                    //parse OK
-                    if (DelayedStartTime.diff > 0)
-                        setAccess(OFF);                         //switch to OFF, we are Delayed Charging
-                    else {//we are in the past so no delayed charging
-                        DelayedStartTime.epoch2 = DELAYEDSTARTTIME;
-                        DelayedStopTime.epoch2 = DELAYEDSTOPTIME;
-                        DelayedRepeat = 0;
-                    }
-                }
+        // Schedule (starttime / stoptime / repeat) — extracted from the mode
+        // block so it can be saved independently via the Web UI Save button.
+        // The schedule controls WHEN access is granted; mode controls HOW
+        // charging happens. Both can be set together (backward compat) or
+        // the schedule can be set alone without changing the active mode.
+        if(request->hasParam("starttime")) {
+            String DelayedStartTimeStr = request->getParam("starttime")->value();
+            if (!StoreTimeString(DelayedStartTimeStr, &DelayedStartTime)) {
+                if (DelayedStartTime.diff > 0)
+                    setAccess(OFF);                         //switch to OFF, we are Delayed Charging
                 else {
-                    //we couldn't parse the string, so we are NOT Delayed Charging
                     DelayedStartTime.epoch2 = DELAYEDSTARTTIME;
                     DelayedStopTime.epoch2 = DELAYEDSTOPTIME;
                     DelayedRepeat = 0;
                 }
+            }
+            else {
+                DelayedStartTime.epoch2 = DELAYEDSTARTTIME;
+                DelayedStopTime.epoch2 = DELAYEDSTOPTIME;
+                DelayedRepeat = 0;
+            }
 
-                // so now we might have a starttime and we might be Delayed Charging
-                if (DelayedStartTime.epoch2) {
-                    //we only accept a DelayedStopTime if we have a valid DelayedStartTime
-                    if(request->hasParam("stoptime")) {
-                        String DelayedStopTimeStr = request->getParam("stoptime")->value();
-                        //string time_str = "2023-04-14T11:31";
-                        if (!StoreTimeString(DelayedStopTimeStr, &DelayedStopTime)) {
-                            //parse OK
-                            if (DelayedStopTime.diff <= 0 || DelayedStopTime.epoch2 <= DelayedStartTime.epoch2)
-                                //we are in the past or DelayedStopTime before DelayedStartTime so no DelayedStopTime
-                                DelayedStopTime.epoch2 = DELAYEDSTOPTIME;
-                        }
-                        else
-                            //we couldn't parse the string, so no DelayedStopTime
+            if (DelayedStartTime.epoch2) {
+                if(request->hasParam("stoptime")) {
+                    String DelayedStopTimeStr = request->getParam("stoptime")->value();
+                    if (!StoreTimeString(DelayedStopTimeStr, &DelayedStopTime)) {
+                        if (DelayedStopTime.diff <= 0 || DelayedStopTime.epoch2 <= DelayedStartTime.epoch2)
                             DelayedStopTime.epoch2 = DELAYEDSTOPTIME;
-                        doc["stoptime"] = (DelayedStopTime.epoch2 ? DelayedStopTime.epoch2 + EPOCH2_OFFSET : 0);
-                        if(request->hasParam("repeat")) {
-                            int Repeat = request->getParam("repeat")->value().toInt();
-                            if (Repeat >= 0 && Repeat <= 1) {                                   //boundary check
-                                DelayedRepeat = Repeat;
-                                doc["repeat"] = Repeat;
-                            }
+                    }
+                    else
+                        DelayedStopTime.epoch2 = DELAYEDSTOPTIME;
+                    doc["stoptime"] = (DelayedStopTime.epoch2 ? DelayedStopTime.epoch2 + EPOCH2_OFFSET : 0);
+                    if(request->hasParam("repeat")) {
+                        int Repeat = request->getParam("repeat")->value().toInt();
+                        if (Repeat >= 0 && Repeat <= 1) {
+                            DelayedRepeat = Repeat;
+                            doc["repeat"] = Repeat;
                         }
                     }
-
                 }
-                doc["starttime"] = (DelayedStartTime.epoch2 ? DelayedStartTime.epoch2 + EPOCH2_OFFSET : 0);
-            } else
-                DelayedStartTime.epoch2 = DELAYEDSTARTTIME;
+            }
+            doc["starttime"] = (DelayedStartTime.epoch2 ? DelayedStartTime.epoch2 + EPOCH2_OFFSET : 0);
+        }
 
+        if(request->hasParam("mode")) {
+            String mode = request->getParam("mode")->value();
+
+            // Mode change does NOT clear a previously-saved schedule.
+            // The schedule is only cleared when an explicit starttime is
+            // sent that parses to "in the past" (handled in the schedule
+            // block above). This lets Save Settings store a schedule and
+            // a subsequent mode-button press preserve it.
 
             switch(mode.toInt()) {
                 case 0: // OFF
