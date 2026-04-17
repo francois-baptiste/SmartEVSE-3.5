@@ -20,7 +20,7 @@
     </span>
   </div>
   <div class="header-right">
-    <span id="mqtt" class="chip chip-green" style="display:none"></span>
+    <span id="mqtt" class="chip chip-green" style="display:none" title="MQTT broker connection status"></span>
     <span id="conn_status" title="Polling (HTTP)"></span>
     <button type="button" class="theme-toggle" id="theme_toggle" onclick="toggleTheme()" title="Toggle dark/light mode">&#9790;</button>
   </div>
@@ -45,20 +45,20 @@
     &middot; <span id="charge_current">-</span>
   </div>
   <div class="info-row">
-    <span id="car_connected_row">Connected: <span id="car_connected">-</span></span>
-    &middot; Temp: <span id="temp">-</span>
-    <span class="with_modem" style="display:none"> &middot; Duty: <span id="dutycycle">-</span></span>
-    <span id="show_rfid" style="display:none"> &middot; RFID: <span id="rfid"></span></span>
+    <span id="car_connected_row" title="Whether an EV cable is physically plugged in">Car connected: <span id="car_connected">-</span></span>
+    &middot; <span id="temp_row" title="Internal PCB temperature — charging pauses above 65°C">Temp: <span id="temp">-</span></span>
+    <span class="with_modem" style="display:none"> &middot; <span title="CP pilot PWM duty cycle">Duty: <span id="dutycycle">-</span></span></span>
+    <span id="show_rfid" style="display:none"> &middot; <span title="Last RFID tag read: accepted, denied, or not installed">RFID: <span id="rfid"></span></span></span>
   </div>
   <div class="info-row">
-    <span id="loadbl" style="display:none">Power Sharing: <span id="loadbl_node"></span></span>
+    <span id="loadbl" style="display:none" title="Power sharing node role: standalone, master, or node N">Power Sharing: <span id="loadbl_node"></span></span>
     <span id="loadbl_text" style="display:none"></span>
-    <span id="contactor2"> &middot; Contactor 2: <span id="enable_C2"></span></span>
+    <span id="contactor2" title="Second contactor for automatic 1-phase / 3-phase switching"> &middot; Contactor 2: <span id="enable_C2"></span></span>
   </div>
-  <div class="info-row">
-    Start: <span id="starttime_date_time">-</span>
-    &middot; Stop: <span id="stoptime_date_time">-</span>
-    &middot; Repeat: <span id="repeat">-</span>
+  <div class="info-row" title="Scheduled charging — set start/stop below, then press a mode button to activate">
+    <span title="Scheduled start time">Start: <span id="starttime_date_time">-</span></span>
+    &middot; <span title="Scheduled stop time">Stop: <span id="stoptime_date_time">-</span></span>
+    &middot; <span title="Whether the schedule repeats daily">Repeat: <span id="repeat">-</span></span>
   </div>
 
   <!-- Mode bar -->
@@ -106,18 +106,18 @@
   <div class="card">
     <div class="card-title">Mains Phases</div>
     <div class="phase-bars" id="mains_phase_bars">
-      <div class="phase-bar-row"><span class="phase-bar-label">L1</span><div class="phase-bar-track"><div class="phase-bar-fill phase-bar-L1" id="mains_bar_L1" style="width:0%"></div></div><span class="phase-bar-value" id="mains_bar_val_L1">-</span></div>
-      <div class="phase-bar-row"><span class="phase-bar-label">L2</span><div class="phase-bar-track"><div class="phase-bar-fill phase-bar-L2" id="mains_bar_L2" style="width:0%"></div></div><span class="phase-bar-value" id="mains_bar_val_L2">-</span></div>
-      <div class="phase-bar-row"><span class="phase-bar-label">L3</span><div class="phase-bar-track"><div class="phase-bar-fill phase-bar-L3" id="mains_bar_L3" style="width:0%"></div></div><span class="phase-bar-value" id="mains_bar_val_L3">-</span></div>
+      <div class="phase-bar-row" title="L1 mains current per phase (A) — from the mains meter"><span class="phase-bar-label">L1</span><div class="phase-bar-track"><div class="phase-bar-fill phase-bar-L1" id="mains_bar_L1" style="width:0%"></div></div><span class="phase-bar-value" id="mains_bar_val_L1">-</span></div>
+      <div class="phase-bar-row" title="L2 mains current per phase (A)"><span class="phase-bar-label">L2</span><div class="phase-bar-track"><div class="phase-bar-fill phase-bar-L2" id="mains_bar_L2" style="width:0%"></div></div><span class="phase-bar-value" id="mains_bar_val_L2">-</span></div>
+      <div class="phase-bar-row" title="L3 mains current per phase (A)"><span class="phase-bar-label">L3</span><div class="phase-bar-track"><div class="phase-bar-fill phase-bar-L3" id="mains_bar_L3" style="width:0%"></div></div><span class="phase-bar-value" id="mains_bar_val_L3">-</span></div>
     </div>
     <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:.85rem;color:var(--fg2)">
-      <span>L1: <strong id="phase_1">-</strong> &middot; L2: <strong id="phase_2">-</strong> &middot; L3: <strong id="phase_3">-</strong></span>
-      <span>Total: <strong id="phase_total">-</strong></span>
+      <span title="Per-phase mains current (A)">L1: <strong id="phase_1">-</strong> &middot; L2: <strong id="phase_2">-</strong> &middot; L3: <strong id="phase_3">-</strong></span>
+      <span title="Sum of L1 + L2 + L3 mains current (A, all phases combined)">Total: <strong id="phase_total">-</strong></span>
     </div>
-    <div id="with_p1_api_data_date" style="display:none;font-size:.8rem;color:var(--fg3);margin-top:4px">
+    <div id="with_p1_api_data_date" style="display:none;font-size:.8rem;color:var(--fg3);margin-top:4px" title="Timestamp of the last P1 smart-meter telegram">
       P1 Date: <span id="p1_data_date"></span>
     </div>
-    <div id="with_p1_api_data_time" style="display:none;font-size:.8rem;color:var(--fg3)">
+    <div id="with_p1_api_data_time" style="display:none;font-size:.8rem;color:var(--fg3)" title="Timestamp of the last P1 smart-meter telegram">
       P1 Time: <span id="p1_data_time"></span>
     </div>
   </div>
@@ -127,15 +127,15 @@
 <div class="detail-grid">
   <div class="card" id="with_evmeter" style="display:none">
     <div class="card-title">EV Meter &middot; <span id="evmeter_description">-</span></div>
-    <div class="detail-item">
+    <div class="detail-item" title="Lifetime energy measured by the EV meter (kWh, cumulative)">
       <span class="detail-label">Total kWh</span>
       <span class="detail-value" id="evmeter_total_kwh">-</span>
     </div>
-    <div class="detail-item">
+    <div class="detail-item" title="Per-phase current delivered to the EV (A)">
       <span class="detail-label">L1 / L2 / L3</span>
       <span class="detail-value"><span id="evmeter_currents_1">-</span> / <span id="evmeter_currents_2">-</span> / <span id="evmeter_currents_3">-</span></span>
     </div>
-    <div class="detail-item">
+    <div class="detail-item" title="Sum of EV phase currents (A, all phases combined)">
       <span class="detail-label">Total current</span>
       <span class="detail-value" id="evmeter_currents_total">-</span>
     </div>
@@ -143,15 +143,15 @@
 
   <div class="card">
     <div class="card-title">Current Limits</div>
-    <div class="detail-item">
+    <div class="detail-item" title="Active charge current limit per phase (A)">
       <span class="detail-label">Override</span>
       <span class="detail-value" id="override_current">-</span>
     </div>
-    <div class="detail-item">
+    <div class="detail-item" title="Lowest current per phase the charger will offer (default 6 A, per IEC 61851)">
       <span class="detail-label">Minimum</span>
       <span class="detail-value" id="current_min">-</span>
     </div>
-    <div class="detail-item">
+    <div class="detail-item" title="Highest current per phase allowed for this branch circuit">
       <span class="detail-label">Maximum</span>
       <span class="detail-value" id="current_max">-</span>
     </div>
@@ -216,11 +216,7 @@
     </div>
     <!-- Override current -->
     <div class="form-row" id="override_current_box">
-      <span class="form-label">
-        <span class="tooltip">Override Current
-          <span class="tooltiptext">Override (limit) output current. Select one and press NORMAL / SMART to set.</span>
-        </span>
-      </span>
+      <span class="form-label" title="Limit charge current per phase (A). Press a mode button to activate.">Override Current</span>
       <div id="override_current_box2">
         <select id="mode_override_current" class="form-input" style="max-width:160px"></select>
         <span id="override_slave_note" style="display:none;font-size:.75rem;color:var(--fg3);margin-left:8px">Set on master node</span>
@@ -228,38 +224,33 @@
     </div>
     <!-- Schedule -->
     <div class="form-row">
-      <span class="form-label">
-        <span class="tooltip">Start Time
-          <span class="tooltiptext">For delayed start, fill START and END date and time, then press NORMAL/SOLAR/SMART button to initiate.</span>
-        </span>
-      </span>
+      <span class="form-label" title="Set a future start time, then press a mode button to schedule">Start Time</span>
       <input type="datetime-local" id="starttime" name="starttime" class="form-input">
     </div>
     <div class="form-row" id="stoptime_group">
-      <span class="form-label">
-        <span class="tooltip">Stop Time
-          <span class="tooltiptext">For programmed stop, fill START and END date and time, then press NORMAL/SOLAR/SMART button to initiate.</span>
-        </span>
-      </span>
+      <span class="form-label" title="Charging stops at this time. Press a mode button to activate.">Stop Time</span>
       <input type="datetime-local" id="stoptime" name="stoptime" class="form-input">
     </div>
     <div class="form-row" id="daily_repeat_group">
-      <span class="form-label">Daily Repeat</span>
+      <span class="form-label" title="Repeat this start/stop schedule every day">Daily Repeat</span>
       <input type="checkbox" id="daily_repeat" name="daily_repeat" value="daily">
     </div>
     <!-- Lock -->
-    <div class="form-row">
-      <span class="form-label">Lock</span>
+    <div class="form-row" id="lock_row">
+      <span class="form-label" title="Lock the LCD buttons and/or the charging cable">Lock</span>
       <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
-        <label style="font-size:.85rem;display:flex;align-items:center;gap:4px">
+        <label style="font-size:.85rem;display:flex;align-items:center;gap:4px" title="Lock the physical LCD buttons to prevent tampering">
           <input type="checkbox" id="lcdlock" onclick="toggleLCDlock()">
-          <span id="lcdlock_label" title="Lock buttons on LCD screen">LCD Lock</span>
+          <span id="lcdlock_label">LCD Lock</span>
         </label>
-        <label style="font-size:.85rem;display:flex;align-items:center;gap:4px">
+        <label style="font-size:.85rem;display:flex;align-items:center;gap:4px" title="Lock the charging cable in the socket when not charging">
           <input type="checkbox" id="cablelock" onclick="toggleCableLock()">
-          <span id="cablelock_label" title="Lock cable with actuator on EVSE side">Cable Lock</span>
+          <span id="cablelock_label">Cable Lock</span>
         </label>
       </div>
+    </div>
+    <div class="form-row" style="justify-content:flex-end;border:none">
+      <button type="button" class="btn btn-sm" style="background:var(--accent);color:#fff" onclick="saveControlSchedule()">Save Settings</button>
     </div>
     <!-- Actions -->
     <div class="form-row">
@@ -267,8 +258,7 @@
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <a class="btn btn-sm" href="/reboot" onclick="reboot(event)" data-ajax="false" title="Reboot">Reboot</a>
         <a class="btn btn-sm" href="/update" data-ajax="false" title="Update firmware">Update</a>
-        <a class="btn btn-sm" href="/settings" data-ajax="false" title="Raw JSON settings">Raw Data</a>
-        <a class="btn btn-sm" href="#" onclick="gotoDoc(event)" title="Online docs">Help</a>
+        <a class="btn btn-sm" href="/settings" data-ajax="false" title="View all settings as JSON">Settings (JSON)</a>
       </div>
     </div>
     <!-- PWM override (modem) -->
@@ -341,26 +331,22 @@
     </div>
     <div class="section-body collapsed">
       <div class="form-row">
-        <span class="form-label">
-          <span class="tooltip">Peak Limit
-            <span class="tooltiptext">15-minute average power limit (kW). Set to 0 to disable. Belgian capaciteitstarief / EU capacity billing.</span>
-          </span>
-        </span>
+        <span class="form-label" title="15-minute average power limit (kW, all phases). 0 = disabled. Belgian capaciteitstarief / EU capacity billing.">Peak Limit</span>
         <div style="display:flex;gap:6px;align-items:center">
           <input type="number" id="capacity_limit_input" min="0" max="25" step="0.1" style="width:80px;padding:4px 6px;border:1px solid var(--bg3);border-radius:6px;background:var(--bg);color:var(--fg);font-size:.85rem;text-align:center" title="0 = disabled">
           <span style="font-size:.85rem;color:var(--fg2)">kW</span>
           <button type="button" class="btn btn-sm" onclick="setCapacityLimit()">Set</button>
         </div>
       </div>
-      <div class="detail-item">
+      <div class="detail-item" title="Current rolling 15-minute average power (kW, all phases combined)">
         <span class="detail-label">Window Avg</span>
         <span class="detail-value" id="capacity_window_avg">-</span>
       </div>
-      <div class="detail-item">
+      <div class="detail-item" title="Highest 15-minute average recorded this month (kW)">
         <span class="detail-label">Monthly Peak</span>
         <span class="detail-value" id="capacity_monthly_peak">-</span>
       </div>
-      <div class="detail-item">
+      <div class="detail-item" title="Power headroom remaining before the monthly peak limit (W)">
         <span class="detail-label">Headroom</span>
         <span class="detail-value" id="capacity_headroom">-</span>
       </div>
@@ -495,6 +481,15 @@
   <button type="button" id="mnav_2" onclick="activate(2)">SOLAR</button>
   <button type="button" id="mnav_3" onclick="activate(3)">SMART</button>
 </nav>
+
+<!-- Footer help bar -->
+<div class="footer-help">
+  <a href="https://github.com/basmeerman/SmartEVSE-3.5/blob/master/docs/guide-owner.md" target="_blank" rel="noopener">Documentation</a>
+  <span class="sep"> · </span>
+  <a href="https://gathering.tweakers.net/forum/list_messages/1648387" target="_blank" rel="noopener">Community (NL)</a>
+  <span class="sep"> · </span>
+  <a href="https://github.com/basmeerman/SmartEVSE-3.5/issues" target="_blank" rel="noopener">Report issue</a>
+</div>
 
 <script src="app.js"></script>
 </body>
