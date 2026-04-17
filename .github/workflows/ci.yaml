@@ -103,6 +103,35 @@ jobs:
         run: |
           set -o pipefail
           pio run -e release -d SmartEVSE-3/ 2>&1 | tee esp32-build.log
+      - name: SECURITY M-2 — scan release firmware for /automated_testing
+        # /automated_testing allows unauthenticated mutation of charging
+        # parameters. Source is gated by `#if AUTOMATED_TESTING`; the flag
+        # is intentionally not defined in platformio.ini so the endpoint
+        # compiles out. This step asserts the contract by scanning the
+        # release firmware.bin for the URI string. Fail if present.
+        #
+        # Runs immediately after the ESP32 release build so subsequent
+        # build steps (CH32, etc.) can't interfere with the artifact paths.
+        run: |
+          set -e
+          REL_DIR=SmartEVSE-3/.pio/build/release
+          # List what's actually there for diagnostics.
+          echo "Release build output:"
+          ls -la "$REL_DIR/" 2>/dev/null || { echo "  (missing)"; exit 1; }
+          BIN="$REL_DIR/firmware.bin"
+          if [ ! -f "$BIN" ]; then
+            echo "ERROR: $BIN not found after release build completed."
+            exit 1
+          fi
+          if strings "$BIN" | grep -q "/automated_testing"; then
+            echo "ERROR: /automated_testing URI string found in $BIN."
+            echo "This endpoint must be compiled out (#if AUTOMATED_TESTING"
+            echo "in http_handlers.cpp). Check platformio.ini and"
+            echo "PLATFORMIO_BUILD_FLAGS for an accidentally-defined"
+            echo "AUTOMATED_TESTING flag."
+            exit 1
+          fi
+          echo "OK: /automated_testing endpoint is not present in $BIN."
       - name: Build CH32
         run: |
           set -o pipefail
@@ -135,51 +164,6 @@ jobs:
           # CH32: 64KB flash, 20KB RAM - much tighter
           check_budget ch32-build.log "CH32" 95 90 || result=1
           exit $result
-      - name: SECURITY M-2 — verify /automated_testing endpoint is NOT in firmware artifacts
-        # The /automated_testing endpoint allows arbitrary unauthenticated
-        # mutation of charging parameters. Source is gated by
-        # `#if AUTOMATED_TESTING` and the flag is intentionally not defined
-        # in platformio.ini, so the endpoint compiles out of release builds.
-        # This step scans every firmware artifact under SmartEVSE-3/.pio/
-        # for the literal URI string. If present, the build fails —
-        # someone added the flag via PLATFORMIO_BUILD_FLAGS or otherwise
-        # sneaked it past the .ini. Using find avoids depending on the
-        # exact output-path convention, which has varied by PIO version
-        # and breaks when PLATFORMIO_BUILD_DIR is set.
-        run: |
-          set -e
-          # Collect all firmware artifacts. Using `find` avoids depending on
-          # PIO's exact output-path convention (varies by version, breaks with
-          # PLATFORMIO_BUILD_DIR override).
-          artifact_list=$(find SmartEVSE-3/.pio -type f \
-                            \( -name 'firmware.bin' -o -name 'firmware.elf' \) \
-                            2>/dev/null || true)
-          if [ -z "$artifact_list" ]; then
-            echo "ERROR: no firmware artifacts found under SmartEVSE-3/.pio/"
-            echo "Directory listing:"
-            find SmartEVSE-3/.pio -maxdepth 4 -type f 2>/dev/null | head -30 || echo "  (no .pio dir)"
-            exit 1
-          fi
-          count=$(echo "$artifact_list" | wc -l | tr -d ' ')
-          echo "Scanning $count firmware artifact(s):"
-          echo "$artifact_list" | sed 's/^/  /'
-          failed=0
-          while IFS= read -r f; do
-            [ -z "$f" ] && continue
-            if strings "$f" | grep -q "/automated_testing"; then
-              echo "ERROR: /automated_testing URI string found in $f"
-              failed=1
-            fi
-          done <<< "$artifact_list"
-          if [ $failed -ne 0 ]; then
-            echo
-            echo "The /automated_testing endpoint must be compiled out"
-            echo "(#if AUTOMATED_TESTING in http_handlers.cpp)."
-            echo "Check platformio.ini and PLATFORMIO_BUILD_FLAGS for an"
-            echo "accidentally-defined AUTOMATED_TESTING flag."
-            exit 1
-          fi
-          echo "OK: /automated_testing endpoint is not present in any firmware artifact."
 
   traceability:
     needs: [native-tests]
