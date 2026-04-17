@@ -103,6 +103,35 @@ jobs:
         run: |
           set -o pipefail
           pio run -e release -d SmartEVSE-3/ 2>&1 | tee esp32-build.log
+      - name: SECURITY M-2 — scan release firmware for /automated_testing
+        # /automated_testing allows unauthenticated mutation of charging
+        # parameters. Source is gated by `#if AUTOMATED_TESTING`; the flag
+        # is intentionally not defined in platformio.ini so the endpoint
+        # compiles out. This step asserts the contract by scanning the
+        # release firmware.bin for the URI string. Fail if present.
+        #
+        # Runs immediately after the ESP32 release build so subsequent
+        # build steps (CH32, etc.) can't interfere with the artifact paths.
+        run: |
+          set -e
+          REL_DIR=SmartEVSE-3/.pio/build/release
+          # List what's actually there for diagnostics.
+          echo "Release build output:"
+          ls -la "$REL_DIR/" 2>/dev/null || { echo "  (missing)"; exit 1; }
+          BIN="$REL_DIR/firmware.bin"
+          if [ ! -f "$BIN" ]; then
+            echo "ERROR: $BIN not found after release build completed."
+            exit 1
+          fi
+          if strings "$BIN" | grep -q "/automated_testing"; then
+            echo "ERROR: /automated_testing URI string found in $BIN."
+            echo "This endpoint must be compiled out (#if AUTOMATED_TESTING"
+            echo "in http_handlers.cpp). Check platformio.ini and"
+            echo "PLATFORMIO_BUILD_FLAGS for an accidentally-defined"
+            echo "AUTOMATED_TESTING flag."
+            exit 1
+          fi
+          echo "OK: /automated_testing endpoint is not present in $BIN."
       - name: Build CH32
         run: |
           set -o pipefail
