@@ -103,9 +103,9 @@ function applyWsData(d) {
     if (d.override_current !== undefined)
         $id('override_current').textContent = (d.override_current / 10).toFixed(1) + " A";
     if (d.current_min !== undefined)
-        $id('current_min').textContent = (d.current_min / 10).toFixed(1) + " A";
+        $id('current_min').textContent = d.current_min + " A";
     if (d.current_max !== undefined)
-        $id('current_max').textContent = (d.current_max / 10).toFixed(1) + " A";
+        $id('current_max').textContent = d.current_max + " A";
 
     /* Phase currents - update cache and recompute totals */
     var phaseChanged = false;
