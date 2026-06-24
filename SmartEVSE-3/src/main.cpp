@@ -2112,7 +2112,7 @@ void ModbusRequestLoop() {
             case 27:
                 if (MainsMeter.Type == EM_EASTRON3P || MainsMeter.Type == EM_EASTRON3P_INV || MainsMeter.Type == EM_EASTRON1P) {
                     if (energytimer == 0) {
-                        ModbusReadInputRequest(MainsMeter.Address, 4, 600, 22);
+                        ModbusReadInputRequest(MainsMeter.Address, 4, 600, 30);
                         break;
                     }
                 }

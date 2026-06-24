@@ -1306,6 +1306,14 @@ void mqttPublishData() {
             doc["apparent_power_va"] = MainsMeter.linky.apparent_power;
             doc["current_l1_a"] = MainsMeter.linky.current_l1;
             doc["voltage_l1_v"] = MainsMeter.linky.voltage_l1;
+            doc["ccasn_active_power_w"] = MainsMeter.linky.ccasn_active_power;
+
+            doc["date_year"] = MainsMeter.linky.date_year;
+            doc["date_month"] = MainsMeter.linky.date_month;
+            doc["date_day"] = MainsMeter.linky.date_day;
+            doc["date_hour"] = MainsMeter.linky.date_hour;
+            doc["date_minute"] = MainsMeter.linky.date_minute;
+            doc["date_second"] = MainsMeter.linky.date_second;
 
             char buffer[1024];
             serializeJson(doc, buffer);

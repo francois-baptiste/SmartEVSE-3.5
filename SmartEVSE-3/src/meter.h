@@ -110,6 +110,15 @@ struct LinkyTelemetry {
     float apparent_power;
     float current_l1;
     float voltage_l1;
+    float ccasn_active_power;
+
+    // Date
+    uint16_t date_year;
+    uint16_t date_month;
+    uint16_t date_day;
+    uint16_t date_hour;
+    uint16_t date_minute;
+    uint16_t date_second;
 
     bool available;
 };

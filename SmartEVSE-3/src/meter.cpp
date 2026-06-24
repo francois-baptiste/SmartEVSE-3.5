@@ -511,6 +511,15 @@ void Meter::ResponseToMeasurement(ModBus MB) {
             linky.apparent_power = decode_float(616);
             linky.current_l1 = decode_float(618);
             linky.voltage_l1 = decode_float(620);
+            linky.ccasn_active_power = decode_float(622);
+
+            // 624-629 are UINT16
+            linky.date_year = (MB.Data[(624-600)*2] << 8) | MB.Data[(624-600)*2 + 1];
+            linky.date_month = (MB.Data[(625-600)*2] << 8) | MB.Data[(625-600)*2 + 1];
+            linky.date_day = (MB.Data[(626-600)*2] << 8) | MB.Data[(626-600)*2 + 1];
+            linky.date_hour = (MB.Data[(627-600)*2] << 8) | MB.Data[(627-600)*2 + 1];
+            linky.date_minute = (MB.Data[(628-600)*2] << 8) | MB.Data[(628-600)*2 + 1];
+            linky.date_second = (MB.Data[(629-600)*2] << 8) | MB.Data[(629-600)*2 + 1];
 
             linky.available = true;
         }
