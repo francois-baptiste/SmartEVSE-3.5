@@ -1274,6 +1274,44 @@ void mqttPublishData() {
             if (MainsMeter.EnergyPhase[2] > 0)
                 mqtt_pub_int(MQTT_SLOT_MAINS_ENERGY_L3, "/MainsEnergyL3", MainsMeter.EnergyPhase[2], false, now_s);
         }
+
+        if (MainsMeter.linky.available) {
+            StaticJsonDocument<1024> doc;
+            doc["is_tempo_blue"] = MainsMeter.linky.is_tempo_blue;
+            doc["is_tempo_white"] = MainsMeter.linky.is_tempo_white;
+            doc["is_tempo_red"] = MainsMeter.linky.is_tempo_red;
+            doc["is_hp"] = MainsMeter.linky.is_hp;
+            doc["is_hc"] = MainsMeter.linky.is_hc;
+            doc["is_base_tariff"] = MainsMeter.linky.is_base_tariff;
+            doc["is_hphc_tariff"] = MainsMeter.linky.is_hphc_tariff;
+            doc["is_tempo_tariff"] = MainsMeter.linky.is_tempo_tariff;
+            doc["is_power_overflow"] = MainsMeter.linky.is_power_overflow;
+
+            doc["active_energy_total"] = MainsMeter.linky.active_energy_total;
+            doc["tempo_blue_total"] = MainsMeter.linky.tempo_blue_total;
+            doc["tempo_white_total"] = MainsMeter.linky.tempo_white_total;
+            doc["tempo_red_total"] = MainsMeter.linky.tempo_red_total;
+            doc["total_hp"] = MainsMeter.linky.total_hp;
+            doc["total_hc"] = MainsMeter.linky.total_hc;
+            doc["blue_hc"] = MainsMeter.linky.blue_hc;
+            doc["blue_hp"] = MainsMeter.linky.blue_hp;
+            doc["white_hc"] = MainsMeter.linky.white_hc;
+            doc["white_hp"] = MainsMeter.linky.white_hp;
+            doc["red_hc"] = MainsMeter.linky.red_hc;
+            doc["red_hp"] = MainsMeter.linky.red_hp;
+
+            doc["contracted_power_kva"] = MainsMeter.linky.contracted_power;
+            doc["internal_temp_c"] = MainsMeter.linky.internal_temp;
+            doc["active_power_w"] = MainsMeter.linky.active_power;
+            doc["apparent_power_va"] = MainsMeter.linky.apparent_power;
+            doc["current_l1_a"] = MainsMeter.linky.current_l1;
+            doc["voltage_l1_v"] = MainsMeter.linky.voltage_l1;
+
+            char buffer[1024];
+            serializeJson(doc, buffer);
+            MQTTclient.publish(MQTTprefix + "/MainsMeter/Linky", buffer, false, 0);
+        }
+
         if (EVMeter.Type) {
             mqtt_pub_int(MQTT_SLOT_EV_L1, "/EVCurrentL1", EVMeter.Irms[0], false, now_s);
             mqtt_pub_int(MQTT_SLOT_EV_L2, "/EVCurrentL2", EVMeter.Irms[1], false, now_s);

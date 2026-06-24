@@ -79,6 +79,41 @@ struct EMstruct {
 extern struct EMstruct EMConfig[];
 extern struct Sensorbox SB2;
 
+
+struct LinkyTelemetry {
+    // Booleans
+    uint16_t is_tempo_blue;
+    uint16_t is_tempo_white;
+    uint16_t is_tempo_red;
+    uint16_t is_hp;
+    uint16_t is_hc;
+    uint16_t is_base_tariff;
+    uint16_t is_hphc_tariff;
+    uint16_t is_tempo_tariff;
+    uint16_t is_power_overflow;
+
+    // Energies
+    float active_energy_total;
+    float tempo_blue_total;
+    float tempo_white_total;
+    float tempo_red_total;
+    float total_hp;
+    float total_hc;
+    float blue_hc, blue_hp;
+    float white_hc, white_hp;
+    float red_hc, red_hp;
+
+    // System
+    float contracted_power;
+    float internal_temp;
+    float active_power;
+    float apparent_power;
+    float current_l1;
+    float voltage_l1;
+
+    bool available;
+};
+
 class Meter {
   public:
     uint8_t Type;                                                               // previously: MainsMeter; Type of Mains electric meter (0: Disabled / Constants EM_*)
@@ -98,6 +133,8 @@ class Meter {
     int32_t EnergyMeterStart;                                                   // kWh meter value is stored once EV is connected to EVSE (Wh)
     uint8_t ResetKwh;                                                           // if set, reset kwh meter at state transition B->C
                                                                                 // cleared when charging, reset to 1 when disconnected (state A)
+    struct LinkyTelemetry linky;
+
     // constructor
     Meter(uint8_t type, uint8_t address, uint8_t timeout);
     void UpdateEnergies();

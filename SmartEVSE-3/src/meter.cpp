@@ -459,6 +459,60 @@ void Meter::ResponseToMeasurement(ModBus MB) {
             for (int x = 0; x < 3; x++) {
                 EnergyPhase[x] = decodeMeasurement(MB.Data, x, EMConfig[Type].EDivisor - 3);
             }
+        } else if (MB.Register == 342 && (Type == EM_EASTRON3P || Type == EM_EASTRON3P_INV || Type == EM_EASTRON1P)) {
+            union { uint32_t i; float f; } u;
+            combineBytes(&u.i, MB.Data, 0, EMConfig[Type].Endianness, MB_DATATYPE_FLOAT32);
+            linky.active_energy_total = u.f;
+            linky.available = true;
+        } else if (MB.Register == 500 && (Type == EM_EASTRON3P || Type == EM_EASTRON3P_INV || Type == EM_EASTRON1P)) {
+            union { uint32_t i; float f; } u;
+            for (int x = 0; x < 11; x++) {
+                combineBytes(&u.i, MB.Data, x * 4, EMConfig[Type].Endianness, MB_DATATYPE_FLOAT32);
+                if (x == 0) linky.tempo_blue_total = u.f;
+                else if (x == 1) linky.tempo_white_total = u.f;
+                else if (x == 2) linky.tempo_red_total = u.f;
+                else if (x == 3) linky.total_hp = u.f;
+                else if (x == 4) linky.total_hc = u.f;
+                else if (x == 5) linky.blue_hc = u.f;
+                else if (x == 6) linky.blue_hp = u.f;
+                else if (x == 7) linky.white_hc = u.f;
+                else if (x == 8) linky.white_hp = u.f;
+                else if (x == 9) linky.red_hc = u.f;
+                else if (x == 10) linky.red_hp = u.f;
+            }
+            linky.available = true;
+        } else if (MB.Register == 600 && (Type == EM_EASTRON3P || Type == EM_EASTRON3P_INV || Type == EM_EASTRON1P)) {
+            // registers 600-608 are UINT16 (0 or 1).
+            // since each register is 2 bytes and they are sent big-endian, we can read them directly.
+            // 9 registers * 2 bytes = 18 bytes.
+            for (int x = 0; x < 9; x++) {
+                uint16_t val = (MB.Data[x * 2] << 8) | MB.Data[x * 2 + 1];
+                if (x == 0) linky.is_tempo_blue = val;
+                else if (x == 1) linky.is_tempo_white = val;
+                else if (x == 2) linky.is_tempo_red = val;
+                else if (x == 3) linky.is_hp = val;
+                else if (x == 4) linky.is_hc = val;
+                else if (x == 5) linky.is_base_tariff = val;
+                else if (x == 6) linky.is_hphc_tariff = val;
+                else if (x == 7) linky.is_tempo_tariff = val;
+                else if (x == 8) linky.is_power_overflow = val;
+            }
+            // registers 609-620 are FLOAT32 (2 registers / 4 bytes each)
+            // They start at 609, which is offset by 9 registers (18 bytes) from 600.
+            union { uint32_t i; float f; } u;
+            auto decode_float = [&](int reg) {
+                int byte_offset = (reg - 600) * 2;
+                combineBytes(&u.i, MB.Data, byte_offset, EMConfig[Type].Endianness, MB_DATATYPE_FLOAT32);
+                return u.f;
+            };
+            linky.contracted_power = decode_float(609);
+            linky.internal_temp = decode_float(612);
+            linky.active_power = decode_float(614);
+            linky.apparent_power = decode_float(616);
+            linky.current_l1 = decode_float(618);
+            linky.voltage_l1 = decode_float(620);
+
+            linky.available = true;
         }
 
     }
