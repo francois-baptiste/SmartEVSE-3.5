@@ -459,6 +459,68 @@ void Meter::ResponseToMeasurement(ModBus MB) {
             for (int x = 0; x < 3; x++) {
                 EnergyPhase[x] = decodeMeasurement(MB.Data, x, EMConfig[Type].EDivisor - 3);
             }
+        } else if (MB.Register == 342 && (Type == EM_EASTRON3P || Type == EM_EASTRON3P_INV || Type == EM_EASTRON1P)) {
+            union { uint32_t i; float f; } u;
+            combineBytes(&u.i, MB.Data, 0, EMConfig[Type].Endianness, MB_DATATYPE_FLOAT32);
+            linky.active_energy_total = u.f;
+            linky.available = true;
+        } else if (MB.Register == 500 && (Type == EM_EASTRON3P || Type == EM_EASTRON3P_INV || Type == EM_EASTRON1P)) {
+            union { uint32_t i; float f; } u;
+            for (int x = 0; x < 11; x++) {
+                combineBytes(&u.i, MB.Data, x * 4, EMConfig[Type].Endianness, MB_DATATYPE_FLOAT32);
+                if (x == 0) linky.tempo_blue_total = u.f;
+                else if (x == 1) linky.tempo_white_total = u.f;
+                else if (x == 2) linky.tempo_red_total = u.f;
+                else if (x == 3) linky.total_hp = u.f;
+                else if (x == 4) linky.total_hc = u.f;
+                else if (x == 5) linky.blue_hc = u.f;
+                else if (x == 6) linky.blue_hp = u.f;
+                else if (x == 7) linky.white_hc = u.f;
+                else if (x == 8) linky.white_hp = u.f;
+                else if (x == 9) linky.red_hc = u.f;
+                else if (x == 10) linky.red_hp = u.f;
+            }
+            linky.available = true;
+        } else if (MB.Register == 600 && (Type == EM_EASTRON3P || Type == EM_EASTRON3P_INV || Type == EM_EASTRON1P)) {
+            // Register 600 is a single UINT16 status bitmask (tic-din-modbus v1.31+);
+            // it replaces the former one-register-per-flag layout at 600-608.
+            // Big-endian, so high byte first. Registers 601-608 are now reserved.
+            uint16_t status = (MB.Data[0] << 8) | MB.Data[1];
+            linky.is_tempo_blue     = (status >> 0) & 1;
+            linky.is_tempo_white    = (status >> 1) & 1;
+            linky.is_tempo_red      = (status >> 2) & 1;
+            linky.is_hp             = (status >> 3) & 1;
+            linky.is_hc             = (status >> 4) & 1;
+            linky.is_base_tariff    = (status >> 5) & 1;
+            linky.is_hphc_tariff    = (status >> 6) & 1;
+            linky.is_tempo_tariff   = (status >> 7) & 1;
+            linky.is_power_overflow = (status >> 8) & 1;
+            linky.is_summer         = (status >> 9) & 1;
+            // registers 609-623 are FLOAT32 (2 registers / 4 bytes each); register 611 is reserved.
+            // Byte offset is computed from the absolute register address within the 600-629 block.
+            union { uint32_t i; float f; } u;
+            auto decode_float = [&](int reg) {
+                int byte_offset = (reg - 600) * 2;
+                combineBytes(&u.i, MB.Data, byte_offset, EMConfig[Type].Endianness, MB_DATATYPE_FLOAT32);
+                return u.f;
+            };
+            linky.contracted_power = decode_float(609);
+            linky.internal_temp = decode_float(612);
+            linky.active_power = decode_float(614);
+            linky.apparent_power = decode_float(616);
+            linky.current_l1 = decode_float(618);
+            linky.voltage_l1 = decode_float(620);
+            linky.ccasn_active_power = decode_float(622);
+
+            // 624-629 are UINT16
+            linky.date_year = (MB.Data[(624-600)*2] << 8) | MB.Data[(624-600)*2 + 1];
+            linky.date_month = (MB.Data[(625-600)*2] << 8) | MB.Data[(625-600)*2 + 1];
+            linky.date_day = (MB.Data[(626-600)*2] << 8) | MB.Data[(626-600)*2 + 1];
+            linky.date_hour = (MB.Data[(627-600)*2] << 8) | MB.Data[(627-600)*2 + 1];
+            linky.date_minute = (MB.Data[(628-600)*2] << 8) | MB.Data[(628-600)*2 + 1];
+            linky.date_second = (MB.Data[(629-600)*2] << 8) | MB.Data[(629-600)*2 + 1];
+
+            linky.available = true;
         }
 
     }
