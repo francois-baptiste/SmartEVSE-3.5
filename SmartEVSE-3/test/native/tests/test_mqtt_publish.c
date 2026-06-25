@@ -151,7 +151,7 @@ void test_crc16_consistency(void) {
 void test_invalid_slot_rejected(void) {
     mqtt_cache_init(&cache, 60);
     TEST_ASSERT_FALSE(mqtt_should_publish_int(&cache, (mqtt_slot_t)MQTT_CACHE_MAX_SLOTS, 1, 100));
-    TEST_ASSERT_FALSE(mqtt_should_publish_str(&cache, (mqtt_slot_t)99, "x", 100));
+    TEST_ASSERT_FALSE(mqtt_should_publish_str(&cache, (mqtt_slot_t)MQTT_CACHE_MAX_SLOTS, "x", 100));
 }
 
 /* ---- Slot count within bounds ---- */

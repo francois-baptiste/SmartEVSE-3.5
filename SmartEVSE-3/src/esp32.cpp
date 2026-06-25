@@ -1237,6 +1237,13 @@ static void mqtt_pub_str(mqtt_slot_t slot, const char *suffix, const char *value
     }
 }
 
+static void mqtt_pub_float(mqtt_slot_t slot, const char *suffix, float value,
+                           bool retained, uint32_t now_s) {
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%.2f", (double)value);
+    mqtt_pub_str(slot, suffix, buf, retained, now_s);
+}
+
 static bool session_publish_pending = false;
 void mqttPublishSessionComplete(void);  // forward declaration
 
@@ -1278,49 +1285,41 @@ void mqttPublishData() {
         if (MainsMeter.linky.available &&
             (MainsMeter.Type == EM_EASTRON3P || MainsMeter.Type == EM_EASTRON3P_INV || MainsMeter.Type == EM_EASTRON1P) &&
             !(ErrorFlags & CT_NOCOMM)) {                                         // don't publish stale Linky data after meter timeout/removal/type change
-            StaticJsonDocument<1024> doc;
-            doc["is_tempo_blue"] = MainsMeter.linky.is_tempo_blue;
-            doc["is_tempo_white"] = MainsMeter.linky.is_tempo_white;
-            doc["is_tempo_red"] = MainsMeter.linky.is_tempo_red;
-            doc["is_hp"] = MainsMeter.linky.is_hp;
-            doc["is_hc"] = MainsMeter.linky.is_hc;
-            doc["is_base_tariff"] = MainsMeter.linky.is_base_tariff;
-            doc["is_hphc_tariff"] = MainsMeter.linky.is_hphc_tariff;
-            doc["is_tempo_tariff"] = MainsMeter.linky.is_tempo_tariff;
-            doc["is_power_overflow"] = MainsMeter.linky.is_power_overflow;
-            doc["is_summer"] = MainsMeter.linky.is_summer;
-
-            doc["active_energy_total"] = MainsMeter.linky.active_energy_total;
-            doc["tempo_blue_total"] = MainsMeter.linky.tempo_blue_total;
-            doc["tempo_white_total"] = MainsMeter.linky.tempo_white_total;
-            doc["tempo_red_total"] = MainsMeter.linky.tempo_red_total;
-            doc["total_hp"] = MainsMeter.linky.total_hp;
-            doc["total_hc"] = MainsMeter.linky.total_hc;
-            doc["blue_hc"] = MainsMeter.linky.blue_hc;
-            doc["blue_hp"] = MainsMeter.linky.blue_hp;
-            doc["white_hc"] = MainsMeter.linky.white_hc;
-            doc["white_hp"] = MainsMeter.linky.white_hp;
-            doc["red_hc"] = MainsMeter.linky.red_hc;
-            doc["red_hp"] = MainsMeter.linky.red_hp;
-
-            doc["contracted_power_kva"] = MainsMeter.linky.contracted_power;
-            doc["internal_temp_c"] = MainsMeter.linky.internal_temp;
-            doc["active_power_w"] = MainsMeter.linky.active_power;
-            doc["apparent_power_va"] = MainsMeter.linky.apparent_power;
-            doc["current_l1_a"] = MainsMeter.linky.current_l1;
-            doc["voltage_l1_v"] = MainsMeter.linky.voltage_l1;
-            doc["ccasn_active_power_w"] = MainsMeter.linky.ccasn_active_power;
-
-            doc["date_year"] = MainsMeter.linky.date_year;
-            doc["date_month"] = MainsMeter.linky.date_month;
-            doc["date_day"] = MainsMeter.linky.date_day;
-            doc["date_hour"] = MainsMeter.linky.date_hour;
-            doc["date_minute"] = MainsMeter.linky.date_minute;
-            doc["date_second"] = MainsMeter.linky.date_second;
-
-            char buffer[1024];
-            serializeJson(doc, buffer);
-            MQTTclient.publish(MQTTprefix + "/MainsMeter/Linky", buffer, false, 0);
+            mqtt_pub_int(MQTT_SLOT_LINKY_TEMPO_BLUE,        "/LinkyIsTempoBlue",        MainsMeter.linky.is_tempo_blue,        false, now_s);
+            mqtt_pub_int(MQTT_SLOT_LINKY_TEMPO_WHITE,       "/LinkyIsTempoWhite",       MainsMeter.linky.is_tempo_white,       false, now_s);
+            mqtt_pub_int(MQTT_SLOT_LINKY_TEMPO_RED,         "/LinkyIsTempoRed",         MainsMeter.linky.is_tempo_red,         false, now_s);
+            mqtt_pub_int(MQTT_SLOT_LINKY_HP,                "/LinkyIsHp",               MainsMeter.linky.is_hp,                false, now_s);
+            mqtt_pub_int(MQTT_SLOT_LINKY_HC,                "/LinkyIsHc",               MainsMeter.linky.is_hc,                false, now_s);
+            mqtt_pub_int(MQTT_SLOT_LINKY_BASE_TARIFF,       "/LinkyIsBaseTariff",       MainsMeter.linky.is_base_tariff,       false, now_s);
+            mqtt_pub_int(MQTT_SLOT_LINKY_HPHC_TARIFF,       "/LinkyIsHphcTariff",       MainsMeter.linky.is_hphc_tariff,       false, now_s);
+            mqtt_pub_int(MQTT_SLOT_LINKY_TEMPO_TARIFF,      "/LinkyIsTempoTariff",      MainsMeter.linky.is_tempo_tariff,      false, now_s);
+            mqtt_pub_int(MQTT_SLOT_LINKY_POWER_OVERFLOW,    "/LinkyIsPowerOverflow",    MainsMeter.linky.is_power_overflow,    false, now_s);
+            mqtt_pub_int(MQTT_SLOT_LINKY_SUMMER,            "/LinkyIsSummer",           MainsMeter.linky.is_summer,            false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_ENERGY_TOTAL,    "/LinkyActiveEnergyTotal",  MainsMeter.linky.active_energy_total,  false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_TEMPO_BLUE_TOTAL,"/LinkyTempoBlueTotal",     MainsMeter.linky.tempo_blue_total,     false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_TEMPO_WHITE_TOTAL,"/LinkyTempoWhiteTotal",   MainsMeter.linky.tempo_white_total,    false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_TEMPO_RED_TOTAL, "/LinkyTempoRedTotal",      MainsMeter.linky.tempo_red_total,      false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_TOTAL_HP,        "/LinkyTotalHp",            MainsMeter.linky.total_hp,             false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_TOTAL_HC,        "/LinkyTotalHc",            MainsMeter.linky.total_hc,             false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_BLUE_HC,         "/LinkyBlueHc",             MainsMeter.linky.blue_hc,              false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_BLUE_HP,         "/LinkyBlueHp",             MainsMeter.linky.blue_hp,              false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_WHITE_HC,        "/LinkyWhiteHc",            MainsMeter.linky.white_hc,             false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_WHITE_HP,        "/LinkyWhiteHp",            MainsMeter.linky.white_hp,             false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_RED_HC,          "/LinkyRedHc",              MainsMeter.linky.red_hc,               false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_RED_HP,          "/LinkyRedHp",              MainsMeter.linky.red_hp,               false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_CONTRACTED_POWER,"/LinkyContractedPowerKva", MainsMeter.linky.contracted_power,     false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_INTERNAL_TEMP,   "/LinkyInternalTempC",      MainsMeter.linky.internal_temp,        false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_ACTIVE_POWER,    "/LinkyActivePowerW",       MainsMeter.linky.active_power,         false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_APPARENT_POWER,  "/LinkyApparentPowerVa",    MainsMeter.linky.apparent_power,       false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_CURRENT_L1,      "/LinkyCurrentL1A",         MainsMeter.linky.current_l1,           false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_VOLTAGE_L1,      "/LinkyVoltageL1V",         MainsMeter.linky.voltage_l1,           false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_CCASN_POWER,     "/LinkyCcasnActivePowerW",  MainsMeter.linky.ccasn_active_power,   false, now_s);
+            mqtt_pub_int(MQTT_SLOT_LINKY_DATE_YEAR,         "/LinkyDateYear",           MainsMeter.linky.date_year,            false, now_s);
+            mqtt_pub_int(MQTT_SLOT_LINKY_DATE_MONTH,        "/LinkyDateMonth",          MainsMeter.linky.date_month,           false, now_s);
+            mqtt_pub_int(MQTT_SLOT_LINKY_DATE_DAY,          "/LinkyDateDay",            MainsMeter.linky.date_day,             false, now_s);
+            mqtt_pub_int(MQTT_SLOT_LINKY_DATE_HOUR,         "/LinkyDateHour",           MainsMeter.linky.date_hour,            false, now_s);
+            mqtt_pub_int(MQTT_SLOT_LINKY_DATE_MINUTE,       "/LinkyDateMinute",         MainsMeter.linky.date_minute,          false, now_s);
+            mqtt_pub_int(MQTT_SLOT_LINKY_DATE_SECOND,       "/LinkyDateSecond",         MainsMeter.linky.date_second,          false, now_s);
         }
 
         if (EVMeter.Type) {
