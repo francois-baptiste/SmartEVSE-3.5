@@ -1320,6 +1320,10 @@ void mqttPublishData() {
             mqtt_pub_int(MQTT_SLOT_LINKY_DATE_HOUR,         "/LinkyDateHour",           MainsMeter.linky.date_hour,            false, now_s);
             mqtt_pub_int(MQTT_SLOT_LINKY_DATE_MINUTE,       "/LinkyDateMinute",         MainsMeter.linky.date_minute,          false, now_s);
             mqtt_pub_int(MQTT_SLOT_LINKY_DATE_SECOND,       "/LinkyDateSecond",         MainsMeter.linky.date_second,          false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_POWER_FACTOR_L1,    "/LinkyPowerFactorL1",      MainsMeter.linky.power_factor_l1,      false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_POWER_FACTOR_L2,    "/LinkyPowerFactorL2",      MainsMeter.linky.power_factor_l2,      false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_POWER_FACTOR_L3,    "/LinkyPowerFactorL3",      MainsMeter.linky.power_factor_l3,      false, now_s);
+            mqtt_pub_float(MQTT_SLOT_LINKY_POWER_FACTOR_TOTAL, "/LinkyPowerFactor",        MainsMeter.linky.power_factor_total,   false, now_s);
         }
 
         if (EVMeter.Type) {

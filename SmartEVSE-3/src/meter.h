@@ -112,6 +112,10 @@ struct LinkyTelemetry {
     float current_l1;
     float voltage_l1;
     float ccasn_active_power;
+    float power_factor_l1;
+    float power_factor_l2;
+    float power_factor_l3;
+    float power_factor_total;
 
     // Date
     uint16_t date_year;

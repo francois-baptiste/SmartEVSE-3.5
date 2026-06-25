@@ -459,6 +459,18 @@ void Meter::ResponseToMeasurement(ModBus MB) {
             for (int x = 0; x < 3; x++) {
                 EnergyPhase[x] = decodeMeasurement(MB.Data, x, EMConfig[Type].EDivisor - 3);
             }
+        } else if (MB.Register == 30 && (Type == EM_EASTRON3P || Type == EM_EASTRON3P_INV || Type == EM_EASTRON1P)) {
+            union { uint32_t i; float f; } u;
+            combineBytes(&u.i, MB.Data, 0, EMConfig[Type].Endianness, MB_DATATYPE_FLOAT32);
+            linky.power_factor_l1 = u.f;
+            combineBytes(&u.i, MB.Data, 4, EMConfig[Type].Endianness, MB_DATATYPE_FLOAT32);
+            linky.power_factor_l2 = u.f;
+            combineBytes(&u.i, MB.Data, 8, EMConfig[Type].Endianness, MB_DATATYPE_FLOAT32);
+            linky.power_factor_l3 = u.f;
+        } else if (MB.Register == 62 && (Type == EM_EASTRON3P || Type == EM_EASTRON3P_INV || Type == EM_EASTRON1P)) {
+            union { uint32_t i; float f; } u;
+            combineBytes(&u.i, MB.Data, 0, EMConfig[Type].Endianness, MB_DATATYPE_FLOAT32);
+            linky.power_factor_total = u.f;
         } else if (MB.Register == 342 && (Type == EM_EASTRON3P || Type == EM_EASTRON3P_INV || Type == EM_EASTRON1P)) {
             union { uint32_t i; float f; } u;
             combineBytes(&u.i, MB.Data, 0, EMConfig[Type].Endianness, MB_DATATYPE_FLOAT32);

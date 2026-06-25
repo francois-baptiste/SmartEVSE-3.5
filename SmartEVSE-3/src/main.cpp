@@ -2118,6 +2118,24 @@ void ModbusRequestLoop() {
                 }
                 ModbusRequest++;
                 // fall through
+            case 28:
+                if (MainsMeter.Type == EM_EASTRON3P || MainsMeter.Type == EM_EASTRON3P_INV || MainsMeter.Type == EM_EASTRON1P) {
+                    if (energytimer == 0) {
+                        ModbusReadInputRequest(MainsMeter.Address, 4, 30, 6);
+                        break;
+                    }
+                }
+                ModbusRequest++;
+                // fall through
+            case 29:
+                if (MainsMeter.Type == EM_EASTRON3P || MainsMeter.Type == EM_EASTRON3P_INV || MainsMeter.Type == EM_EASTRON1P) {
+                    if (energytimer == 0) {
+                        ModbusReadInputRequest(MainsMeter.Address, 4, 62, 2);
+                        break;
+                    }
+                }
+                ModbusRequest++;
+                // fall through
             default:
                 // slave never gets here
                 // what about normal mode with no meters attached?
