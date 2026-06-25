@@ -1275,7 +1275,9 @@ void mqttPublishData() {
                 mqtt_pub_int(MQTT_SLOT_MAINS_ENERGY_L3, "/MainsEnergyL3", MainsMeter.EnergyPhase[2], false, now_s);
         }
 
-        if (MainsMeter.linky.available) {
+        if (MainsMeter.linky.available &&
+            (MainsMeter.Type == EM_EASTRON3P || MainsMeter.Type == EM_EASTRON3P_INV) &&
+            !(ErrorFlags & CT_NOCOMM)) {                                         // don't publish stale Linky data after meter timeout/removal/type change
             StaticJsonDocument<1024> doc;
             doc["is_tempo_blue"] = MainsMeter.linky.is_tempo_blue;
             doc["is_tempo_white"] = MainsMeter.linky.is_tempo_white;
@@ -1286,6 +1288,7 @@ void mqttPublishData() {
             doc["is_hphc_tariff"] = MainsMeter.linky.is_hphc_tariff;
             doc["is_tempo_tariff"] = MainsMeter.linky.is_tempo_tariff;
             doc["is_power_overflow"] = MainsMeter.linky.is_power_overflow;
+            doc["is_summer"] = MainsMeter.linky.is_summer;
 
             doc["active_energy_total"] = MainsMeter.linky.active_energy_total;
             doc["tempo_blue_total"] = MainsMeter.linky.tempo_blue_total;

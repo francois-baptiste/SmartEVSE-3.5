@@ -91,6 +91,7 @@ struct LinkyTelemetry {
     uint16_t is_hphc_tariff;
     uint16_t is_tempo_tariff;
     uint16_t is_power_overflow;
+    uint16_t is_summer;
 
     // Energies
     float active_energy_total;
