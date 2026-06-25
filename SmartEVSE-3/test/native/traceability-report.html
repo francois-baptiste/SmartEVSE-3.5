@@ -124,9 +124,9 @@ footer {
 <body>
 <h1>SmartEVSE-3 Traceability Report</h1>
 <div class="summary">
-<div class="stat"><div class="number">63</div><div class="label">Features</div></div>
-<div class="stat"><div class="number">973</div><div class="label">Test Scenarios</div></div>
-<div class="stat"><div class="number">973</div><div class="label">With Requirements</div></div>
+<div class="stat"><div class="number">78</div><div class="label">Features</div></div>
+<div class="stat"><div class="number">1181</div><div class="label">Test Scenarios</div></div>
+<div class="stat"><div class="number">1181</div><div class="label">With Requirements</div></div>
 <div class="stat"><div class="number">100%</div><div class="label">Requirement Coverage</div></div>
 </div>
 <div class="feature-section">
@@ -489,6 +489,280 @@ footer {
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> EVSE in STATE_A, AccessStatus=ON, AccessTimer=60, pilot 12V</li><li class="step-when"><span class="step-keyword">When</span> 60 rounds of (100x tick_10ms + 1x tick_1s) simulate real-world timing</li><li class="step-then"><span class="step-keyword">Then</span> AccessTimer reaches 0 and AccessStatus transitions to OFF</li></ul></td>
 <td><code>test_access_timer_real_world_timing</code></td>
 <td><span class="file-ref">test_bridge_transaction.c:277</span></td>
+</tr>
+</tbody></table>
+</div>
+<div class="feature-section">
+<div class="feature-title">Capacity Tariff Peak Tracking (26 scenarios)</div>
+<div class="coverage-bar">
+<div class="coverage-fill" style="width:100.0%"></div>
+</div>
+<table>
+<thead><tr>
+<th>Requirement</th><th>Scenario</th><th>Steps</th><th>Test Function</th><th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="req-tag">REQ-CAP-001</span></td>
+<td>Basic 15-minute window averaging at constant power</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A capacity state initialized with limit 5000W</li><li class="step-when"><span class="step-keyword">When</span> 900 ticks of capacity_tick_1s with constant 3000W</li><li class="step-then"><span class="step-keyword">Then</span> window_avg_w equals 3000 and headroom reflects remaining capacity</li></ul></td>
+<td><code>test_capacity_basic_window_avg</code></td>
+<td><span class="file-ref">test_capacity_peak.c:1</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-002</span></td>
+<td>Variable power within a single window</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A capacity state with limit 5000W</li><li class="step-when"><span class="step-keyword">When</span> 450 ticks at 2000W followed by 450 ticks at 4000W</li><li class="step-then"><span class="step-keyword">Then</span> window_avg_w equals 3000</li></ul></td>
+<td><code>test_capacity_variable_power_window</code></td>
+<td><span class="file-ref">test_capacity_peak.c:53</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-003</span></td>
+<td>Monthly peak tracks highest window</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A fresh capacity state in month 3</li><li class="step-when"><span class="step-keyword">When</span> Three windows complete with averages 3000W, 5000W, 4000W</li><li class="step-then"><span class="step-keyword">Then</span> monthly_peak_w equals 5000</li></ul></td>
+<td><code>test_capacity_monthly_peak_tracking</code></td>
+<td><span class="file-ref">test_capacity_peak.c:78</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-004</span></td>
+<td>Month rollover resets monthly peak</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A state with monthly_peak_w of 5000 in month 3</li><li class="step-when"><span class="step-keyword">When</span> capacity_tick_1s is called with month 4</li><li class="step-then"><span class="step-keyword">Then</span> monthly_peak_w resets to 0 and new tracking begins</li></ul></td>
+<td><code>test_capacity_month_rollover</code></td>
+<td><span class="file-ref">test_capacity_peak.c:109</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-005</span></td>
+<td>Headroom calculation mid-window</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A capacity state with limit 5000W, mid-window at 450s with running avg 3500W</li><li class="step-when"><span class="step-keyword">When</span> capacity_get_headroom_w is called</li><li class="step-then"><span class="step-keyword">Then</span> Headroom reflects how much more can be consumed in remaining window time</li></ul></td>
+<td><code>test_capacity_headroom_mid_window</code></td>
+<td><span class="file-ref">test_capacity_peak.c:141</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-006</span></td>
+<td>Headroom to deciamps conversion for 3-phase</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A headroom of 2300W</li><li class="step-when"><span class="step-keyword">When</span> capacity_headroom_to_da is called with 3 phases</li><li class="step-then"><span class="step-keyword">Then</span> Returns 33 deciamps (2300 * 10 / (230 * 3) = 33.3 -&gt; 33)</li></ul></td>
+<td><code>test_capacity_headroom_to_da_3phase</code></td>
+<td><span class="file-ref">test_capacity_peak.c:158</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-007</span></td>
+<td>Headroom to deciamps conversion for 1-phase</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A headroom of 2300W</li><li class="step-when"><span class="step-keyword">When</span> capacity_headroom_to_da is called with 1 phase</li><li class="step-then"><span class="step-keyword">Then</span> Returns 100 deciamps (2300 * 10 / 230 = 100)</li></ul></td>
+<td><code>test_capacity_headroom_to_da_1phase</code></td>
+<td><span class="file-ref">test_capacity_peak.c:185</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-008</span></td>
+<td>Disabled when limit equals zero</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A capacity state with limit_w set to 0</li><li class="step-when"><span class="step-keyword">When</span> capacity_get_headroom_w is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns INT32_MAX indicating no constraint</li></ul></td>
+<td><code>test_capacity_disabled_returns_max_headroom</code></td>
+<td><span class="file-ref">test_capacity_peak.c:199</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-009</span></td>
+<td>JSON output contains all key fields</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A state with valid window and peak data</li><li class="step-when"><span class="step-keyword">When</span> capacity_to_json is called</li><li class="step-then"><span class="step-keyword">Then</span> JSON contains limit_w, window_avg_w, monthly_peak_w, headroom_w</li></ul></td>
+<td><code>test_capacity_json_output</code></td>
+<td><span class="file-ref">test_capacity_peak.c:219</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-010</span></td>
+<td>Negative power from solar export is averaged correctly</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A capacity state with limit 5000W</li><li class="step-when"><span class="step-keyword">When</span> 900 ticks with -1000W (net solar export)</li><li class="step-then"><span class="step-keyword">Then</span> window_avg_w equals -1000 and headroom is limit + 1000 = 6000</li></ul></td>
+<td><code>test_capacity_negative_power_solar</code></td>
+<td><span class="file-ref">test_capacity_peak.c:248</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-011</span></td>
+<td>Zero-length buffer returns -1</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid capacity state</li><li class="step-when"><span class="step-keyword">When</span> capacity_to_json is called with bufsz 0</li><li class="step-then"><span class="step-keyword">Then</span> Returns -1</li></ul></td>
+<td><code>test_capacity_json_zero_buffer</code></td>
+<td><span class="file-ref">test_capacity_peak.c:274</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-012</span></td>
+<td>NULL state returns -1 for JSON and 0 for getters</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A NULL state pointer</li><li class="step-when"><span class="step-keyword">When</span> capacity_to_json and getter functions are called</li><li class="step-then"><span class="step-keyword">Then</span> JSON returns -1, getters return 0</li></ul></td>
+<td><code>test_capacity_null_state</code></td>
+<td><span class="file-ref">test_capacity_peak.c:288</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-013</span></td>
+<td>Headroom to deciamps with zero phases returns zero</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A headroom value</li><li class="step-when"><span class="step-keyword">When</span> capacity_headroom_to_da is called with 0 phases</li><li class="step-then"><span class="step-keyword">Then</span> Returns 0</li></ul></td>
+<td><code>test_capacity_headroom_to_da_zero_phases</code></td>
+<td><span class="file-ref">test_capacity_peak.c:307</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-014</span></td>
+<td>JSON with NULL buffer returns -1</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid capacity state</li><li class="step-when"><span class="step-keyword">When</span> capacity_to_json is called with NULL buffer</li><li class="step-then"><span class="step-keyword">Then</span> Returns -1</li></ul></td>
+<td><code>test_capacity_json_null_buffer</code></td>
+<td><span class="file-ref">test_capacity_peak.c:320</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-015</span></td>
+<td>JSON with too-small buffer returns -1</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid capacity state</li><li class="step-when"><span class="step-keyword">When</span> capacity_to_json is called with a very small buffer</li><li class="step-then"><span class="step-keyword">Then</span> Returns -1 (truncation detected)</li></ul></td>
+<td><code>test_capacity_json_small_buffer</code></td>
+<td><span class="file-ref">test_capacity_peak.c:334</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-016</span></td>
+<td>Year rollover also resets monthly peak</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A state with peak in month 12 year_offset 2</li><li class="step-when"><span class="step-keyword">When</span> tick is called with month 1 year_offset 3</li><li class="step-then"><span class="step-keyword">Then</span> Monthly peak resets to 0</li></ul></td>
+<td><code>test_capacity_year_rollover</code></td>
+<td><span class="file-ref">test_capacity_peak.c:349</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-017</span></td>
+<td>Window not valid until first window completes</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A freshly initialized capacity state</li><li class="step-when"><span class="step-keyword">When</span> Only 100 ticks have elapsed (no complete window)</li><li class="step-then"><span class="step-keyword">Then</span> window_valid is 0 and window_avg_w is 0</li></ul></td>
+<td><code>test_capacity_window_not_valid_initially</code></td>
+<td><span class="file-ref">test_capacity_peak.c:372</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-018</span></td>
+<td>Headroom decreases as window fills with high power</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A capacity state with limit 5000W</li><li class="step-when"><span class="step-keyword">When</span> Power consumption exceeds limit for first half of window</li><li class="step-then"><span class="step-keyword">Then</span> Headroom in second half is reduced to compensate</li></ul></td>
+<td><code>test_capacity_headroom_decreases_with_high_power</code></td>
+<td><span class="file-ref">test_capacity_peak.c:392</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-020</span></td>
+<td>IsetBalanced clamped by capacity headroom guard rail</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ctx already charging at 160 deciamps, CapacityHeadroom_da=30 (3.0A total)</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current runs</li><li class="step-then"><span class="step-keyword">Then</span> IsetBalanced is clamped to at most 30/3=10 deciamps per phase by guard rail</li></ul></td>
+<td><code>test_capacity_headroom_clamps_iset_balanced</code></td>
+<td><span class="file-ref">test_capacity_sm.c:1</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-021</span></td>
+<td>Unconstrained when headroom is INT16_MAX (default)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ctx already charging at 160 deciamps with CapacityHeadroom_da = INT16_MAX</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current runs</li><li class="step-then"><span class="step-keyword">Then</span> IsetBalanced is not reduced by capacity headroom</li></ul></td>
+<td><code>test_capacity_unconstrained_at_int16_max</code></td>
+<td><span class="file-ref">test_capacity_sm.c:77</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-022</span></td>
+<td>Negative headroom clamps IsetBalanced and triggers shortage</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ctx already charging with CapacityHeadroom_da = -50 (over capacity limit)</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current runs</li><li class="step-then"><span class="step-keyword">Then</span> IsetBalanced is clamped to MinCurrent floor (shortage path)</li></ul></td>
+<td><code>test_capacity_negative_headroom_clamps_down</code></td>
+<td><span class="file-ref">test_capacity_sm.c:119</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-023</span></td>
+<td>Capacity headroom is tighter constraint than MaxSumMains</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> MaxSumMains=75A, CapacityHeadroom_da=30 (3.0A), charging at 160 deciamps</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current runs</li><li class="step-then"><span class="step-keyword">Then</span> CapacityHeadroom wins as the tighter constraint, IsetBalanced reduced</li></ul></td>
+<td><code>test_capacity_headroom_tighter_than_max_sum_mains</code></td>
+<td><span class="file-ref">test_capacity_sm.c:133</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-024</span></td>
+<td>evse_init sets CapacityHeadroom_da to INT16_MAX by default</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A freshly initialized evse_ctx_t</li><li class="step-when"><span class="step-keyword">When</span> evse_init is called</li><li class="step-then"><span class="step-keyword">Then</span> CapacityHeadroom_da equals INT16_MAX (unconstrained)</li></ul></td>
+<td><code>test_capacity_init_default</code></td>
+<td><span class="file-ref">test_capacity_sm.c:159</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-025</span></td>
+<td>Capacity headroom clamps IsetBalanced when new EVSE joins in smart mode</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master (LoadBl=1) in smart mode with CapacityHeadroom_da=60 and a new EVSE joining</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current runs with mod=1</li><li class="step-then"><span class="step-keyword">Then</span> IsetBalanced is clamped by capacity headroom</li></ul></td>
+<td><code>test_capacity_headroom_master_new_evse</code></td>
+<td><span class="file-ref">test_capacity_sm.c:196</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-026</span></td>
+<td>Single-phase charging gets full headroom on one phase</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ctx charging at 160 deciamps, CapacityHeadroom_da=120, forced single-phase</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current runs</li><li class="step-then"><span class="step-keyword">Then</span> IsetBalanced clamped to 120/1=120 deciamps (not 120/3=40)</li></ul></td>
+<td><code>test_capacity_headroom_single_phase</code></td>
+<td><span class="file-ref">test_capacity_sm.c:283</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-027</span></td>
+<td>Moderate capacity headroom allows charging above minimum</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ctx charging with CapacityHeadroom_da=240 (24.0A total, 8A/phase)</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current runs</li><li class="step-then"><span class="step-keyword">Then</span> IsetBalanced is between MinCurrent and the headroom-per-phase limit</li></ul></td>
+<td><code>test_capacity_moderate_headroom</code></td>
+<td><span class="file-ref">test_capacity_sm.c:307</span></td>
+</tr>
+</tbody></table>
+</div>
+<div class="feature-section">
+<div class="feature-title">Load Balancing — CAPACITY integration (3 scenarios)</div>
+<div class="coverage-bar">
+<div class="coverage-fill" style="width:100.0%"></div>
+</div>
+<table>
+<thead><tr>
+<th>Requirement</th><th>Scenario</th><th>Steps</th><th>Test Function</th><th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="req-tag">REQ-LB-170</span></td>
+<td>MaxSumMains does NOT overwrite tighter per-phase MaxMains limit</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> MaxMains=10A (tight), MaxSumMains=75A (generous), charging at 160 dA</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current runs</li><li class="step-then"><span class="step-keyword">Then</span> IsetBalanced respects the MaxMains-based per-phase limit;</li></ul></td>
+<td><code>test_capacity_a54b07f_maxsummains_does_not_overwrite_tighter_maxmains</code></td>
+<td><span class="file-ref">test_capacity_sm.c:329</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LB-171</span></td>
+<td>MaxSumMains IS the binding constraint when it is tighter per-phase</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> MaxMains=32A (generous per-phase), MaxSumMains=30A (sum = 10A/phase equiv.)</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current runs</li><li class="step-then"><span class="step-keyword">Then</span> MaxSumMains wins — Idifference narrowed by the per-phase equivalent (30/3=10 dA)</li></ul></td>
+<td><code>test_capacity_a54b07f_maxsummains_binds_when_tighter</code></td>
+<td><span class="file-ref">test_capacity_sm.c:367</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LB-172</span></td>
+<td>LimitedByMaxSumMains flag still set when MaxSumMains exceeded</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ExcessMaxSumMains &lt; 0 (MaxSumMains already exceeded)</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current runs</li><li class="step-then"><span class="step-keyword">Then</span> The MaxSumMainsTimer path is armed (LimitedByMaxSumMains semantics preserved)</li></ul></td>
+<td><code>test_capacity_a54b07f_exceeded_still_flagged</code></td>
+<td><span class="file-ref">test_capacity_sm.c:393</span></td>
+</tr>
+</tbody></table>
+</div>
+<div class="feature-section">
+<div class="feature-title">CircuitMeter Subpanel Protection (5 scenarios)</div>
+<div class="coverage-bar">
+<div class="coverage-fill" style="width:100.0%"></div>
+</div>
+<table>
+<thead><tr>
+<th>Requirement</th><th>Scenario</th><th>Steps</th><th>Test Function</th><th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="req-tag">REQ-CIR-001</span></td>
+<td>Circuit current limiting clamps IsetBalanced on new EVSE join</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> MaxCircuitMains=25A, CircuitMeterImeasured=200dA (20A), new EVSE joining (mod=1)</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current() runs with mod=1 in smart mode</li><li class="step-then"><span class="step-keyword">Then</span> IsetBalanced is clamped by circuit headroom below the unconstrained value</li></ul></td>
+<td><code>test_circuit_limiting_active</code></td>
+<td><span class="file-ref">test_circuit_meter.c:1</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CIR-002</span></td>
+<td>Circuit meter disabled has no effect on IsetBalanced</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> MaxCircuitMains=0 (disabled), new EVSE joining (mod=1)</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current() runs in smart mode</li><li class="step-then"><span class="step-keyword">Then</span> IsetBalanced is determined only by MaxMains and MaxCircuit limits</li></ul></td>
+<td><code>test_circuit_meter_disabled</code></td>
+<td><span class="file-ref">test_circuit_meter.c:82</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CIR-003</span></td>
+<td>Circuit overload triggers hard shortage and increments NoCurrent</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> MaxCircuitMains=25A and CircuitMeterImeasured=260dA (26A, over limit)</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current() runs with mod=1</li><li class="step-then"><span class="step-keyword">Then</span> NoCurrent is incremented due to hard shortage from circuit overload</li></ul></td>
+<td><code>test_circuit_overload</code></td>
+<td><span class="file-ref">test_circuit_meter.c:104</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CIR-004</span></td>
+<td>Circuit headroom tighter than MaxMains — circuit wins</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> MaxMains=40A (plenty of headroom) but MaxCircuitMains=12A with 60dA measured</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current() runs with mod=1</li><li class="step-then"><span class="step-keyword">Then</span> IsetBalanced is limited by circuit headroom, not MaxMains</li></ul></td>
+<td><code>test_circuit_tighter_than_maxmains</code></td>
+<td><span class="file-ref">test_circuit_meter.c:126</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CIR-005</span></td>
+<td>Default initialization sets circuit meter fields to zero</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A freshly initialized evse_ctx_t</li><li class="step-when"><span class="step-keyword">When</span> evse_init() is called</li><li class="step-then"><span class="step-keyword">Then</span> MaxCircuitMains and CircuitMeterImeasured are both 0</li></ul></td>
+<td><code>test_circuit_meter_init_defaults</code></td>
+<td><span class="file-ref">test_circuit_meter.c:163</span></td>
 </tr>
 </tbody></table>
 </div>
@@ -1009,28 +1283,28 @@ footer {
 <td>MaxSumMains timer expiry stops charging</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> STATE_C with MaxSumMainsTimer=1</li><li class="step-when"><span class="step-keyword">When</span> evse_tick_1s (timer expires)</li><li class="step-then"><span class="step-keyword">Then</span> C → C1, LESS_6A set</li></ul></td>
 <td><code>test_s9_maxsummains_timer_expiry</code></td>
-<td><span class="file-ref">test_dual_evse.c:546</span></td>
+<td><span class="file-ref">test_dual_evse.c:550</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-DUAL-S10A</span></td>
 <td>Normal mode forces 3P when currently on 1P</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Normal mode, Nr_Of_Phases_Charging=1</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current</li><li class="step-then"><span class="step-keyword">Then</span> Switching_Phases_C2 = GOING_TO_SWITCH_3P</li></ul></td>
 <td><code>test_s10_normal_forces_3p</code></td>
-<td><span class="file-ref">test_dual_evse.c:578</span></td>
+<td><span class="file-ref">test_dual_evse.c:582</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-DUAL-S10B</span></td>
 <td>STATE_C entry applies 1P switch</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Switching_Phases_C2=GOING_TO_SWITCH_1P, EnableC2=ALWAYS_OFF</li><li class="step-when"><span class="step-keyword">When</span> evse_set_state(STATE_C)</li><li class="step-then"><span class="step-keyword">Then</span> Nr_Of_Phases_Charging=1, contactor2 off</li></ul></td>
 <td><code>test_s10_state_c_applies_1p</code></td>
-<td><span class="file-ref">test_dual_evse.c:597</span></td>
+<td><span class="file-ref">test_dual_evse.c:601</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-DUAL-S10C</span></td>
 <td>Smart mode with AUTO forces back to 3P</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> MODE_SMART, EnableC2=AUTO, Nr_Of_Phases_Charging=1</li><li class="step-when"><span class="step-keyword">When</span> evse_check_switching_phases</li><li class="step-then"><span class="step-keyword">Then</span> Switching_Phases_C2 = GOING_TO_SWITCH_3P</li></ul></td>
 <td><code>test_s10_smart_auto_forces_3p</code></td>
-<td><span class="file-ref">test_dual_evse.c:617</span></td>
+<td><span class="file-ref">test_dual_evse.c:621</span></td>
 </tr>
 </tbody></table>
 </div>
@@ -2179,6 +2453,163 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
+<div class="feature-title">Debug-only unsigned firmware upload (5 scenarios)</div>
+<div class="coverage-bar">
+<div class="coverage-fill" style="width:100.0%"></div>
+</div>
+<table>
+<thead><tr>
+<th>Requirement</th><th>Scenario</th><th>Steps</th><th>Test Function</th><th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="req-tag">REQ-API-020</span></td>
+<td>Release builds never accept unsigned uploads</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A release firmware image (is_debug_build=false)</li><li class="step-when"><span class="step-keyword">When</span> /update receives an unsigned firmware.bin</li><li class="step-then"><span class="step-keyword">Then</span> http_api_allow_unsigned_upload returns false regardless of PIN state</li></ul></td>
+<td><code>test_unsigned_upload_release_build_always_rejected</code></td>
+<td><span class="file-ref">test_http_api.c:938</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-API-020</span></td>
+<td>Debug build without an LCD PIN rejects unsigned uploads</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> is_debug_build=true but LCDPin is 0 (no PIN configured)</li><li class="step-when"><span class="step-keyword">When</span> /update receives an unsigned firmware.bin</li><li class="step-then"><span class="step-keyword">Then</span> The gate returns false — no auth = no unsigned flash</li></ul></td>
+<td><code>test_unsigned_upload_debug_no_pin_rejected</code></td>
+<td><span class="file-ref">test_http_api.c:952</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-API-020</span></td>
+<td>Debug build with PIN configured but not verified rejects upload</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> is_debug_build=true, LCDPin=1234, LCDPasswordOK=false</li><li class="step-when"><span class="step-keyword">When</span> /update receives an unsigned firmware.bin</li><li class="step-then"><span class="step-keyword">Then</span> The gate returns false until the operator verifies the PIN</li></ul></td>
+<td><code>test_unsigned_upload_debug_pin_not_verified_rejected</code></td>
+<td><span class="file-ref">test_http_api.c:967</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-API-020</span></td>
+<td>Debug build with verified LCD PIN accepts unsigned uploads</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> is_debug_build=true, LCDPin&gt;0, LCDPasswordOK=true</li><li class="step-when"><span class="step-keyword">When</span> /update receives an unsigned firmware.bin</li><li class="step-then"><span class="step-keyword">Then</span> The gate returns true — physical-presence auth satisfied</li></ul></td>
+<td><code>test_unsigned_upload_debug_pin_verified_accepted</code></td>
+<td><span class="file-ref">test_http_api.c:980</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-API-020</span></td>
+<td>Release build with a verified LCD PIN still rejects unsigned</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> is_debug_build=false, LCDPin=1234, LCDPasswordOK=true</li><li class="step-when"><span class="step-keyword">When</span> /update receives an unsigned firmware.bin</li><li class="step-then"><span class="step-keyword">Then</span> The gate returns false — C-1 guarantee holds on release firmware</li></ul></td>
+<td><code>test_unsigned_upload_release_with_pin_still_rejected</code></td>
+<td><span class="file-ref">test_http_api.c:994</span></td>
+</tr>
+</tbody></table>
+</div>
+<div class="feature-section">
+<div class="feature-title">HTTP Auth (14 scenarios)</div>
+<div class="coverage-bar">
+<div class="coverage-fill" style="width:100.0%"></div>
+</div>
+<table>
+<thead><tr>
+<th>Requirement</th><th>Scenario</th><th>Steps</th><th>Test Function</th><th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="req-tag">REQ-AUTH-001</span></td>
+<td>AuthMode=OFF allows any request (no PIN, no Origin)</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_auth_off_allows_unauthenticated</code></td>
+<td><span class="file-ref">test_http_auth.c:1</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-001</span></td>
+<td>AuthMode=OFF allows request with foreign Origin (no CSRF check)</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_auth_off_allows_foreign_origin</code></td>
+<td><span class="file-ref">test_http_auth.c:23</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-002</span></td>
+<td>AuthMode=REQUIRED denies request without PIN verification</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_auth_required_denies_unauth</code></td>
+<td><span class="file-ref">test_http_auth.c:36</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-002</span></td>
+<td>AuthMode=REQUIRED allows PIN-verified request</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_auth_required_allows_authed</code></td>
+<td><span class="file-ref">test_http_auth.c:47</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-003</span></td>
+<td>Authenticated session expires after HTTP_AUTH_SESSION_TIMEOUT_MS idle</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_auth_session_expires</code></td>
+<td><span class="file-ref">test_http_auth.c:61</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-003</span></td>
+<td>Authenticated session still valid just before the timeout boundary</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_auth_session_just_before_timeout</code></td>
+<td><span class="file-ref">test_http_auth.c:73</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-003</span></td>
+<td>Session with zero timestamp is treated as &quot;never set&quot; (defensive)</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_auth_session_zero_ts_does_not_expire</code></td>
+<td><span class="file-ref">test_http_auth.c:85</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-004</span></td>
+<td>Missing Origin header allowed (non-browser integration)</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_auth_no_origin_allowed</code></td>
+<td><span class="file-ref">test_http_auth.c:97</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-004</span></td>
+<td>Matching Origin allowed</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_auth_matching_origin_allowed</code></td>
+<td><span class="file-ref">test_http_auth.c:108</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-004</span></td>
+<td>Matching hostname in origin allowed</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_auth_matching_hostname_origin_allowed</code></td>
+<td><span class="file-ref">test_http_auth.c:119</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-004</span></td>
+<td>Foreign Origin blocked as CSRF</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_auth_foreign_origin_blocked</code></td>
+<td><span class="file-ref">test_http_auth.c:130</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-004</span></td>
+<td>Origin with unexpected scheme blocked</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_auth_origin_bad_scheme_blocked</code></td>
+<td><span class="file-ref">test_http_auth.c:141</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-004</span></td>
+<td>https:// Origin matching device IP allowed</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_auth_https_matching_origin_allowed</code></td>
+<td><span class="file-ref">test_http_auth.c:152</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-005</span></td>
+<td>Unauth + foreign Origin reports UNAUTH first (PIN check precedes CSRF)</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_auth_unauth_precedes_csrf</code></td>
+<td><span class="file-ref">test_http_auth.c:165</span></td>
+</tr>
+</tbody></table>
+</div>
+<div class="feature-section">
 <div class="feature-title">LB Convergence (47 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
@@ -2673,6 +3104,116 @@ footer {
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> State B, Normal mode, CustomButton true</li><li class="step-when"><span class="step-keyword">When</span> led_compute_color is called</li><li class="step-then"><span class="step-keyword">Then</span> LED shows custom blue at full brightness</li></ul></td>
 <td><code>test_state_b_custom_override</code></td>
 <td><span class="file-ref">test_led_color.c:466</span></td>
+</tr>
+</tbody></table>
+</div>
+<div class="feature-section">
+<div class="feature-title">LED Color — Public Scheme (14 scenarios)</div>
+<div class="coverage-bar">
+<div class="coverage-fill" style="width:100.0%"></div>
+</div>
+<table>
+<thead><tr>
+<th>Requirement</th><th>Scenario</th><th>Steps</th><th>Test Function</th><th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="req-tag">REQ-LED-100</span></td>
+<td>RFID read grey flash wins over all other signals</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> rfid_read_flash true, other flashes also asserted</li><li class="step-when"><span class="step-keyword">When</span> led_public_compute is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns grey (128,128,128) — highest priority in the decision tree</li></ul></td>
+<td><code>test_public_rfid_flash_priority</code></td>
+<td><span class="file-ref">test_led_color.c:498</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LED-100</span></td>
+<td>Authorized-grant green flash</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> tx_authorized_flash true, no higher-priority signal</li><li class="step-when"><span class="step-keyword">When</span> led_public_compute is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns green (0,255,0)</li></ul></td>
+<td><code>test_public_tx_authorized_green</code></td>
+<td><span class="file-ref">test_led_color.c:518</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LED-100</span></td>
+<td>Authorization-rejected red flash</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> tx_rejected_flash true</li><li class="step-when"><span class="step-keyword">When</span> led_public_compute is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns red (255,0,0)</li></ul></td>
+<td><code>test_public_tx_rejected_red</code></td>
+<td><span class="file-ref">test_led_color.c:536</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LED-100</span></td>
+<td>Auth-timeout red flash</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> tx_timeout_flash true</li><li class="step-when"><span class="step-keyword">When</span> led_public_compute is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns red (255,0,0)</li></ul></td>
+<td><code>test_public_tx_timeout_red</code></td>
+<td><span class="file-ref">test_led_color.c:554</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LED-101</span></td>
+<td>Reserved ChargePoint status → orange</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> cp_status = LED_CP_STATUS_RESERVED, no flashes</li><li class="step-when"><span class="step-keyword">When</span> led_public_compute is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns orange (255,128,0)</li></ul></td>
+<td><code>test_public_reserved_orange</code></td>
+<td><span class="file-ref">test_led_color.c:572</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LED-101</span></td>
+<td>Unavailable ChargePoint status → red</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> cp_status = LED_CP_STATUS_UNAVAILABLE</li><li class="step-when"><span class="step-keyword">When</span> led_public_compute is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns red (255,0,0)</li></ul></td>
+<td><code>test_public_unavailable_red</code></td>
+<td><span class="file-ref">test_led_color.c:590</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LED-101</span></td>
+<td>Faulted ChargePoint status → red</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> cp_status = LED_CP_STATUS_FAULTED</li><li class="step-when"><span class="step-keyword">When</span> led_public_compute is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns red (255,0,0)</li></ul></td>
+<td><code>test_public_faulted_red</code></td>
+<td><span class="file-ref">test_led_color.c:608</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LED-102</span></td>
+<td>Waiting / ChargeDelay → slow orange blink (bright phase)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> charge_delay set, led_count seeded past 230</li><li class="step-when"><span class="step-keyword">When</span> led_public_compute is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns orange at waiting brightness (R=WAITING_LED_BRIGHTNESS, G=R/2, B=0)</li></ul></td>
+<td><code>test_public_waiting_orange_bright</code></td>
+<td><span class="file-ref">test_led_color.c:626</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LED-102</span></td>
+<td>Waiting / ChargeDelay → slow orange blink (dark phase)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> error flag set, led_count seeded so post-increment is &lt;= 230</li><li class="step-when"><span class="step-keyword">When</span> led_public_compute is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns (0,0,0) — dark part of the blink</li></ul></td>
+<td><code>test_public_waiting_orange_dark</code></td>
+<td><span class="file-ref">test_led_color.c:644</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LED-103</span></td>
+<td>STATE_A → green (dimmed) = Available</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> state = STATE_A, no flashes, no waiting</li><li class="step-when"><span class="step-keyword">When</span> led_public_compute is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns (0, STATE_A_LED_BRIGHTNESS, 0)</li></ul></td>
+<td><code>test_public_state_a_green_dim</code></td>
+<td><span class="file-ref">test_led_color.c:662</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LED-103</span></td>
+<td>STATE_B → blue static = EV connected</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> state = STATE_B</li><li class="step-when"><span class="step-keyword">When</span> led_public_compute is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns (0, 0, STATE_B_LED_BRIGHTNESS) and seeds led_count=128</li></ul></td>
+<td><code>test_public_state_b_blue_static</code></td>
+<td><span class="file-ref">test_led_color.c:680</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LED-103</span></td>
+<td>STATE_B1 and STATE_MODEM_* also → blue static</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> state = STATE_B1</li><li class="step-when"><span class="step-keyword">When</span> led_public_compute is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns (0, 0, STATE_B_LED_BRIGHTNESS)</li></ul></td>
+<td><code>test_public_state_b1_blue_static</code></td>
+<td><span class="file-ref">test_led_color.c:699</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LED-103</span></td>
+<td>STATE_C → blue fading (animation advances)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> state = STATE_C, led_count incremented across calls</li><li class="step-when"><span class="step-keyword">When</span> led_public_compute is called twice</li><li class="step-then"><span class="step-keyword">Then</span> Both outputs have R=0, G=0, B&gt;0 and led_count advances</li></ul></td>
+<td><code>test_public_state_c_blue_fading</code></td>
+<td><span class="file-ref">test_led_color.c:717</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LED-104</span></td>
+<td>Default/unknown state with no signals → all off</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Default snapshot, state is unknown value</li><li class="step-when"><span class="step-keyword">When</span> led_public_compute is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns (0,0,0) — falls off the decision tree</li></ul></td>
+<td><code>test_public_unknown_state_off</code></td>
+<td><span class="file-ref">test_led_color.c:739</span></td>
 </tr>
 </tbody></table>
 </div>
@@ -3538,6 +4079,74 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
+<div class="feature-title">Mode Synchronization (8 scenarios)</div>
+<div class="coverage-bar">
+<div class="coverage-fill" style="width:100.0%"></div>
+</div>
+<table>
+<thead><tr>
+<th>Requirement</th><th>Scenario</th><th>Steps</th><th>Test Function</th><th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="req-tag">REQ-MODE-SYNC-001</span></td>
+<td>SOLAR_OFF: switching to Solar requires single-phase (evse_force_single_phase)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> EVSE in Smart mode charging on 3 phases, EnableC2=SOLAR_OFF</li><li class="step-when"><span class="step-keyword">When</span> Mode is set to Solar and evse_check_switching_phases is called</li><li class="step-then"><span class="step-keyword">Then</span> evse_force_single_phase returns true (C2 must be off in Solar mode)</li></ul></td>
+<td><code>test_solar_off_forces_single_phase_in_solar</code></td>
+<td><span class="file-ref">test_mode_sync.c:1</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MODE-SYNC-002</span></td>
+<td>SOLAR_OFF: Smart mode allows three-phase</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> EVSE with EnableC2=SOLAR_OFF in Smart mode</li><li class="step-when"><span class="step-keyword">When</span> evse_force_single_phase is checked</li><li class="step-then"><span class="step-keyword">Then</span> Returns false (C2 allowed in non-Solar modes with SOLAR_OFF)</li></ul></td>
+<td><code>test_solar_off_allows_3p_in_smart</code></td>
+<td><span class="file-ref">test_mode_sync.c:72</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MODE-SYNC-003</span></td>
+<td>State C entry with SOLAR_OFF in Solar mode opens C2 contactor</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> EVSE with EnableC2=SOLAR_OFF, Mode=Solar, entering STATE_C</li><li class="step-when"><span class="step-keyword">When</span> evse_set_state(ctx, STATE_C) is called</li><li class="step-then"><span class="step-keyword">Then</span> contactor2 is off (single-phase charging)</li></ul></td>
+<td><code>test_state_c_entry_solar_off_opens_c2</code></td>
+<td><span class="file-ref">test_mode_sync.c:89</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MODE-SYNC-004</span></td>
+<td>Clearing LESS_6A on switch to Smart (via evse_clear_error_flags)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> EVSE with LESS_6A error set from solar shortage</li><li class="step-when"><span class="step-keyword">When</span> evse_clear_error_flags clears LESS_6A (as setMode does for Smart)</li><li class="step-then"><span class="step-keyword">Then</span> ErrorFlags no longer has LESS_6A set</li></ul></td>
+<td><code>test_clear_less6a_on_mode_switch</code></td>
+<td><span class="file-ref">test_mode_sync.c:118</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MODE-SYNC-005</span></td>
+<td>SolarStopTimer persists if mode switch misses setMode</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> EVSE with SolarStopTimer=300, mode changes to Smart</li><li class="step-when"><span class="step-keyword">When</span> Only Mode variable is assigned (simulating SETITEM bug)</li><li class="step-then"><span class="step-keyword">Then</span> SolarStopTimer remains at 300 (stale — not cleared)</li></ul></td>
+<td><code>test_raw_mode_assign_leaves_timer_stale</code></td>
+<td><span class="file-ref">test_mode_sync.c:136</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MODE-SYNC-006</span></td>
+<td>SolarStopTimer cleared when setMode side effects applied</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> EVSE with SolarStopTimer=300, mode changes to Smart</li><li class="step-when"><span class="step-keyword">When</span> setMode side effects are applied (timer reset to 0)</li><li class="step-then"><span class="step-keyword">Then</span> SolarStopTimer is 0</li></ul></td>
+<td><code>test_setmode_clears_timer</code></td>
+<td><span class="file-ref">test_mode_sync.c:157</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MODE-SYNC-007</span></td>
+<td>Smart→Solar mid-charge: regulation switches to solar algorithm</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> EVSE charging in Smart mode with mains headroom available</li><li class="step-when"><span class="step-keyword">When</span> Mode is changed to Solar and evse_calc_balanced_current is called</li><li class="step-then"><span class="step-keyword">Then</span> Solar fine regulation is applied (IsetBalanced changes differently)</li></ul></td>
+<td><code>test_mid_charge_smart_to_solar</code></td>
+<td><span class="file-ref">test_mode_sync.c:187</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MODE-SYNC-008</span></td>
+<td>Solar→Normal mid-charge: all EVSEs get full current</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in Solar mode with shortage</li><li class="step-when"><span class="step-keyword">When</span> Mode is changed to Normal</li><li class="step-then"><span class="step-keyword">Then</span> Both EVSEs get full current (Normal ignores solar/mains constraints)</li></ul></td>
+<td><code>test_mid_charge_solar_to_normal</code></td>
+<td><span class="file-ref">test_mode_sync.c:225</span></td>
+</tr>
+</tbody></table>
+</div>
+<div class="feature-section">
 <div class="feature-title">Modem / ISO15118 Negotiation (29 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
@@ -3753,7 +4362,7 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">MQTT Command Parsing (30 scenarios)</div>
+<div class="feature-title">MQTT Command Parsing (35 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -3972,10 +4581,45 @@ footer {
 <td><code>test_mqtt_change_only_disable</code></td>
 <td><span class="file-ref">test_mqtt_parser.c:878</span></td>
 </tr>
+<tr>
+<td><span class="req-tag">REQ-CIR-010</span></td>
+<td>Set MaxCircuitMains to valid value via MQTT</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/MaxCircuitMains with payload &quot;25&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_MAX_CIRCUIT_MAINS with value 25</li></ul></td>
+<td><code>test_max_circuit_mains_valid</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1193</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CIR-010</span></td>
+<td>Set MaxCircuitMains to zero (disable) via MQTT</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/MaxCircuitMains with payload &quot;0&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_MAX_CIRCUIT_MAINS with value 0</li></ul></td>
+<td><code>test_max_circuit_mains_zero</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1207</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CIR-010</span></td>
+<td>Set MaxCircuitMains to boundary max (600) via MQTT</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/MaxCircuitMains with payload &quot;600&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_MAX_CIRCUIT_MAINS with value 600</li></ul></td>
+<td><code>test_max_circuit_mains_max</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1221</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CIR-011</span></td>
+<td>Set CircuitMeter API feed via MQTT with L1:L2:L3 format</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/CircuitMeter with payload &quot;100:200:150&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_CIRCUIT_METER with parsed phase currents</li></ul></td>
+<td><code>test_circuit_meter_valid</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1261</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CIR-011</span></td>
+<td>CircuitMeter API feed with negative values (export)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/CircuitMeter with payload &quot;-50:100:-25&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_CIRCUIT_METER with correct phase currents</li></ul></td>
+<td><code>test_circuit_meter_negative</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1277</span></td>
+</tr>
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">MQTT Input Validation (42 scenarios)</div>
+<div class="feature-title">MQTT Input Validation (46 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -4265,18 +4909,46 @@ footer {
 <td><span class="file-ref">test_mqtt_parser.c:1085</span></td>
 </tr>
 <tr>
+<td><span class="req-tag">REQ-CIR-010</span></td>
+<td>Reject MaxCircuitMains below minimum (1-9 range)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/MaxCircuitMains with payload &quot;5&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false (gap between 0 and 10)</li></ul></td>
+<td><code>test_max_circuit_mains_below_min</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1235</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CIR-010</span></td>
+<td>Reject MaxCircuitMains above maximum</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/MaxCircuitMains with payload &quot;601&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
+<td><code>test_max_circuit_mains_above_max</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1247</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CIR-011</span></td>
+<td>Reject CircuitMeter with out of range values</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/CircuitMeter with payload &quot;2001:0:0&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false (exceeds +/-2000 dA range)</li></ul></td>
+<td><code>test_circuit_meter_out_of_range</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1293</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CIR-011</span></td>
+<td>Reject CircuitMeter with missing fields</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/CircuitMeter with payload &quot;100:200&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false (needs 3 fields)</li></ul></td>
+<td><code>test_circuit_meter_missing_fields</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1305</span></td>
+</tr>
+<tr>
 <td><span class="req-tag">REQ-MQTT-014</span></td>
 <td>Unrecognized topic returns false</td>
 <td><ul class="scenario-steps"></ul></td>
 <td><code>test_unrecognized_topic</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1101</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1319</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MQTT-014</span></td>
 <td>Wrong prefix returns false</td>
 <td><ul class="scenario-steps"></ul></td>
 <td><code>test_wrong_prefix</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1110</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1328</span></td>
 </tr>
 </tbody></table>
 </div>
@@ -4464,6 +5136,67 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
+<div class="feature-title">Capacity Tariff MQTT (7 scenarios)</div>
+<div class="coverage-bar">
+<div class="coverage-fill" style="width:100.0%"></div>
+</div>
+<table>
+<thead><tr>
+<th>Requirement</th><th>Scenario</th><th>Steps</th><th>Test Function</th><th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="req-tag">REQ-CAP-010</span></td>
+<td>Set capacity limit to a valid value via MQTT</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/CapacityLimit with payload &quot;5000&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_CAPACITY_LIMIT with capacity_limit 5000</li></ul></td>
+<td><code>test_capacity_limit_valid</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1101</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-010</span></td>
+<td>Set capacity limit to zero (disabled) via MQTT</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/CapacityLimit with payload &quot;0&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_CAPACITY_LIMIT with capacity_limit 0</li></ul></td>
+<td><code>test_capacity_limit_zero_disables</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1115</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-010</span></td>
+<td>Set capacity limit to maximum allowed value</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/CapacityLimit with payload &quot;25000&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_CAPACITY_LIMIT with capacity_limit 25000</li></ul></td>
+<td><code>test_capacity_limit_max</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1129</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-010</span></td>
+<td>Reject capacity limit above maximum</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/CapacityLimit with payload &quot;25001&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
+<td><code>test_capacity_limit_over_max</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1143</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-010</span></td>
+<td>Reject negative capacity limit</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/CapacityLimit with payload &quot;-1&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
+<td><code>test_capacity_limit_negative</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1155</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-010</span></td>
+<td>Reject empty payload for capacity limit</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/CapacityLimit with empty payload</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
+<td><code>test_capacity_limit_empty</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1167</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CAP-010</span></td>
+<td>Reject non-numeric payload for capacity limit</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/CapacityLimit with payload &quot;abc&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
+<td><code>test_capacity_limit_non_numeric</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1179</span></td>
+</tr>
+</tbody></table>
+</div>
+<div class="feature-section">
 <div class="feature-title">MQTT Change-Only Publishing (10 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
@@ -4542,6 +5275,212 @@ footer {
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The enum definition</li><li class="step-when"><span class="step-keyword">When</span> MQTT_SLOT_COUNT is compared to MQTT_CACHE_MAX_SLOTS</li><li class="step-then"><span class="step-keyword">Then</span> MQTT_SLOT_COUNT is less than or equal to MQTT_CACHE_MAX_SLOTS</li></ul></td>
 <td><code>test_slot_count_within_bounds</code></td>
 <td><span class="file-ref">test_mqtt_publish.c:159</span></td>
+</tr>
+</tbody></table>
+</div>
+<div class="feature-section">
+<div class="feature-title">MQTT SoC Parsing (13 scenarios)</div>
+<div class="coverage-bar">
+<div class="coverage-fill" style="width:100.0%"></div>
+</div>
+<table>
+<thead><tr>
+<th>Requirement</th><th>Scenario</th><th>Steps</th><th>Test Function</th><th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="req-tag">REQ-SOC-001</span></td>
+<td>Parse Set/InitialSoC with valid percentage</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/InitialSoC with payload &quot;80&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_INITIAL_SOC with initial_soc = 80</li></ul></td>
+<td><code>test_initial_soc_valid</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:1</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-002</span></td>
+<td>Parse Set/InitialSoC with -1 to reset/clear value</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/InitialSoC with payload &quot;-1&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_INITIAL_SOC with initial_soc = -1</li></ul></td>
+<td><code>test_initial_soc_reset</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:32</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-005</span></td>
+<td>Parse Set/InitialSoC boundary value 0</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/InitialSoC with payload &quot;0&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_INITIAL_SOC with initial_soc = 0</li></ul></td>
+<td><code>test_initial_soc_zero</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:70</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-006</span></td>
+<td>Parse Set/InitialSoC boundary value 100</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/InitialSoC with payload &quot;100&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_INITIAL_SOC with initial_soc = 100</li></ul></td>
+<td><code>test_initial_soc_max</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:84</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-007</span></td>
+<td>Parse Set/FullSoC with valid percentage</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/FullSoC with payload &quot;95&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_FULL_SOC with full_soc = 95</li></ul></td>
+<td><code>test_full_soc_valid</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:100</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-008</span></td>
+<td>Parse Set/FullSoC with -1 to reset/clear value</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/FullSoC with payload &quot;-1&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_FULL_SOC with full_soc = -1</li></ul></td>
+<td><code>test_full_soc_reset</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:114</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-010</span></td>
+<td>Parse Set/EnergyCapacity with valid Wh value</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EnergyCapacity with payload &quot;64000&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_ENERGY_CAPACITY with energy_capacity = 64000</li></ul></td>
+<td><code>test_energy_capacity_valid</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:142</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-012</span></td>
+<td>Parse Set/EnergyCapacity boundary value 200000</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EnergyCapacity with payload &quot;200000&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_ENERGY_CAPACITY with energy_capacity = 200000</li></ul></td>
+<td><code>test_energy_capacity_boundary_max</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:168</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-013</span></td>
+<td>Parse Set/EnergyCapacity with -1 to reset/clear value</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EnergyCapacity with payload &quot;-1&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_ENERGY_CAPACITY with energy_capacity = -1</li></ul></td>
+<td><code>test_energy_capacity_reset</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:182</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-015</span></td>
+<td>Parse Set/EnergyRequest with valid Wh value</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EnergyRequest with payload &quot;32000&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_ENERGY_REQUEST with energy_request = 32000</li></ul></td>
+<td><code>test_energy_request_valid</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:210</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-017</span></td>
+<td>Parse Set/EVCCID with valid identifier</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EVCCID with payload &quot;WBADE12345678901&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_EVCCID_SET with evccid matching the payload</li></ul></td>
+<td><code>test_evccid_set_valid</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:238</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-019</span></td>
+<td>Set/EVCCID accepts exactly 31 characters</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EVCCID with a 31-character payload</li><li class="step-then"><span class="step-keyword">Then</span> The parser returns true with the full string stored</li></ul></td>
+<td><code>test_evccid_set_max_length</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:266</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-020</span></td>
+<td>Set/EVCCID accepts empty string to clear</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EVCCID with empty payload &quot;&quot;</li><li class="step-then"><span class="step-keyword">Then</span> The parser returns true with an empty evccid</li></ul></td>
+<td><code>test_evccid_set_empty</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:282</span></td>
+</tr>
+</tbody></table>
+</div>
+<div class="feature-section">
+<div class="feature-title">MQTT SoC Input Validation (13 scenarios)</div>
+<div class="coverage-bar">
+<div class="coverage-fill" style="width:100.0%"></div>
+</div>
+<table>
+<thead><tr>
+<th>Requirement</th><th>Scenario</th><th>Steps</th><th>Test Function</th><th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="req-tag">REQ-SOC-003</span></td>
+<td>Reject Set/InitialSoC with value above 100</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/InitialSoC with payload &quot;101&quot;</li><li class="step-then"><span class="step-keyword">Then</span> The parser returns false</li></ul></td>
+<td><code>test_initial_soc_above_max</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:46</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-004</span></td>
+<td>Reject Set/InitialSoC with value below -1</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/InitialSoC with payload &quot;-2&quot;</li><li class="step-then"><span class="step-keyword">Then</span> The parser returns false</li></ul></td>
+<td><code>test_initial_soc_below_min</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:58</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-009</span></td>
+<td>Reject Set/FullSoC with value above 100</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/FullSoC with payload &quot;101&quot;</li><li class="step-then"><span class="step-keyword">Then</span> The parser returns false</li></ul></td>
+<td><code>test_full_soc_above_max</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:128</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-011</span></td>
+<td>Reject Set/EnergyCapacity above 200000 Wh</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EnergyCapacity with payload &quot;200001&quot;</li><li class="step-then"><span class="step-keyword">Then</span> The parser returns false</li></ul></td>
+<td><code>test_energy_capacity_above_max</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:156</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-014</span></td>
+<td>Reject Set/EnergyCapacity below -1</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EnergyCapacity with payload &quot;-2&quot;</li><li class="step-then"><span class="step-keyword">Then</span> The parser returns false</li></ul></td>
+<td><code>test_energy_capacity_below_min</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:196</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-016</span></td>
+<td>Reject Set/EnergyRequest above 200000 Wh</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EnergyRequest with payload &quot;200001&quot;</li><li class="step-then"><span class="step-keyword">Then</span> The parser returns false</li></ul></td>
+<td><code>test_energy_request_above_max</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:224</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-018</span></td>
+<td>Set/EVCCID truncated at 31 chars (32-byte buffer with NUL)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EVCCID with a 32-character payload</li><li class="step-then"><span class="step-keyword">Then</span> The parser returns false because payload &gt;= sizeof(evccid)</li></ul></td>
+<td><code>test_evccid_set_too_long</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:252</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-021</span></td>
+<td>Empty payload is rejected for InitialSoC</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/InitialSoC with empty payload &quot;&quot;</li><li class="step-then"><span class="step-keyword">Then</span> The parser returns false</li></ul></td>
+<td><code>test_initial_soc_empty_payload</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:298</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-022</span></td>
+<td>Empty payload is rejected for FullSoC</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/FullSoC with empty payload &quot;&quot;</li><li class="step-then"><span class="step-keyword">Then</span> The parser returns false</li></ul></td>
+<td><code>test_full_soc_empty_payload</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:310</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-023</span></td>
+<td>Empty payload is rejected for EnergyCapacity</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EnergyCapacity with empty payload &quot;&quot;</li><li class="step-then"><span class="step-keyword">Then</span> The parser returns false</li></ul></td>
+<td><code>test_energy_capacity_empty_payload</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:322</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-024</span></td>
+<td>Empty payload is rejected for EnergyRequest</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EnergyRequest with empty payload &quot;&quot;</li><li class="step-then"><span class="step-keyword">Then</span> The parser returns false</li></ul></td>
+<td><code>test_energy_request_empty_payload</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:334</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-025</span></td>
+<td>Non-numeric payload is rejected for InitialSoC</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/InitialSoC with payload &quot;abc&quot;</li><li class="step-then"><span class="step-keyword">Then</span> The parser returns false</li></ul></td>
+<td><code>test_initial_soc_non_numeric</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:348</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-SOC-026</span></td>
+<td>Non-numeric payload is rejected for EnergyCapacity</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EnergyCapacity with payload &quot;abc&quot;</li><li class="step-then"><span class="step-keyword">Then</span> The parser returns false</li></ul></td>
+<td><code>test_energy_capacity_non_numeric</code></td>
+<td><span class="file-ref">test_mqtt_soc.c:360</span></td>
 </tr>
 </tbody></table>
 </div>
@@ -4652,6 +5591,186 @@ footer {
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> 2 EVSEs: EVSE[0] max 320, EVSE[1] max 60 (MinCurrent), MaxCircuit=25A</li><li class="step-when"><span class="step-keyword">When</span> Balanced current is calculated</li><li class="step-then"><span class="step-keyword">Then</span> EVSE[1] gets 60, EVSE[0] gets remainder (250-60=190)</li></ul></td>
 <td><code>test_unequal_max_tight_circuit</code></td>
 <td><span class="file-ref">test_multi_node.c:402</span></td>
+</tr>
+</tbody></table>
+</div>
+<div class="feature-section">
+<div class="feature-title">Multi-Node Solar Charging (24 scenarios)</div>
+<div class="coverage-bar">
+<div class="coverage-fill" style="width:100.0%"></div>
+</div>
+<table>
+<thead><tr>
+<th>Requirement</th><th>Scenario</th><th>Steps</th><th>Test Function</th><th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-001</span></td>
+<td>Two nodes solar shortage: SolarStopTimer starts when Isum exceeds threshold</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in STATE_C, solar mode, grid importing above threshold</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called with Isum above (ActiveEVSE*MinCurrent*Phases - StartCurrent)*10</li><li class="step-then"><span class="step-keyword">Then</span> SolarStopTimer starts counting down from StopTime * 60</li></ul></td>
+<td><code>test_solar_multi_node_shortage_starts_timer</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:1</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-001B</span></td>
+<td>Two nodes solar shortage with moderate import starts SolarStopTimer</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in STATE_C, solar mode, grid importing 20A (no surplus)</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called</li><li class="step-then"><span class="step-keyword">Then</span> SolarStopTimer starts because Isum (200) &gt; single-EVSE threshold (140)</li></ul></td>
+<td><code>test_solar_multi_node_shortage_timer_moderate_import</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:81</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-002</span></td>
+<td>Two nodes solar shortage: priority scheduling pauses lower-priority node</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in STATE_C, solar mode, grid importing heavily (Isum=300)</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called with very low actual available power</li><li class="step-then"><span class="step-keyword">Then</span> At least one EVSE gets Balanced=0 (paused via priority scheduling)</li></ul></td>
+<td><code>test_solar_multi_node_pauses_with_no_sun</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:107</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-003</span></td>
+<td>Four nodes solar: Isum above threshold starts timer and pauses nodes</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 4 EVSEs in STATE_C, solar mode, Isum above 4-node threshold</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called</li><li class="step-then"><span class="step-keyword">Then</span> SolarStopTimer is started and at least some EVSEs are paused</li></ul></td>
+<td><code>test_solar_four_nodes_above_threshold</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:140</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-003B</span></td>
+<td>Four nodes solar with 40A import starts SolarStopTimer</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 4 EVSEs in STATE_C, solar mode, grid importing 40A</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called</li><li class="step-then"><span class="step-keyword">Then</span> SolarStopTimer starts because Isum (400) &gt; single-EVSE threshold (140)</li></ul></td>
+<td><code>test_solar_four_nodes_no_surplus_starts_timer</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:169</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-004</span></td>
+<td>Two nodes with sufficient solar surplus: both charge</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in STATE_C, solar mode, grid exporting 15A (surplus)</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called</li><li class="step-then"><span class="step-keyword">Then</span> Both EVSEs receive current &gt;= MinCurrent and SolarStopTimer stays 0</li></ul></td>
+<td><code>test_solar_multi_node_surplus_both_charge</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:197</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-005</span></td>
+<td>Two nodes with marginal surplus: enough for one, not both</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in STATE_C, solar mode, surplus of ~8A (enough for 1 at 6A, not 2)</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called</li><li class="step-then"><span class="step-keyword">Then</span> Priority EVSE gets current, other is paused with NO_SUN</li></ul></td>
+<td><code>test_solar_multi_node_marginal_surplus</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:221</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-006</span></td>
+<td>SolarStopTimer does not restart when already running</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in solar mode, SolarStopTimer already at 300</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called again with shortage</li><li class="step-then"><span class="step-keyword">Then</span> SolarStopTimer retains its existing value (not reset to StopTime*60)</li></ul></td>
+<td><code>test_solar_multi_node_timer_no_restart</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:250</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-007</span></td>
+<td>Solar surplus returns: SolarStopTimer clears</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in solar mode, SolarStopTimer running at 300</li><li class="step-when"><span class="step-keyword">When</span> surplus returns (no shortage) and evse_calc_balanced_current is called</li><li class="step-then"><span class="step-keyword">Then</span> SolarStopTimer is reset to 0</li></ul></td>
+<td><code>test_solar_multi_node_surplus_clears_timer</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:272</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-008</span></td>
+<td>SolarStopTimer suppressed during startup settling</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs, Node[0].IntTimer &lt; SOLARSTARTTIME (in startup)</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called with shortage</li><li class="step-then"><span class="step-keyword">Then</span> SolarStopTimer remains 0 (suppressed during startup)</li></ul></td>
+<td><code>test_solar_multi_node_timer_suppressed_startup</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:295</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-008B</span></td>
+<td>SolarStopTimer threshold is per-EVSE: just below threshold, timer does not start</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in solar mode, Isum just below single-EVSE threshold</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called</li><li class="step-then"><span class="step-keyword">Then</span> SolarStopTimer stays 0 (stopping last car would cause immediate restart)</li></ul></td>
+<td><code>test_solar_multi_node_timer_below_threshold_no_start</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:317</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-008C</span></td>
+<td>SolarStopTimer threshold is per-EVSE: just above threshold, timer starts</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in solar mode, Isum just above single-EVSE threshold</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called</li><li class="step-then"><span class="step-keyword">Then</span> SolarStopTimer starts (not enough solar for even one car)</li></ul></td>
+<td><code>test_solar_multi_node_timer_above_threshold_starts</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:342</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-009</span></td>
+<td>Solar mode produces different distribution than Normal mode</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in STATE_C, same grid conditions</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called in Normal mode vs Solar mode</li><li class="step-then"><span class="step-keyword">Then</span> Solar mode distributes based on surplus; Normal mode distributes based on MaxCircuit</li></ul></td>
+<td><code>test_solar_vs_normal_distribution_differs</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:371</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-010</span></td>
+<td>Smart mode produces different distribution than Solar mode under same conditions</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in STATE_C, grid importing 10A</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called in Smart mode vs Solar mode</li><li class="step-then"><span class="step-keyword">Then</span> Smart mode uses MaxMains regulation; Solar mode uses surplus regulation</li></ul></td>
+<td><code>test_solar_vs_smart_distribution_differs</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:410</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-011</span></td>
+<td>Node goes offline during solar shortage</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 3 EVSEs in solar mode with shortage, SolarStopTimer running</li><li class="step-when"><span class="step-keyword">When</span> Node 2 goes offline (STATE_A) and current is recalculated</li><li class="step-then"><span class="step-keyword">Then</span> Fewer active EVSEs means less MinCurrent demand; may resolve shortage</li></ul></td>
+<td><code>test_solar_multi_node_offline_during_shortage</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:452</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-012</span></td>
+<td>Solar mode with ImportCurrent allows some grid import</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in solar mode, ImportCurrent=6A, grid importing 5A</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called</li><li class="step-then"><span class="step-keyword">Then</span> ImportCurrent tolerance means 5A import is acceptable; no shortage</li></ul></td>
+<td><code>test_solar_multi_node_import_current_tolerance</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:489</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-013</span></td>
+<td>NoCurrent threshold eventually triggers LESS_6A in multi-node solar</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in solar mode, repeated hard shortage cycles</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called multiple times with NoCurrent accumulating</li><li class="step-then"><span class="step-keyword">Then</span> After NoCurrent reaches threshold, LESS_6A error flag is set</li></ul></td>
+<td><code>test_solar_multi_node_nocurrent_threshold</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:514</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-014</span></td>
+<td>Sufficient solar but tight capacity headroom forces shortage</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in solar mode, grid exporting (solar surplus),</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called</li><li class="step-then"><span class="step-keyword">Then</span> IsetBalanced is capped by headroom, shortage detected, priority scheduling runs</li></ul></td>
+<td><code>test_solar_capacity_surplus_but_headroom_tight</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:551</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-015</span></td>
+<td>No solar AND tight capacity: both constraints active</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in solar mode, grid importing 20A,</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called</li><li class="step-then"><span class="step-keyword">Then</span> Shortage detected via both solar regulation AND capacity headroom</li></ul></td>
+<td><code>test_solar_capacity_no_surplus_tight_headroom</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:587</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-016</span></td>
+<td>Capacity headroom disabled (0) has no effect on solar logic</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in solar mode, CapacityHeadroom_da = INT16_MAX (disabled)</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called with solar surplus</li><li class="step-then"><span class="step-keyword">Then</span> Capacity does not constrain charging; both EVSEs charge normally</li></ul></td>
+<td><code>test_solar_capacity_disabled_no_effect</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:614</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-017</span></td>
+<td>Capacity headroom negative: power budget exceeded, forces immediate shortage</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in solar mode, CapacityHeadroom_da = -50 (over budget)</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called even with solar surplus</li><li class="step-then"><span class="step-keyword">Then</span> Shortage detected due to capacity (IsetBalanced capped very low)</li></ul></td>
+<td><code>test_solar_capacity_negative_headroom</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:640</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-018</span></td>
+<td>SolarStopTimer expiry transitions STATE_C to STATE_C1 (power pause)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> EVSE in STATE_C, SolarStopTimer about to expire</li><li class="step-when"><span class="step-keyword">When</span> evse_tick_1s decrements SolarStopTimer to 0</li><li class="step-then"><span class="step-keyword">Then</span> State transitions to STATE_C1 (power paused), LESS_6A set</li></ul></td>
+<td><code>test_solar_stop_pauses_power_not_session</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:681</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-019</span></td>
+<td>LESS_6A clears when solar returns (auto-recovery)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> EVSE with LESS_6A set, solar surplus returns (Isum negative)</li><li class="step-when"><span class="step-keyword">When</span> evse_tick_1s checks evse_is_current_available</li><li class="step-then"><span class="step-keyword">Then</span> LESS_6A is cleared, allowing state machine to resume charging</li></ul></td>
+<td><code>test_solar_return_clears_less6a</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:708</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MULTI-SOL-020</span></td>
+<td>Full solar pause/resume cycle preserves AccessStatus</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> EVSE in STATE_C charging, SolarStopTimer expires</li><li class="step-when"><span class="step-keyword">When</span> State goes C→C1 and C1Timer counts down to B1</li><li class="step-then"><span class="step-keyword">Then</span> AccessStatus stays ON throughout (OCPP tx survives the pause)</li></ul></td>
+<td><code>test_solar_full_pause_cycle_preserves_access</code></td>
+<td><span class="file-ref">test_multi_node_solar.c:735</span></td>
 </tr>
 </tbody></table>
 </div>
@@ -4918,7 +6037,7 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">OCPP Connector State (12 scenarios)</div>
+<div class="feature-title">OCPP Connector State (18 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -5010,6 +6129,137 @@ footer {
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> CP voltage is PILOT_NOK (fault)</li><li class="step-when"><span class="step-keyword">When</span> ocpp_is_ev_ready is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns false</li></ul></td>
 <td><code>test_ev_not_ready_at_nok</code></td>
 <td><span class="file-ref">test_ocpp_connector.c:148</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-120</span></td>
+<td>LockingTx present → occupied (pre-existing condition)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> locking_tx_present=true, no recent StopTx</li><li class="step-when"><span class="step-keyword">When</span> ocpp_should_report_occupied is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns true</li></ul></td>
+<td><code>test_occupied_locking_tx_present</code></td>
+<td><span class="file-ref">test_ocpp_connector.c:313</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-121</span></td>
+<td>StopTx within grace window → occupied (Finishing)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> No locking tx, StopTx fired 500 ms ago (&lt; 2000 ms grace)</li><li class="step-when"><span class="step-keyword">When</span> ocpp_should_report_occupied is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns true so CSMS sees Finishing before Available</li></ul></td>
+<td><code>test_occupied_stoptx_inside_grace_window</code></td>
+<td><span class="file-ref">test_ocpp_connector.c:330</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-121</span></td>
+<td>StopTx exactly at grace boundary → NOT occupied (&lt; is strict)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> No locking tx, StopTx fired exactly OCPP_FINISHING_GRACE_MS ago</li><li class="step-when"><span class="step-keyword">When</span> ocpp_should_report_occupied is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns false — grace window has elapsed</li></ul></td>
+<td><code>test_occupied_stoptx_at_grace_boundary_exclusive</code></td>
+<td><span class="file-ref">test_ocpp_connector.c:348</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-122</span></td>
+<td>StopTx past grace window → NOT occupied (Available)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> No locking tx, StopTx fired 3 seconds ago</li><li class="step-when"><span class="step-keyword">When</span> ocpp_should_report_occupied is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns false — grace expired, transition to Available</li></ul></td>
+<td><code>test_occupied_stoptx_past_grace_window</code></td>
+<td><span class="file-ref">test_ocpp_connector.c:366</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-122</span></td>
+<td>Non-StopTx notification within grace → NOT occupied</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> tx_notif_defined=true but tx_notif_is_stoptx=false (e.g. StartTx)</li><li class="step-when"><span class="step-keyword">When</span> ocpp_should_report_occupied is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns false — only StopTx triggers Finishing</li></ul></td>
+<td><code>test_occupied_non_stoptx_notification_ignored</code></td>
+<td><span class="file-ref">test_ocpp_connector.c:384</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-122</span></td>
+<td>Uninitialized notification state → NOT occupied</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> tx_notif_defined=false (no notification has ever fired)</li><li class="step-when"><span class="step-keyword">When</span> ocpp_should_report_occupied is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns false — no spurious Finishing on fresh boot</li></ul></td>
+<td><code>test_occupied_notification_undefined</code></td>
+<td><span class="file-ref">test_ocpp_connector.c:402</span></td>
+</tr>
+</tbody></table>
+</div>
+<div class="feature-section">
+<div class="feature-title">OCPP Connector Lock (11 scenarios)</div>
+<div class="coverage-bar">
+<div class="coverage-fill" style="width:100.0%"></div>
+</div>
+<table>
+<thead><tr>
+<th>Requirement</th><th>Scenario</th><th>Steps</th><th>Test Function</th><th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="req-tag">REQ-OCPP-110</span></td>
+<td>Active authorized transaction with car plugged → lock</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> tx is present, authorized, active; CP voltage is PILOT_6V (plugged)</li><li class="step-when"><span class="step-keyword">When</span> ocpp_should_force_lock is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns true — connector must be locked during charging</li></ul></td>
+<td><code>test_lock_active_tx_plugged</code></td>
+<td><span class="file-ref">test_ocpp_connector.c:162</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-110</span></td>
+<td>Lock condition holds at PILOT_3V boundary (charging)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Active authorized tx, CP voltage is PILOT_3V (lower bound)</li><li class="step-when"><span class="step-keyword">When</span> ocpp_should_force_lock is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns true</li></ul></td>
+<td><code>test_lock_active_tx_at_3v_boundary</code></td>
+<td><span class="file-ref">test_ocpp_connector.c:180</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-110</span></td>
+<td>Lock condition holds at PILOT_9V boundary (plugged, not charging yet)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Active authorized tx, CP voltage is PILOT_9V (upper bound)</li><li class="step-when"><span class="step-keyword">When</span> ocpp_should_force_lock is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns true</li></ul></td>
+<td><code>test_lock_active_tx_at_9v_boundary</code></td>
+<td><span class="file-ref">test_ocpp_connector.c:193</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-111</span></td>
+<td>No lock when no transaction present</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> tx_present false, but CP voltage and other inputs say &quot;active&quot;</li><li class="step-when"><span class="step-keyword">When</span> ocpp_should_force_lock is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns false — no transaction means no lock</li></ul></td>
+<td><code>test_lock_no_tx_no_lock</code></td>
+<td><span class="file-ref">test_ocpp_connector.c:206</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-111</span></td>
+<td>No lock when transaction is not authorized</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> tx present but unauthorized, plugged</li><li class="step-when"><span class="step-keyword">When</span> ocpp_should_force_lock is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns false</li></ul></td>
+<td><code>test_lock_unauthorized_tx_no_lock</code></td>
+<td><span class="file-ref">test_ocpp_connector.c:219</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-111</span></td>
+<td>No lock when transaction neither active nor running</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> tx authorized but isActive==false &amp;&amp; isRunning==false</li><li class="step-when"><span class="step-keyword">When</span> ocpp_should_force_lock is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns false</li></ul></td>
+<td><code>test_lock_inactive_tx_no_lock</code></td>
+<td><span class="file-ref">test_ocpp_connector.c:232</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-111</span></td>
+<td>No lock when connector unplugged (PILOT_12V)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Active authorized tx but CP says no vehicle</li><li class="step-when"><span class="step-keyword">When</span> ocpp_should_force_lock is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns false</li></ul></td>
+<td><code>test_lock_active_tx_unplugged_no_lock</code></td>
+<td><span class="file-ref">test_ocpp_connector.c:245</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-111</span></td>
+<td>No lock when connector reads PILOT_NOK (fault) and no LockingTx</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Authorized active tx, CP voltage PILOT_NOK</li><li class="step-when"><span class="step-keyword">When</span> ocpp_should_force_lock is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns false — pilot fault means cable state is unknown,</li></ul></td>
+<td><code>test_lock_pilot_nok_no_lock</code></td>
+<td><span class="file-ref">test_ocpp_connector.c:258</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-112</span></td>
+<td>LockingTx with start requested keeps connector locked</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> No regular tx active, LockingTx present and StartSync requested</li><li class="step-when"><span class="step-keyword">When</span> ocpp_should_force_lock is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns true — RFID-locked connector waits for matching swipe</li></ul></td>
+<td><code>test_lock_locking_tx_start_requested</code></td>
+<td><span class="file-ref">test_ocpp_connector.c:272</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-112</span></td>
+<td>LockingTx without start request does not force lock</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> LockingTx present but its StartSync has not been requested</li><li class="step-when"><span class="step-keyword">When</span> ocpp_should_force_lock is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns false</li></ul></td>
+<td><code>test_lock_locking_tx_no_start_request</code></td>
+<td><span class="file-ref">test_ocpp_connector.c:285</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-113</span></td>
+<td>All-false baseline returns false</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Every input false / PILOT_NOK</li><li class="step-when"><span class="step-keyword">When</span> ocpp_should_force_lock is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns false — no condition triggers</li></ul></td>
+<td><code>test_lock_all_false_baseline</code></td>
+<td><span class="file-ref">test_ocpp_connector.c:298</span></td>
 </tr>
 </tbody></table>
 </div>
@@ -5178,6 +6428,88 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
+<div class="feature-title">OCPP Silence Detection (10 scenarios)</div>
+<div class="coverage-bar">
+<div class="coverage-fill" style="width:100.0%"></div>
+</div>
+<table>
+<thead><tr>
+<th>Requirement</th><th>Scenario</th><th>Steps</th><th>Test Function</th><th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="req-tag">REQ-OCPP-100</span></td>
+<td>No action while WebSocket is disconnected</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ws_connected is false, all timers stale</li><li class="step-when"><span class="step-keyword">When</span> ocpp_silence_decide is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns NO_ACTION because the WS layer handles reconnection itself</li></ul></td>
+<td><code>test_silence_no_action_when_disconnected</code></td>
+<td><span class="file-ref">test_ocpp_resilience.c:1</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-100</span></td>
+<td>Disconnected transport ignores stale response timestamp</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ws_connected is false, last_response is 10 minutes ago</li><li class="step-when"><span class="step-keyword">When</span> ocpp_silence_decide is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns NO_ACTION — disconnected transport short-circuits everything</li></ul></td>
+<td><code>test_silence_disconnected_ignores_stale_response</code></td>
+<td><span class="file-ref">test_ocpp_resilience.c:36</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-101</span></td>
+<td>First probe fires when probe interval has elapsed since boot</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ws_connected, last_response is 1 second ago, last_probe is 0</li><li class="step-when"><span class="step-keyword">When</span> ocpp_silence_decide is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns SEND_PROBE because (now - last_probe) &gt;= probe interval</li></ul></td>
+<td><code>test_silence_first_probe_at_interval</code></td>
+<td><span class="file-ref">test_ocpp_resilience.c:55</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-101</span></td>
+<td>No probe fires before the interval elapses</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ws_connected, last_probe was 1 second ago, response fresh</li><li class="step-when"><span class="step-keyword">When</span> ocpp_silence_decide is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns NO_ACTION — too soon to probe again</li></ul></td>
+<td><code>test_silence_no_probe_before_interval</code></td>
+<td><span class="file-ref">test_ocpp_resilience.c:74</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-101</span></td>
+<td>Probe interval boundary is inclusive</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ws_connected, last_probe was exactly OCPP_PROBE_INTERVAL_MS ago</li><li class="step-when"><span class="step-keyword">When</span> ocpp_silence_decide is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns SEND_PROBE — boundary value triggers a new probe</li></ul></td>
+<td><code>test_silence_probe_at_boundary</code></td>
+<td><span class="file-ref">test_ocpp_resilience.c:92</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-102</span></td>
+<td>Force reconnect when backend has been silent past timeout</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ws_connected, last_response is OCPP_SILENCE_TIMEOUT_MS+1 ago</li><li class="step-when"><span class="step-keyword">When</span> ocpp_silence_decide is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns FORCE_RECONNECT (priority over probe)</li></ul></td>
+<td><code>test_silence_force_reconnect_after_timeout</code></td>
+<td><span class="file-ref">test_ocpp_resilience.c:112</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-102</span></td>
+<td>Reconnect priority — probe interval elapsed AND silence timeout exceeded</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ws_connected, both probe interval and silence timeout exceeded</li><li class="step-when"><span class="step-keyword">When</span> ocpp_silence_decide is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns FORCE_RECONNECT, not SEND_PROBE — reconnect takes priority</li></ul></td>
+<td><code>test_silence_reconnect_priority_over_probe</code></td>
+<td><span class="file-ref">test_ocpp_resilience.c:130</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-103</span></td>
+<td>Cold-boot guard — last_response_ms == 0 must not force reconnect</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ws_connected, last_response is 0 (uninitialized), now is far in</li><li class="step-when"><span class="step-keyword">When</span> ocpp_silence_decide is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns SEND_PROBE (probe is fine to send) but NEVER FORCE_RECONNECT,</li></ul></td>
+<td><code>test_silence_zero_response_does_not_force_reconnect</code></td>
+<td><span class="file-ref">test_ocpp_resilience.c:148</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-103</span></td>
+<td>Cold-boot guard with no probe due either</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ws_connected, last_response is 0, last_probe is also recent</li><li class="step-when"><span class="step-keyword">When</span> ocpp_silence_decide is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns NO_ACTION — no reconnect (zero-guard) and no probe (interval not elapsed)</li></ul></td>
+<td><code>test_silence_zero_response_no_probe_due</code></td>
+<td><span class="file-ref">test_ocpp_resilience.c:167</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-104</span></td>
+<td>Healthy steady state — fresh response, recent probe</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ws_connected, response 1s ago, probe 30s ago (less than interval)</li><li class="step-when"><span class="step-keyword">When</span> ocpp_silence_decide is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns NO_ACTION</li></ul></td>
+<td><code>test_silence_healthy_steady_state</code></td>
+<td><span class="file-ref">test_ocpp_resilience.c:185</span></td>
+</tr>
+</tbody></table>
+</div>
+<div class="feature-section">
 <div class="feature-title">OCPP RFID Formatting (9 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
@@ -5253,7 +6585,7 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">OCPP Settings Validation (23 scenarios)</div>
+<div class="feature-title">OCPP Settings Validation (36 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -5342,7 +6674,7 @@ footer {
 <tr>
 <td><span class="req-tag">REQ-OCPP-097</span></td>
 <td>URL with valid special characters accepted</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> URL contains all allowed special chars: . : / - _ ? = &amp; @ % + #</li><li class="step-when"><span class="step-keyword">When</span> ocpp_validate_backend_url is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns OCPP_VALIDATE_OK</li></ul></td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> URL contains all allowed special chars (path/query/fragment): . : / - _ ? = &amp; @ % + #</li><li class="step-when"><span class="step-keyword">When</span> ocpp_validate_backend_url is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns OCPP_VALIDATE_OK</li></ul></td>
 <td><code>test_url_valid_special_chars_accepted</code></td>
 <td><span class="file-ref">test_ocpp_settings.c:157</span></td>
 </tr>
@@ -5351,77 +6683,168 @@ footer {
 <td>URL with backslash rejected</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> URL contains a backslash character</li><li class="step-when"><span class="step-keyword">When</span> ocpp_validate_backend_url is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns OCPP_VALIDATE_BAD_CHARS</li></ul></td>
 <td><code>test_url_backslash_rejected</code></td>
-<td><span class="file-ref">test_ocpp_settings.c:170</span></td>
+<td><span class="file-ref">test_ocpp_settings.c:173</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-OCPP-097</span></td>
 <td>URL with curly braces rejected</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> URL contains curly brace characters</li><li class="step-when"><span class="step-keyword">When</span> ocpp_validate_backend_url is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns OCPP_VALIDATE_BAD_CHARS</li></ul></td>
 <td><code>test_url_braces_rejected</code></td>
-<td><span class="file-ref">test_ocpp_settings.c:183</span></td>
+<td><span class="file-ref">test_ocpp_settings.c:186</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-OCPP-064</span></td>
 <td>Valid ChargeBoxId accepted</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ChargeBoxId is &quot;SmartEVSE-12345&quot;</li><li class="step-when"><span class="step-keyword">When</span> ocpp_validate_chargebox_id is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns OCPP_VALIDATE_OK</li></ul></td>
 <td><code>test_cbid_valid</code></td>
-<td><span class="file-ref">test_ocpp_settings.c:198</span></td>
+<td><span class="file-ref">test_ocpp_settings.c:201</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-OCPP-064</span></td>
 <td>ChargeBoxId with special characters rejected</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ChargeBoxId contains &#x27;&lt;&#x27; character</li><li class="step-when"><span class="step-keyword">When</span> ocpp_validate_chargebox_id is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns OCPP_VALIDATE_BAD_CHARS</li></ul></td>
 <td><code>test_cbid_special_chars_rejected</code></td>
-<td><span class="file-ref">test_ocpp_settings.c:211</span></td>
+<td><span class="file-ref">test_ocpp_settings.c:214</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-OCPP-065</span></td>
 <td>ChargeBoxId length &gt; 20 rejected (OCPP 1.6 CiString20)</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ChargeBoxId is 21 characters long</li><li class="step-when"><span class="step-keyword">When</span> ocpp_validate_chargebox_id is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns OCPP_VALIDATE_TOO_LONG</li></ul></td>
 <td><code>test_cbid_too_long_rejected</code></td>
-<td><span class="file-ref">test_ocpp_settings.c:224</span></td>
+<td><span class="file-ref">test_ocpp_settings.c:227</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-OCPP-065</span></td>
 <td>ChargeBoxId exactly 20 characters is accepted</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ChargeBoxId is exactly 20 characters long</li><li class="step-when"><span class="step-keyword">When</span> ocpp_validate_chargebox_id is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns OCPP_VALIDATE_OK</li></ul></td>
 <td><code>test_cbid_exactly_20_accepted</code></td>
-<td><span class="file-ref">test_ocpp_settings.c:237</span></td>
+<td><span class="file-ref">test_ocpp_settings.c:240</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-OCPP-064</span></td>
 <td>Empty ChargeBoxId rejected</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ChargeBoxId is empty string</li><li class="step-when"><span class="step-keyword">When</span> ocpp_validate_chargebox_id is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns OCPP_VALIDATE_EMPTY</li></ul></td>
 <td><code>test_cbid_empty_rejected</code></td>
-<td><span class="file-ref">test_ocpp_settings.c:250</span></td>
+<td><span class="file-ref">test_ocpp_settings.c:253</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-OCPP-064</span></td>
 <td>ChargeBoxId with ampersand rejected</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> ChargeBoxId contains &#x27;&amp;&#x27; character</li><li class="step-when"><span class="step-keyword">When</span> ocpp_validate_chargebox_id is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns OCPP_VALIDATE_BAD_CHARS</li></ul></td>
 <td><code>test_cbid_ampersand_rejected</code></td>
-<td><span class="file-ref">test_ocpp_settings.c:263</span></td>
+<td><span class="file-ref">test_ocpp_settings.c:266</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-OCPP-066</span></td>
 <td>Auth key length &gt; 40 rejected (OCPP 1.6 limit)</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Auth key is 41 characters long</li><li class="step-when"><span class="step-keyword">When</span> ocpp_validate_auth_key is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns OCPP_VALIDATE_TOO_LONG</li></ul></td>
 <td><code>test_auth_key_too_long</code></td>
-<td><span class="file-ref">test_ocpp_settings.c:278</span></td>
+<td><span class="file-ref">test_ocpp_settings.c:281</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-OCPP-066</span></td>
 <td>Auth key exactly 40 characters is accepted</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Auth key is exactly 40 characters long</li><li class="step-when"><span class="step-keyword">When</span> ocpp_validate_auth_key is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns OCPP_VALIDATE_OK</li></ul></td>
 <td><code>test_auth_key_exactly_40_accepted</code></td>
-<td><span class="file-ref">test_ocpp_settings.c:291</span></td>
+<td><span class="file-ref">test_ocpp_settings.c:294</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-OCPP-066</span></td>
 <td>Empty auth key is valid (no auth configured)</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Auth key is empty string</li><li class="step-when"><span class="step-keyword">When</span> ocpp_validate_auth_key is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns OCPP_VALIDATE_OK because empty means no auth</li></ul></td>
 <td><code>test_auth_key_empty_accepted</code></td>
-<td><span class="file-ref">test_ocpp_settings.c:304</span></td>
+<td><span class="file-ref">test_ocpp_settings.c:307</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-H4-001</span></td>
+<td>Loopback IPv4 127.0.0.1 rejected</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_url_loopback_127_0_0_1_rejected</code></td>
+<td><span class="file-ref">test_ocpp_settings.c:322</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-H4-001</span></td>
+<td>Any 127.x loopback rejected (covers 127.42.0.1 etc.)</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_url_loopback_127_any_rejected</code></td>
+<td><span class="file-ref">test_ocpp_settings.c:331</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-H4-001</span></td>
+<td>localhost hostname rejected</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_url_loopback_localhost_rejected</code></td>
+<td><span class="file-ref">test_ocpp_settings.c:340</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-H4-001</span></td>
+<td>LOCALHOST uppercase rejected (case-insensitive host check)</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_url_loopback_localhost_uppercase_rejected</code></td>
+<td><span class="file-ref">test_ocpp_settings.c:349</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-H4-001</span></td>
+<td>0.0.0.0 (bind-any / loopback alias) rejected</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_url_loopback_0_0_0_0_rejected</code></td>
+<td><span class="file-ref">test_ocpp_settings.c:358</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-H4-001</span></td>
+<td>IPv6 loopback [::1] rejected</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_url_loopback_ipv6_rejected</code></td>
+<td><span class="file-ref">test_ocpp_settings.c:367</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-H4-002</span></td>
+<td>IPv4 link-local 169.254.x rejected (AutoIP / APIPA)</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_url_linklocal_ipv4_rejected</code></td>
+<td><span class="file-ref">test_ocpp_settings.c:376</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-H4-002</span></td>
+<td>IPv6 link-local fe80:: rejected</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_url_linklocal_ipv6_rejected</code></td>
+<td><span class="file-ref">test_ocpp_settings.c:385</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-H4-003</span></td>
+<td>Embedded user:pass@host rejected</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_url_embedded_creds_rejected</code></td>
+<td><span class="file-ref">test_ocpp_settings.c:394</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-H4-003</span></td>
+<td>Embedded @ in authority (even without colon) rejected</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_url_embedded_at_rejected</code></td>
+<td><span class="file-ref">test_ocpp_settings.c:403</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-H4-004</span></td>
+<td>@ inside path component is allowed (authority is clean)</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_url_at_in_path_allowed</code></td>
+<td><span class="file-ref">test_ocpp_settings.c:412</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-H4-005</span></td>
+<td>RFC1918 private ranges still allowed — many users self-host CSMS on LAN</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_url_rfc1918_private_still_allowed</code></td>
+<td><span class="file-ref">test_ocpp_settings.c:421</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-OCPP-H4-005</span></td>
+<td>Normal public hostnames still allowed (regression-proof)</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_url_public_hostname_still_allowed</code></td>
+<td><span class="file-ref">test_ocpp_settings.c:434</span></td>
 </tr>
 </tbody></table>
 </div>
@@ -6006,6 +7429,102 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
+<div class="feature-title">PIN Rate Limit (12 scenarios)</div>
+<div class="coverage-bar">
+<div class="coverage-fill" style="width:100.0%"></div>
+</div>
+<table>
+<thead><tr>
+<th>Requirement</th><th>Scenario</th><th>Steps</th><th>Test Function</th><th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="req-tag">REQ-AUTH-020</span></td>
+<td>Clean state allows the first request</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A zero-initialised pin_rate_limit_t</li><li class="step-when"><span class="step-keyword">When</span> pin_rl_check is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns ALLOW</li></ul></td>
+<td><code>test_pin_rl_clean_state_allows</code></td>
+<td><span class="file-ref">test_pin_rate_limit.c:1</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-020</span></td>
+<td>First two failures do not trigger cooldown</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A clean rate limiter</li><li class="step-when"><span class="step-keyword">When</span> Two consecutive failures are recorded</li><li class="step-then"><span class="step-keyword">Then</span> pin_rl_check still returns ALLOW (no cooldown armed)</li></ul></td>
+<td><code>test_pin_rl_first_two_failures_free</code></td>
+<td><span class="file-ref">test_pin_rate_limit.c:25</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-021</span></td>
+<td>Third failure arms a 10-second cooldown</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Two failures already recorded</li><li class="step-when"><span class="step-keyword">When</span> A third failure is recorded and check is called immediately</li><li class="step-then"><span class="step-keyword">Then</span> check returns DENY_COOLDOWN and retry_after ~= 10 s</li></ul></td>
+<td><code>test_pin_rl_third_failure_10s_cooldown</code></td>
+<td><span class="file-ref">test_pin_rate_limit.c:43</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-021</span></td>
+<td>Fourth failure extends cooldown to 60 seconds</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_pin_rl_fourth_failure_60s_cooldown</code></td>
+<td><span class="file-ref">test_pin_rate_limit.c:62</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-021</span></td>
+<td>Fifth failure extends cooldown to 5 minutes</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_pin_rl_fifth_failure_5min_cooldown</code></td>
+<td><span class="file-ref">test_pin_rate_limit.c:77</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-021</span></td>
+<td>Sixth and subsequent failures cap at 30 minutes</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_pin_rl_capped_at_30min</code></td>
+<td><span class="file-ref">test_pin_rate_limit.c:90</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-022</span></td>
+<td>After cooldown elapses, new attempt is allowed</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A cooldown armed for 10 seconds at t=1000ms</li><li class="step-when"><span class="step-keyword">When</span> check is called at t=12000ms (11s later)</li><li class="step-then"><span class="step-keyword">Then</span> check returns ALLOW and retry_after == 0</li></ul></td>
+<td><code>test_pin_rl_cooldown_elapses</code></td>
+<td><span class="file-ref">test_pin_rate_limit.c:108</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-023</span></td>
+<td>retry_after rounds up to whole seconds</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A 10s cooldown armed at t=1000</li><li class="step-when"><span class="step-keyword">When</span> queried at t=1500 (500ms in) it reports 10s, at t=9500 reports 1s</li></ul></td>
+<td><code>test_pin_rl_retry_after_rounding</code></td>
+<td><span class="file-ref">test_pin_rate_limit.c:129</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-024</span></td>
+<td>Successful PIN resets counter and cooldown</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A state with an active cooldown after 3 failures</li><li class="step-when"><span class="step-keyword">When</span> pin_rl_record_success is called</li><li class="step-then"><span class="step-keyword">Then</span> Subsequent checks ALLOW immediately and count is 0</li></ul></td>
+<td><code>test_pin_rl_success_clears_cooldown</code></td>
+<td><span class="file-ref">test_pin_rate_limit.c:152</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-025</span></td>
+<td>After idle &gt; 10 min, counter auto-resets on next check</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> 2 failures recorded (no cooldown yet)</li><li class="step-when"><span class="step-keyword">When</span> check is called more than 10 min later</li><li class="step-then"><span class="step-keyword">Then</span> fail_count resets to 0 — no accidental lockout of returning users</li></ul></td>
+<td><code>test_pin_rl_idle_reset</code></td>
+<td><span class="file-ref">test_pin_rate_limit.c:174</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-025</span></td>
+<td>Idle-reset does not fire while a cooldown is still active</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Third failure arming a 10s cooldown</li><li class="step-when"><span class="step-keyword">When</span> check is called 11 minutes later — but the cooldown was only 10s</li><li class="step-then"><span class="step-keyword">Then</span> Cooldown has long since elapsed, allow, but fail_count stays 3</li></ul></td>
+<td><code>test_pin_rl_idle_reset_respects_cooldown</code></td>
+<td><span class="file-ref">test_pin_rate_limit.c:194</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-AUTH-026</span></td>
+<td>NULL state fails open (no crash, lets request through)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A NULL pin_rate_limit_t pointer</li><li class="step-when"><span class="step-keyword">When</span> check / record_* / retry_after are called</li><li class="step-then"><span class="step-keyword">Then</span> No crash; check returns ALLOW, retry_after returns 0</li></ul></td>
+<td><code>test_pin_rl_null_safe</code></td>
+<td><span class="file-ref">test_pin_rate_limit.c:218</span></td>
+</tr>
+</tbody></table>
+</div>
+<div class="feature-section">
 <div class="feature-title">Power Availability (22 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
@@ -6168,6 +7687,74 @@ footer {
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A charge current of 800 deciamps (80A)</li><li class="step-when"><span class="step-keyword">When</span> evse_current_to_duty is called</li><li class="step-then"><span class="step-keyword">Then</span> Returns a duty cycle value between 950 and 1024 (near the top of the PWM range)</li></ul></td>
 <td><code>test_current_to_duty_80A</code></td>
 <td><span class="file-ref">test_power_availability.c:406</span></td>
+</tr>
+</tbody></table>
+</div>
+<div class="feature-section">
+<div class="feature-title">Reconnect backoff (8 scenarios)</div>
+<div class="coverage-bar">
+<div class="coverage-fill" style="width:100.0%"></div>
+</div>
+<table>
+<thead><tr>
+<th>Requirement</th><th>Scenario</th><th>Steps</th><th>Test Function</th><th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="req-tag">REQ-NET-010</span></td>
+<td>Clean state allows immediate attempt</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_clean_state_allows</code></td>
+<td><span class="file-ref">test_reconnect_backoff.c:1</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-NET-011</span></td>
+<td>First failure arms 1-second backoff</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_first_failure_1s</code></td>
+<td><span class="file-ref">test_reconnect_backoff.c:23</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-NET-011</span></td>
+<td>Each subsequent failure doubles the backoff up to 30 s cap</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_doubling_schedule</code></td>
+<td><span class="file-ref">test_reconnect_backoff.c:37</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-NET-012</span></td>
+<td>Success clears the failure counter and the cooldown</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_success_clears</code></td>
+<td><span class="file-ref">test_reconnect_backoff.c:57</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-NET-013</span></td>
+<td>After cooldown elapses, attempts allowed without state mutation</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A 4-second cooldown after 3 failures</li><li class="step-when"><span class="step-keyword">When</span> should_attempt is called past the cooldown deadline</li><li class="step-then"><span class="step-keyword">Then</span> Returns true; counter unchanged (only failure or success mutates)</li></ul></td>
+<td><code>test_cooldown_elapses</code></td>
+<td><span class="file-ref">test_reconnect_backoff.c:78</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-NET-014</span></td>
+<td>seconds_until_next rounds up</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_seconds_rounds_up</code></td>
+<td><span class="file-ref">test_reconnect_backoff.c:102</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-NET-015</span></td>
+<td>NULL state is safe and fails open</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_null_safe</code></td>
+<td><span class="file-ref">test_reconnect_backoff.c:121</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-NET-016</span></td>
+<td>consecutive_failures saturates at 0xFF</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_counter_saturates</code></td>
+<td><span class="file-ref">test_reconnect_backoff.c:137</span></td>
 </tr>
 </tbody></table>
 </div>
@@ -6652,7 +8239,7 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">Charge Session Logging (14 scenarios)</div>
+<div class="feature-title">Charge Session Logging (18 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -6725,39 +8312,67 @@ footer {
 <td><span class="file-ref">test_session_log.c:323</span></td>
 </tr>
 <tr>
+<td><span class="req-tag">REQ-CIR-020</span></td>
+<td>Session with circuit energy includes circuit_kwh in JSON</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A completed session with CircuitMeter energy set</li><li class="step-when"><span class="step-keyword">When</span> session_to_json is called</li><li class="step-then"><span class="step-keyword">Then</span> JSON includes circuit_kwh field with correct value</li></ul></td>
+<td><code>test_session_circuit_energy_json</code></td>
+<td><span class="file-ref">test_session_log.c:343</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CIR-021</span></td>
+<td>Session without circuit energy omits circuit_kwh from JSON</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A completed session without CircuitMeter energy</li><li class="step-when"><span class="step-keyword">When</span> session_to_json is called</li><li class="step-then"><span class="step-keyword">Then</span> JSON does not include circuit_kwh field</li></ul></td>
+<td><code>test_session_no_circuit_energy_json</code></td>
+<td><span class="file-ref">test_session_log.c:369</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CIR-022</span></td>
+<td>Circuit energy calculation: end minus start</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A session with circuit start=100000 and circuit end=107500</li><li class="step-when"><span class="step-keyword">When</span> The session ends</li><li class="step-then"><span class="step-keyword">Then</span> circuit_energy_wh equals 7500</li></ul></td>
+<td><code>test_session_circuit_energy_calculation</code></td>
+<td><span class="file-ref">test_session_log.c:391</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-CIR-023</span></td>
+<td>session_set_circuit_energy with no active session is ignored</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> No active session</li><li class="step-when"><span class="step-keyword">When</span> session_set_circuit_energy is called</li><li class="step-then"><span class="step-keyword">Then</span> No crash and no state change</li></ul></td>
+<td><code>test_session_set_circuit_energy_no_active</code></td>
+<td><span class="file-ref">test_session_log.c:413</span></td>
+</tr>
+<tr>
 <td><span class="req-tag">REQ-ERE-020</span></td>
 <td>session_start with timestamp 0 is rejected</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The session logger is initialized</li><li class="step-when"><span class="step-keyword">When</span> session_start is called with timestamp 0 (NTP not synced)</li><li class="step-then"><span class="step-keyword">Then</span> No session is started and session_is_active returns 0</li></ul></td>
 <td><code>test_session_start_rejects_zero_timestamp</code></td>
-<td><span class="file-ref">test_session_log.c:343</span></td>
+<td><span class="file-ref">test_session_log.c:430</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-ERE-021</span></td>
 <td>session_start with pre-2024 timestamp is rejected</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The session logger is initialized</li><li class="step-when"><span class="step-keyword">When</span> session_start is called with timestamp 1000 (pre-2024)</li><li class="step-then"><span class="step-keyword">Then</span> No session is started and session_is_active returns 0</li></ul></td>
 <td><code>test_session_start_rejects_pre2024_timestamp</code></td>
-<td><span class="file-ref">test_session_log.c:357</span></td>
+<td><span class="file-ref">test_session_log.c:444</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-ERE-022</span></td>
 <td>session_start with valid 2024+ timestamp succeeds</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The session logger is initialized</li><li class="step-when"><span class="step-keyword">When</span> session_start is called with timestamp 1710000000 (March 2024)</li><li class="step-then"><span class="step-keyword">Then</span> A session is started and session_is_active returns 1</li></ul></td>
 <td><code>test_session_start_accepts_valid_timestamp</code></td>
-<td><span class="file-ref">test_session_log.c:371</span></td>
+<td><span class="file-ref">test_session_log.c:458</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-ERE-025</span></td>
 <td>Session shorter than 60 seconds is discarded</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The session logger is initialized</li><li class="step-when"><span class="step-keyword">When</span> A session is started and ended after only 30 seconds</li><li class="step-then"><span class="step-keyword">Then</span> The session is discarded, session_is_active returns 0, and session_get_last returns NULL</li></ul></td>
 <td><code>test_session_short_duration_discarded</code></td>
-<td><span class="file-ref">test_session_log.c:387</span></td>
+<td><span class="file-ref">test_session_log.c:474</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-ERE-026</span></td>
 <td>Session with duration exactly 60 seconds is kept</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The session logger is initialized</li><li class="step-when"><span class="step-keyword">When</span> A session is started and ended after exactly 60 seconds</li><li class="step-then"><span class="step-keyword">Then</span> The session is stored and session_get_last returns a valid record with correct energy</li></ul></td>
 <td><code>test_session_exact_min_duration_kept</code></td>
-<td><span class="file-ref">test_session_log.c:405</span></td>
+<td><span class="file-ref">test_session_log.c:492</span></td>
 </tr>
 </tbody></table>
 </div>
@@ -7545,7 +9160,7 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">1-Second Tick Processing (20 scenarios)</div>
+<div class="feature-title">1-Second Tick Processing (23 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -7693,6 +9308,27 @@ footer {
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> EVSE is in Smart mode in STATE_B1 with LESS_6A set and ChargeDelay=1</li><li class="step-when"><span class="step-keyword">When</span> A 1-second tick occurs (ChargeDelay decrements to 0, then LESS_6A resets it)</li><li class="step-then"><span class="step-keyword">Then</span> ChargeDelay is CHARGEDELAY (60), not 0</li></ul></td>
 <td><code>test_less_6a_charge_delay_never_reaches_zero</code></td>
 <td><span class="file-ref">test_tick_1s.c:400</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-TICK1S-020</span></td>
+<td>Re-set LESS_6A during solar-mode ChargeDelay countdown when current becomes unavailable</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Solar mode, ChargeDelay=30, LESS_6A cleared, current NOT available (high mains load)</li><li class="step-when"><span class="step-keyword">When</span> A 1-second tick occurs</li><li class="step-then"><span class="step-keyword">Then</span> LESS_6A is re-set so the countdown restarts on the next cycle (prevents charging-without-solar oscillation)</li></ul></td>
+<td><code>test_charge_delay_resets_less6a_when_solar_lost</code></td>
+<td><span class="file-ref">test_tick_1s.c:424</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-TICK1S-021</span></td>
+<td>ChargeDelay re-set does NOT fire when solar is still available</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Solar mode, ChargeDelay=30, LESS_6A cleared, current IS available (solar surplus)</li><li class="step-when"><span class="step-keyword">When</span> A 1-second tick occurs</li><li class="step-then"><span class="step-keyword">Then</span> LESS_6A remains clear — no spurious re-set</li></ul></td>
+<td><code>test_charge_delay_leaves_less6a_clear_when_solar_present</code></td>
+<td><span class="file-ref">test_tick_1s.c:447</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-TICK1S-022</span></td>
+<td>ChargeDelay re-set does NOT fire in non-solar mode</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Smart mode, ChargeDelay=30, LESS_6A cleared, current NOT available</li><li class="step-when"><span class="step-keyword">When</span> A 1-second tick occurs</li><li class="step-then"><span class="step-keyword">Then</span> LESS_6A remains clear — the re-set logic is solar-only</li></ul></td>
+<td><code>test_charge_delay_less6a_reset_solar_only</code></td>
+<td><span class="file-ref">test_tick_1s.c:472</span></td>
 </tr>
 </tbody></table>
 </div>

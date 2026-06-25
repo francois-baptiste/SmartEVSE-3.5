@@ -1,6 +1,6 @@
 # SmartEVSE-3 Test Specification
 
-**70 features** | **1082 scenarios** | **1082 with requirement IDs**
+**78 features** | **1181 scenarios** | **1181 with requirement IDs**
 
 ---
 
@@ -11,71 +11,79 @@
 3. [Authorization & Access Control](#authorization-&-access-control)
 4. [Bridge Transaction Integrity](#bridge-transaction-integrity)
 5. [Capacity Tariff Peak Tracking](#capacity-tariff-peak-tracking)
-6. [CircuitMeter Subpanel Protection](#circuitmeter-subpanel-protection)
-7. [Diagnostic Telemetry](#diagnostic-telemetry)
-8. [Dual-EVSE Load Balancing](#dual-evse-load-balancing)
-9. [End-to-End Charging](#end-to-end-charging)
-10. [Error Handling & Safety](#error-handling-&-safety)
-11. [Fidelity: DisconnectTimeCounter](#fidelity:-disconnecttimecounter)
-12. [Fidelity: PilotDisconnectTime](#fidelity:-pilotdisconnecttime)
-13. [Fidelity: Fall-through behavior](#fidelity:-fall-through-behavior)
-14. [Fidelity: ACTSTART no pilot check](#fidelity:-actstart-no-pilot-check)
-15. [Fidelity: Modem states not in tick_10ms](#fidelity:-modem-states-not-in-tick_10ms)
-16. [Fidelity: Handler ordering](#fidelity:-handler-ordering)
-17. [Fidelity: Config field](#fidelity:-config-field)
-18. [HTTP API Color Parsing](#http-api-color-parsing)
-19. [HTTP API Input Validation](#http-api-input-validation)
-20. [HTTP API Validation](#http-api-validation)
-21. [HTTP API Settings Validation](#http-api-settings-validation)
-22. [EVCC IEC 61851 State Mapping](#evcc-iec-61851-state-mapping)
-23. [EVCC Charging Enabled](#evcc-charging-enabled)
-24. [EVCC Phase Switch Validation](#evcc-phase-switch-validation)
-25. [LB Convergence](#lb-convergence)
-26. [LED Status Indication](#led-status-indication)
-27. [LED Color Configuration](#led-color-configuration)
-28. [Load Balancing](#load-balancing)
-29. [Meter Decoding](#meter-decoding)
-30. [Meter Timeout & Recovery](#meter-timeout-&-recovery)
-31. [Meter Telemetry](#meter-telemetry)
-32. [Metering Diagnostics](#metering-diagnostics)
-33. [Modbus Frame Decoding](#modbus-frame-decoding)
-34. [Modbus Frame Logging](#modbus-frame-logging)
-35. [Mode Synchronization](#mode-synchronization)
-36. [Modem / ISO15118 Negotiation](#modem--iso15118-negotiation)
-37. [MQTT Command Parsing](#mqtt-command-parsing)
-38. [MQTT Input Validation](#mqtt-input-validation)
-39. [MQTT Meter Parsing](#mqtt-meter-parsing)
-40. [MQTT Color Parsing](#mqtt-color-parsing)
-41. [Solar Debug Telemetry](#solar-debug-telemetry)
-42. [Capacity Tariff MQTT](#capacity-tariff-mqtt)
-43. [MQTT Change-Only Publishing](#mqtt-change-only-publishing)
-44. [MQTT SoC Parsing](#mqtt-soc-parsing)
-45. [MQTT SoC Input Validation](#mqtt-soc-input-validation)
-46. [Multi-Node Load Balancing](#multi-node-load-balancing)
-47. [Multi-Node Solar Charging](#multi-node-solar-charging)
-48. [OCPP Current Limiting](#ocpp-current-limiting)
-49. [OCPP Authorization](#ocpp-authorization)
-50. [OCPP Connector State](#ocpp-connector-state)
-51. [OCPP IEC 61851 Status Mapping](#ocpp-iec-61851-status-mapping)
-52. [OCPP Load Balancing Exclusivity](#ocpp-load-balancing-exclusivity)
-53. [OCPP RFID Formatting](#ocpp-rfid-formatting)
-54. [OCPP Settings Validation](#ocpp-settings-validation)
-55. [OCPP Telemetry](#ocpp-telemetry)
-56. [Operating Modes](#operating-modes)
-57. [P1 Meter Parsing](#p1-meter-parsing)
-58. [Phase Switching](#phase-switching)
-59. [Power Availability](#power-availability)
-60. [Priority-Based Power Scheduling](#priority-based-power-scheduling)
-61. [Serial Message Parsing](#serial-message-parsing)
-62. [Serial Input Validation](#serial-input-validation)
-63. [Battery Current Calculation](#battery-current-calculation)
-64. [Current Sum Calculation](#current-sum-calculation)
-65. [Charge Session Logging](#charge-session-logging)
-66. [Charge Session JSON Export](#charge-session-json-export)
-67. [Solar Balancing](#solar-balancing)
-68. [IEC 61851-1 State Transitions](#iec-61851-1-state-transitions)
-69. [10ms Tick Processing](#10ms-tick-processing)
-70. [1-Second Tick Processing](#1-second-tick-processing)
+6. [Load Balancing — CAPACITY integration](#load-balancing-—-capacity-integration)
+7. [CircuitMeter Subpanel Protection](#circuitmeter-subpanel-protection)
+8. [Diagnostic Telemetry](#diagnostic-telemetry)
+9. [Dual-EVSE Load Balancing](#dual-evse-load-balancing)
+10. [End-to-End Charging](#end-to-end-charging)
+11. [Error Handling & Safety](#error-handling-&-safety)
+12. [Fidelity: DisconnectTimeCounter](#fidelity:-disconnecttimecounter)
+13. [Fidelity: PilotDisconnectTime](#fidelity:-pilotdisconnecttime)
+14. [Fidelity: Fall-through behavior](#fidelity:-fall-through-behavior)
+15. [Fidelity: ACTSTART no pilot check](#fidelity:-actstart-no-pilot-check)
+16. [Fidelity: Modem states not in tick_10ms](#fidelity:-modem-states-not-in-tick_10ms)
+17. [Fidelity: Handler ordering](#fidelity:-handler-ordering)
+18. [Fidelity: Config field](#fidelity:-config-field)
+19. [HTTP API Color Parsing](#http-api-color-parsing)
+20. [HTTP API Input Validation](#http-api-input-validation)
+21. [HTTP API Validation](#http-api-validation)
+22. [HTTP API Settings Validation](#http-api-settings-validation)
+23. [EVCC IEC 61851 State Mapping](#evcc-iec-61851-state-mapping)
+24. [EVCC Charging Enabled](#evcc-charging-enabled)
+25. [EVCC Phase Switch Validation](#evcc-phase-switch-validation)
+26. [Debug-only unsigned firmware upload](#debug-only-unsigned-firmware-upload)
+27. [HTTP Auth](#http-auth)
+28. [LB Convergence](#lb-convergence)
+29. [LED Status Indication](#led-status-indication)
+30. [LED Color Configuration](#led-color-configuration)
+31. [LED Color — Public Scheme](#led-color-—-public-scheme)
+32. [Load Balancing](#load-balancing)
+33. [Meter Decoding](#meter-decoding)
+34. [Meter Timeout & Recovery](#meter-timeout-&-recovery)
+35. [Meter Telemetry](#meter-telemetry)
+36. [Metering Diagnostics](#metering-diagnostics)
+37. [Modbus Frame Decoding](#modbus-frame-decoding)
+38. [Modbus Frame Logging](#modbus-frame-logging)
+39. [Mode Synchronization](#mode-synchronization)
+40. [Modem / ISO15118 Negotiation](#modem--iso15118-negotiation)
+41. [MQTT Command Parsing](#mqtt-command-parsing)
+42. [MQTT Input Validation](#mqtt-input-validation)
+43. [MQTT Meter Parsing](#mqtt-meter-parsing)
+44. [MQTT Color Parsing](#mqtt-color-parsing)
+45. [Solar Debug Telemetry](#solar-debug-telemetry)
+46. [Capacity Tariff MQTT](#capacity-tariff-mqtt)
+47. [MQTT Change-Only Publishing](#mqtt-change-only-publishing)
+48. [MQTT SoC Parsing](#mqtt-soc-parsing)
+49. [MQTT SoC Input Validation](#mqtt-soc-input-validation)
+50. [Multi-Node Load Balancing](#multi-node-load-balancing)
+51. [Multi-Node Solar Charging](#multi-node-solar-charging)
+52. [OCPP Current Limiting](#ocpp-current-limiting)
+53. [OCPP Authorization](#ocpp-authorization)
+54. [OCPP Connector State](#ocpp-connector-state)
+55. [OCPP Connector Lock](#ocpp-connector-lock)
+56. [OCPP IEC 61851 Status Mapping](#ocpp-iec-61851-status-mapping)
+57. [OCPP Load Balancing Exclusivity](#ocpp-load-balancing-exclusivity)
+58. [OCPP Silence Detection](#ocpp-silence-detection)
+59. [OCPP RFID Formatting](#ocpp-rfid-formatting)
+60. [OCPP Settings Validation](#ocpp-settings-validation)
+61. [OCPP Telemetry](#ocpp-telemetry)
+62. [Operating Modes](#operating-modes)
+63. [P1 Meter Parsing](#p1-meter-parsing)
+64. [Phase Switching](#phase-switching)
+65. [PIN Rate Limit](#pin-rate-limit)
+66. [Power Availability](#power-availability)
+67. [Reconnect backoff](#reconnect-backoff)
+68. [Priority-Based Power Scheduling](#priority-based-power-scheduling)
+69. [Serial Message Parsing](#serial-message-parsing)
+70. [Serial Input Validation](#serial-input-validation)
+71. [Battery Current Calculation](#battery-current-calculation)
+72. [Current Sum Calculation](#current-sum-calculation)
+73. [Charge Session Logging](#charge-session-logging)
+74. [Charge Session JSON Export](#charge-session-json-export)
+75. [Solar Balancing](#solar-balancing)
+76. [IEC 61851-1 State Transitions](#iec-61851-1-state-transitions)
+77. [10ms Tick Processing](#10ms-tick-processing)
+78. [1-Second Tick Processing](#1-second-tick-processing)
 
 ## API Mains Staleness Detection
 
@@ -807,6 +815,40 @@
 - **Then** IsetBalanced is between MinCurrent and the headroom-per-phase limit
 
 > Test: `test_capacity_moderate_headroom` in `test_capacity_sm.c:307`
+
+---
+
+## Load Balancing — CAPACITY integration
+
+### MaxSumMains does NOT overwrite tighter per-phase MaxMains limit
+
+**Requirement:** `REQ-LB-170`
+
+- **Given** MaxMains=10A (tight), MaxSumMains=75A (generous), charging at 160 dA
+- **When** evse_calc_balanced_current runs
+- **Then** IsetBalanced respects the MaxMains-based per-phase limit;
+
+> Test: `test_capacity_a54b07f_maxsummains_does_not_overwrite_tighter_maxmains` in `test_capacity_sm.c:329`
+
+### MaxSumMains IS the binding constraint when it is tighter per-phase
+
+**Requirement:** `REQ-LB-171`
+
+- **Given** MaxMains=32A (generous per-phase), MaxSumMains=30A (sum = 10A/phase equiv.)
+- **When** evse_calc_balanced_current runs
+- **Then** MaxSumMains wins — Idifference narrowed by the per-phase equivalent (30/3=10 dA)
+
+> Test: `test_capacity_a54b07f_maxsummains_binds_when_tighter` in `test_capacity_sm.c:367`
+
+### LimitedByMaxSumMains flag still set when MaxSumMains exceeded
+
+**Requirement:** `REQ-LB-172`
+
+- **Given** ExcessMaxSumMains < 0 (MaxSumMains already exceeded)
+- **When** evse_calc_balanced_current runs
+- **Then** The MaxSumMainsTimer path is armed (LimitedByMaxSumMains semantics preserved)
+
+> Test: `test_capacity_a54b07f_exceeded_still_flagged` in `test_capacity_sm.c:393`
 
 ---
 
@@ -1578,7 +1620,7 @@
 - **When** evse_tick_1s (timer expires)
 - **Then** C → C1, LESS_6A set
 
-> Test: `test_s9_maxsummains_timer_expiry` in `test_dual_evse.c:546`
+> Test: `test_s9_maxsummains_timer_expiry` in `test_dual_evse.c:550`
 
 ### Normal mode forces 3P when currently on 1P
 
@@ -1588,7 +1630,7 @@
 - **When** evse_calc_balanced_current
 - **Then** Switching_Phases_C2 = GOING_TO_SWITCH_3P
 
-> Test: `test_s10_normal_forces_3p` in `test_dual_evse.c:578`
+> Test: `test_s10_normal_forces_3p` in `test_dual_evse.c:582`
 
 ### STATE_C entry applies 1P switch
 
@@ -1598,7 +1640,7 @@
 - **When** evse_set_state(STATE_C)
 - **Then** Nr_Of_Phases_Charging=1, contactor2 off
 
-> Test: `test_s10_state_c_applies_1p` in `test_dual_evse.c:597`
+> Test: `test_s10_state_c_applies_1p` in `test_dual_evse.c:601`
 
 ### Smart mode with AUTO forces back to 3P
 
@@ -1608,7 +1650,7 @@
 - **When** evse_check_switching_phases
 - **Then** Switching_Phases_C2 = GOING_TO_SWITCH_3P
 
-> Test: `test_s10_smart_auto_forces_3p` in `test_dual_evse.c:617`
+> Test: `test_s10_smart_auto_forces_3p` in `test_dual_evse.c:621`
 
 ---
 
@@ -2892,6 +2934,162 @@
 
 ---
 
+## Debug-only unsigned firmware upload
+
+### Release builds never accept unsigned uploads
+
+**Requirement:** `REQ-API-020`
+
+- **Given** A release firmware image (is_debug_build=false)
+- **When** /update receives an unsigned firmware.bin
+- **Then** http_api_allow_unsigned_upload returns false regardless of PIN state
+
+> Test: `test_unsigned_upload_release_build_always_rejected` in `test_http_api.c:938`
+
+### Debug build without an LCD PIN rejects unsigned uploads
+
+**Requirement:** `REQ-API-020`
+
+- **Given** is_debug_build=true but LCDPin is 0 (no PIN configured)
+- **When** /update receives an unsigned firmware.bin
+- **Then** The gate returns false — no auth = no unsigned flash
+
+> Test: `test_unsigned_upload_debug_no_pin_rejected` in `test_http_api.c:952`
+
+### Debug build with PIN configured but not verified rejects upload
+
+**Requirement:** `REQ-API-020`
+
+- **Given** is_debug_build=true, LCDPin=1234, LCDPasswordOK=false
+- **When** /update receives an unsigned firmware.bin
+- **Then** The gate returns false until the operator verifies the PIN
+
+> Test: `test_unsigned_upload_debug_pin_not_verified_rejected` in `test_http_api.c:967`
+
+### Debug build with verified LCD PIN accepts unsigned uploads
+
+**Requirement:** `REQ-API-020`
+
+- **Given** is_debug_build=true, LCDPin>0, LCDPasswordOK=true
+- **When** /update receives an unsigned firmware.bin
+- **Then** The gate returns true — physical-presence auth satisfied
+
+> Test: `test_unsigned_upload_debug_pin_verified_accepted` in `test_http_api.c:980`
+
+### Release build with a verified LCD PIN still rejects unsigned
+
+**Requirement:** `REQ-API-020`
+
+- **Given** is_debug_build=false, LCDPin=1234, LCDPasswordOK=true
+- **When** /update receives an unsigned firmware.bin
+- **Then** The gate returns false — C-1 guarantee holds on release firmware
+
+> Test: `test_unsigned_upload_release_with_pin_still_rejected` in `test_http_api.c:994`
+
+---
+
+## HTTP Auth
+
+### AuthMode=OFF allows any request (no PIN, no Origin)
+
+**Requirement:** `REQ-AUTH-001`
+
+
+> Test: `test_auth_off_allows_unauthenticated` in `test_http_auth.c:1`
+
+### AuthMode=OFF allows request with foreign Origin (no CSRF check)
+
+**Requirement:** `REQ-AUTH-001`
+
+
+> Test: `test_auth_off_allows_foreign_origin` in `test_http_auth.c:23`
+
+### AuthMode=REQUIRED denies request without PIN verification
+
+**Requirement:** `REQ-AUTH-002`
+
+
+> Test: `test_auth_required_denies_unauth` in `test_http_auth.c:36`
+
+### AuthMode=REQUIRED allows PIN-verified request
+
+**Requirement:** `REQ-AUTH-002`
+
+
+> Test: `test_auth_required_allows_authed` in `test_http_auth.c:47`
+
+### Authenticated session expires after HTTP_AUTH_SESSION_TIMEOUT_MS idle
+
+**Requirement:** `REQ-AUTH-003`
+
+
+> Test: `test_auth_session_expires` in `test_http_auth.c:61`
+
+### Authenticated session still valid just before the timeout boundary
+
+**Requirement:** `REQ-AUTH-003`
+
+
+> Test: `test_auth_session_just_before_timeout` in `test_http_auth.c:73`
+
+### Session with zero timestamp is treated as "never set" (defensive)
+
+**Requirement:** `REQ-AUTH-003`
+
+
+> Test: `test_auth_session_zero_ts_does_not_expire` in `test_http_auth.c:85`
+
+### Missing Origin header allowed (non-browser integration)
+
+**Requirement:** `REQ-AUTH-004`
+
+
+> Test: `test_auth_no_origin_allowed` in `test_http_auth.c:97`
+
+### Matching Origin allowed
+
+**Requirement:** `REQ-AUTH-004`
+
+
+> Test: `test_auth_matching_origin_allowed` in `test_http_auth.c:108`
+
+### Matching hostname in origin allowed
+
+**Requirement:** `REQ-AUTH-004`
+
+
+> Test: `test_auth_matching_hostname_origin_allowed` in `test_http_auth.c:119`
+
+### Foreign Origin blocked as CSRF
+
+**Requirement:** `REQ-AUTH-004`
+
+
+> Test: `test_auth_foreign_origin_blocked` in `test_http_auth.c:130`
+
+### Origin with unexpected scheme blocked
+
+**Requirement:** `REQ-AUTH-004`
+
+
+> Test: `test_auth_origin_bad_scheme_blocked` in `test_http_auth.c:141`
+
+### https:// Origin matching device IP allowed
+
+**Requirement:** `REQ-AUTH-004`
+
+
+> Test: `test_auth_https_matching_origin_allowed` in `test_http_auth.c:152`
+
+### Unauth + foreign Origin reports UNAUTH first (PIN check precedes CSRF)
+
+**Requirement:** `REQ-AUTH-005`
+
+
+> Test: `test_auth_unauth_precedes_csrf` in `test_http_auth.c:165`
+
+---
+
 ## LB Convergence
 
 ### Standalone Smart mode converges to target within 20 cycles
@@ -3561,6 +3759,150 @@
 - **Then** LED shows custom blue at full brightness
 
 > Test: `test_state_b_custom_override` in `test_led_color.c:466`
+
+---
+
+## LED Color — Public Scheme
+
+### RFID read grey flash wins over all other signals
+
+**Requirement:** `REQ-LED-100`
+
+- **Given** rfid_read_flash true, other flashes also asserted
+- **When** led_public_compute is called
+- **Then** Returns grey (128,128,128) — highest priority in the decision tree
+
+> Test: `test_public_rfid_flash_priority` in `test_led_color.c:498`
+
+### Authorized-grant green flash
+
+**Requirement:** `REQ-LED-100`
+
+- **Given** tx_authorized_flash true, no higher-priority signal
+- **When** led_public_compute is called
+- **Then** Returns green (0,255,0)
+
+> Test: `test_public_tx_authorized_green` in `test_led_color.c:518`
+
+### Authorization-rejected red flash
+
+**Requirement:** `REQ-LED-100`
+
+- **Given** tx_rejected_flash true
+- **When** led_public_compute is called
+- **Then** Returns red (255,0,0)
+
+> Test: `test_public_tx_rejected_red` in `test_led_color.c:536`
+
+### Auth-timeout red flash
+
+**Requirement:** `REQ-LED-100`
+
+- **Given** tx_timeout_flash true
+- **When** led_public_compute is called
+- **Then** Returns red (255,0,0)
+
+> Test: `test_public_tx_timeout_red` in `test_led_color.c:554`
+
+### Reserved ChargePoint status → orange
+
+**Requirement:** `REQ-LED-101`
+
+- **Given** cp_status = LED_CP_STATUS_RESERVED, no flashes
+- **When** led_public_compute is called
+- **Then** Returns orange (255,128,0)
+
+> Test: `test_public_reserved_orange` in `test_led_color.c:572`
+
+### Unavailable ChargePoint status → red
+
+**Requirement:** `REQ-LED-101`
+
+- **Given** cp_status = LED_CP_STATUS_UNAVAILABLE
+- **When** led_public_compute is called
+- **Then** Returns red (255,0,0)
+
+> Test: `test_public_unavailable_red` in `test_led_color.c:590`
+
+### Faulted ChargePoint status → red
+
+**Requirement:** `REQ-LED-101`
+
+- **Given** cp_status = LED_CP_STATUS_FAULTED
+- **When** led_public_compute is called
+- **Then** Returns red (255,0,0)
+
+> Test: `test_public_faulted_red` in `test_led_color.c:608`
+
+### Waiting / ChargeDelay → slow orange blink (bright phase)
+
+**Requirement:** `REQ-LED-102`
+
+- **Given** charge_delay set, led_count seeded past 230
+- **When** led_public_compute is called
+- **Then** Returns orange at waiting brightness (R=WAITING_LED_BRIGHTNESS, G=R/2, B=0)
+
+> Test: `test_public_waiting_orange_bright` in `test_led_color.c:626`
+
+### Waiting / ChargeDelay → slow orange blink (dark phase)
+
+**Requirement:** `REQ-LED-102`
+
+- **Given** error flag set, led_count seeded so post-increment is <= 230
+- **When** led_public_compute is called
+- **Then** Returns (0,0,0) — dark part of the blink
+
+> Test: `test_public_waiting_orange_dark` in `test_led_color.c:644`
+
+### STATE_A → green (dimmed) = Available
+
+**Requirement:** `REQ-LED-103`
+
+- **Given** state = STATE_A, no flashes, no waiting
+- **When** led_public_compute is called
+- **Then** Returns (0, STATE_A_LED_BRIGHTNESS, 0)
+
+> Test: `test_public_state_a_green_dim` in `test_led_color.c:662`
+
+### STATE_B → blue static = EV connected
+
+**Requirement:** `REQ-LED-103`
+
+- **Given** state = STATE_B
+- **When** led_public_compute is called
+- **Then** Returns (0, 0, STATE_B_LED_BRIGHTNESS) and seeds led_count=128
+
+> Test: `test_public_state_b_blue_static` in `test_led_color.c:680`
+
+### STATE_B1 and STATE_MODEM_* also → blue static
+
+**Requirement:** `REQ-LED-103`
+
+- **Given** state = STATE_B1
+- **When** led_public_compute is called
+- **Then** Returns (0, 0, STATE_B_LED_BRIGHTNESS)
+
+> Test: `test_public_state_b1_blue_static` in `test_led_color.c:699`
+
+### STATE_C → blue fading (animation advances)
+
+**Requirement:** `REQ-LED-103`
+
+- **Given** state = STATE_C, led_count incremented across calls
+- **When** led_public_compute is called twice
+- **Then** Both outputs have R=0, G=0, B>0 and led_count advances
+
+> Test: `test_public_state_c_blue_fading` in `test_led_color.c:717`
+
+### Default/unknown state with no signals → all off
+
+**Requirement:** `REQ-LED-104`
+
+- **Given** Default snapshot, state is unknown value
+- **When** led_public_compute is called
+- **Then** Returns (0,0,0) — falls off the decision tree
+
+> Test: `test_public_unknown_state_off` in `test_led_color.c:739`
 
 ---
 
@@ -7265,6 +7607,180 @@
 
 > Test: `test_ev_not_ready_at_nok` in `test_ocpp_connector.c:148`
 
+### LockingTx present → occupied (pre-existing condition)
+
+**Requirement:** `REQ-OCPP-120`
+
+- **Given** locking_tx_present=true, no recent StopTx
+- **When** ocpp_should_report_occupied is called
+- **Then** Returns true
+
+> Test: `test_occupied_locking_tx_present` in `test_ocpp_connector.c:313`
+
+### StopTx within grace window → occupied (Finishing)
+
+**Requirement:** `REQ-OCPP-121`
+
+- **Given** No locking tx, StopTx fired 500 ms ago (< 2000 ms grace)
+- **When** ocpp_should_report_occupied is called
+- **Then** Returns true so CSMS sees Finishing before Available
+
+> Test: `test_occupied_stoptx_inside_grace_window` in `test_ocpp_connector.c:330`
+
+### StopTx exactly at grace boundary → NOT occupied (< is strict)
+
+**Requirement:** `REQ-OCPP-121`
+
+- **Given** No locking tx, StopTx fired exactly OCPP_FINISHING_GRACE_MS ago
+- **When** ocpp_should_report_occupied is called
+- **Then** Returns false — grace window has elapsed
+
+> Test: `test_occupied_stoptx_at_grace_boundary_exclusive` in `test_ocpp_connector.c:348`
+
+### StopTx past grace window → NOT occupied (Available)
+
+**Requirement:** `REQ-OCPP-122`
+
+- **Given** No locking tx, StopTx fired 3 seconds ago
+- **When** ocpp_should_report_occupied is called
+- **Then** Returns false — grace expired, transition to Available
+
+> Test: `test_occupied_stoptx_past_grace_window` in `test_ocpp_connector.c:366`
+
+### Non-StopTx notification within grace → NOT occupied
+
+**Requirement:** `REQ-OCPP-122`
+
+- **Given** tx_notif_defined=true but tx_notif_is_stoptx=false (e.g. StartTx)
+- **When** ocpp_should_report_occupied is called
+- **Then** Returns false — only StopTx triggers Finishing
+
+> Test: `test_occupied_non_stoptx_notification_ignored` in `test_ocpp_connector.c:384`
+
+### Uninitialized notification state → NOT occupied
+
+**Requirement:** `REQ-OCPP-122`
+
+- **Given** tx_notif_defined=false (no notification has ever fired)
+- **When** ocpp_should_report_occupied is called
+- **Then** Returns false — no spurious Finishing on fresh boot
+
+> Test: `test_occupied_notification_undefined` in `test_ocpp_connector.c:402`
+
+---
+
+## OCPP Connector Lock
+
+### Active authorized transaction with car plugged → lock
+
+**Requirement:** `REQ-OCPP-110`
+
+- **Given** tx is present, authorized, active; CP voltage is PILOT_6V (plugged)
+- **When** ocpp_should_force_lock is called
+- **Then** Returns true — connector must be locked during charging
+
+> Test: `test_lock_active_tx_plugged` in `test_ocpp_connector.c:162`
+
+### Lock condition holds at PILOT_3V boundary (charging)
+
+**Requirement:** `REQ-OCPP-110`
+
+- **Given** Active authorized tx, CP voltage is PILOT_3V (lower bound)
+- **When** ocpp_should_force_lock is called
+- **Then** Returns true
+
+> Test: `test_lock_active_tx_at_3v_boundary` in `test_ocpp_connector.c:180`
+
+### Lock condition holds at PILOT_9V boundary (plugged, not charging yet)
+
+**Requirement:** `REQ-OCPP-110`
+
+- **Given** Active authorized tx, CP voltage is PILOT_9V (upper bound)
+- **When** ocpp_should_force_lock is called
+- **Then** Returns true
+
+> Test: `test_lock_active_tx_at_9v_boundary` in `test_ocpp_connector.c:193`
+
+### No lock when no transaction present
+
+**Requirement:** `REQ-OCPP-111`
+
+- **Given** tx_present false, but CP voltage and other inputs say "active"
+- **When** ocpp_should_force_lock is called
+- **Then** Returns false — no transaction means no lock
+
+> Test: `test_lock_no_tx_no_lock` in `test_ocpp_connector.c:206`
+
+### No lock when transaction is not authorized
+
+**Requirement:** `REQ-OCPP-111`
+
+- **Given** tx present but unauthorized, plugged
+- **When** ocpp_should_force_lock is called
+- **Then** Returns false
+
+> Test: `test_lock_unauthorized_tx_no_lock` in `test_ocpp_connector.c:219`
+
+### No lock when transaction neither active nor running
+
+**Requirement:** `REQ-OCPP-111`
+
+- **Given** tx authorized but isActive==false && isRunning==false
+- **When** ocpp_should_force_lock is called
+- **Then** Returns false
+
+> Test: `test_lock_inactive_tx_no_lock` in `test_ocpp_connector.c:232`
+
+### No lock when connector unplugged (PILOT_12V)
+
+**Requirement:** `REQ-OCPP-111`
+
+- **Given** Active authorized tx but CP says no vehicle
+- **When** ocpp_should_force_lock is called
+- **Then** Returns false
+
+> Test: `test_lock_active_tx_unplugged_no_lock` in `test_ocpp_connector.c:245`
+
+### No lock when connector reads PILOT_NOK (fault) and no LockingTx
+
+**Requirement:** `REQ-OCPP-111`
+
+- **Given** Authorized active tx, CP voltage PILOT_NOK
+- **When** ocpp_should_force_lock is called
+- **Then** Returns false — pilot fault means cable state is unknown,
+
+> Test: `test_lock_pilot_nok_no_lock` in `test_ocpp_connector.c:258`
+
+### LockingTx with start requested keeps connector locked
+
+**Requirement:** `REQ-OCPP-112`
+
+- **Given** No regular tx active, LockingTx present and StartSync requested
+- **When** ocpp_should_force_lock is called
+- **Then** Returns true — RFID-locked connector waits for matching swipe
+
+> Test: `test_lock_locking_tx_start_requested` in `test_ocpp_connector.c:272`
+
+### LockingTx without start request does not force lock
+
+**Requirement:** `REQ-OCPP-112`
+
+- **Given** LockingTx present but its StartSync has not been requested
+- **When** ocpp_should_force_lock is called
+- **Then** Returns false
+
+> Test: `test_lock_locking_tx_no_start_request` in `test_ocpp_connector.c:285`
+
+### All-false baseline returns false
+
+**Requirement:** `REQ-OCPP-113`
+
+- **Given** Every input false / PILOT_NOK
+- **When** ocpp_should_force_lock is called
+- **Then** Returns false — no condition triggers
+
+> Test: `test_lock_all_false_baseline` in `test_ocpp_connector.c:298`
+
 ---
 
 ## OCPP IEC 61851 Status Mapping
@@ -7472,6 +7988,110 @@
 - **Then** All return OCPP_LB_CONFLICT
 
 > Test: `test_lb_all_node_values_conflict` in `test_ocpp_lb.c:139`
+
+---
+
+## OCPP Silence Detection
+
+### No action while WebSocket is disconnected
+
+**Requirement:** `REQ-OCPP-100`
+
+- **Given** ws_connected is false, all timers stale
+- **When** ocpp_silence_decide is called
+- **Then** Returns NO_ACTION because the WS layer handles reconnection itself
+
+> Test: `test_silence_no_action_when_disconnected` in `test_ocpp_resilience.c:1`
+
+### Disconnected transport ignores stale response timestamp
+
+**Requirement:** `REQ-OCPP-100`
+
+- **Given** ws_connected is false, last_response is 10 minutes ago
+- **When** ocpp_silence_decide is called
+- **Then** Returns NO_ACTION — disconnected transport short-circuits everything
+
+> Test: `test_silence_disconnected_ignores_stale_response` in `test_ocpp_resilience.c:36`
+
+### First probe fires when probe interval has elapsed since boot
+
+**Requirement:** `REQ-OCPP-101`
+
+- **Given** ws_connected, last_response is 1 second ago, last_probe is 0
+- **When** ocpp_silence_decide is called
+- **Then** Returns SEND_PROBE because (now - last_probe) >= probe interval
+
+> Test: `test_silence_first_probe_at_interval` in `test_ocpp_resilience.c:55`
+
+### No probe fires before the interval elapses
+
+**Requirement:** `REQ-OCPP-101`
+
+- **Given** ws_connected, last_probe was 1 second ago, response fresh
+- **When** ocpp_silence_decide is called
+- **Then** Returns NO_ACTION — too soon to probe again
+
+> Test: `test_silence_no_probe_before_interval` in `test_ocpp_resilience.c:74`
+
+### Probe interval boundary is inclusive
+
+**Requirement:** `REQ-OCPP-101`
+
+- **Given** ws_connected, last_probe was exactly OCPP_PROBE_INTERVAL_MS ago
+- **When** ocpp_silence_decide is called
+- **Then** Returns SEND_PROBE — boundary value triggers a new probe
+
+> Test: `test_silence_probe_at_boundary` in `test_ocpp_resilience.c:92`
+
+### Force reconnect when backend has been silent past timeout
+
+**Requirement:** `REQ-OCPP-102`
+
+- **Given** ws_connected, last_response is OCPP_SILENCE_TIMEOUT_MS+1 ago
+- **When** ocpp_silence_decide is called
+- **Then** Returns FORCE_RECONNECT (priority over probe)
+
+> Test: `test_silence_force_reconnect_after_timeout` in `test_ocpp_resilience.c:112`
+
+### Reconnect priority — probe interval elapsed AND silence timeout exceeded
+
+**Requirement:** `REQ-OCPP-102`
+
+- **Given** ws_connected, both probe interval and silence timeout exceeded
+- **When** ocpp_silence_decide is called
+- **Then** Returns FORCE_RECONNECT, not SEND_PROBE — reconnect takes priority
+
+> Test: `test_silence_reconnect_priority_over_probe` in `test_ocpp_resilience.c:130`
+
+### Cold-boot guard — last_response_ms == 0 must not force reconnect
+
+**Requirement:** `REQ-OCPP-103`
+
+- **Given** ws_connected, last_response is 0 (uninitialized), now is far in
+- **When** ocpp_silence_decide is called
+- **Then** Returns SEND_PROBE (probe is fine to send) but NEVER FORCE_RECONNECT,
+
+> Test: `test_silence_zero_response_does_not_force_reconnect` in `test_ocpp_resilience.c:148`
+
+### Cold-boot guard with no probe due either
+
+**Requirement:** `REQ-OCPP-103`
+
+- **Given** ws_connected, last_response is 0, last_probe is also recent
+- **When** ocpp_silence_decide is called
+- **Then** Returns NO_ACTION — no reconnect (zero-guard) and no probe (interval not elapsed)
+
+> Test: `test_silence_zero_response_no_probe_due` in `test_ocpp_resilience.c:167`
+
+### Healthy steady state — fresh response, recent probe
+
+**Requirement:** `REQ-OCPP-104`
+
+- **Given** ws_connected, response 1s ago, probe 30s ago (less than interval)
+- **When** ocpp_silence_decide is called
+- **Then** Returns NO_ACTION
+
+> Test: `test_silence_healthy_steady_state` in `test_ocpp_resilience.c:185`
 
 ---
 
@@ -7685,7 +8305,7 @@
 
 **Requirement:** `REQ-OCPP-097`
 
-- **Given** URL contains all allowed special chars: . : / - _ ? = & @ % + #
+- **Given** URL contains all allowed special chars (path/query/fragment): . : / - _ ? = & @ % + #
 - **When** ocpp_validate_backend_url is called
 - **Then** Returns OCPP_VALIDATE_OK
 
@@ -7699,7 +8319,7 @@
 - **When** ocpp_validate_backend_url is called
 - **Then** Returns OCPP_VALIDATE_BAD_CHARS
 
-> Test: `test_url_backslash_rejected` in `test_ocpp_settings.c:170`
+> Test: `test_url_backslash_rejected` in `test_ocpp_settings.c:173`
 
 ### URL with curly braces rejected
 
@@ -7709,7 +8329,7 @@
 - **When** ocpp_validate_backend_url is called
 - **Then** Returns OCPP_VALIDATE_BAD_CHARS
 
-> Test: `test_url_braces_rejected` in `test_ocpp_settings.c:183`
+> Test: `test_url_braces_rejected` in `test_ocpp_settings.c:186`
 
 ### Valid ChargeBoxId accepted
 
@@ -7719,7 +8339,7 @@
 - **When** ocpp_validate_chargebox_id is called
 - **Then** Returns OCPP_VALIDATE_OK
 
-> Test: `test_cbid_valid` in `test_ocpp_settings.c:198`
+> Test: `test_cbid_valid` in `test_ocpp_settings.c:201`
 
 ### ChargeBoxId with special characters rejected
 
@@ -7729,7 +8349,7 @@
 - **When** ocpp_validate_chargebox_id is called
 - **Then** Returns OCPP_VALIDATE_BAD_CHARS
 
-> Test: `test_cbid_special_chars_rejected` in `test_ocpp_settings.c:211`
+> Test: `test_cbid_special_chars_rejected` in `test_ocpp_settings.c:214`
 
 ### ChargeBoxId length > 20 rejected (OCPP 1.6 CiString20)
 
@@ -7739,7 +8359,7 @@
 - **When** ocpp_validate_chargebox_id is called
 - **Then** Returns OCPP_VALIDATE_TOO_LONG
 
-> Test: `test_cbid_too_long_rejected` in `test_ocpp_settings.c:224`
+> Test: `test_cbid_too_long_rejected` in `test_ocpp_settings.c:227`
 
 ### ChargeBoxId exactly 20 characters is accepted
 
@@ -7749,7 +8369,7 @@
 - **When** ocpp_validate_chargebox_id is called
 - **Then** Returns OCPP_VALIDATE_OK
 
-> Test: `test_cbid_exactly_20_accepted` in `test_ocpp_settings.c:237`
+> Test: `test_cbid_exactly_20_accepted` in `test_ocpp_settings.c:240`
 
 ### Empty ChargeBoxId rejected
 
@@ -7759,7 +8379,7 @@
 - **When** ocpp_validate_chargebox_id is called
 - **Then** Returns OCPP_VALIDATE_EMPTY
 
-> Test: `test_cbid_empty_rejected` in `test_ocpp_settings.c:250`
+> Test: `test_cbid_empty_rejected` in `test_ocpp_settings.c:253`
 
 ### ChargeBoxId with ampersand rejected
 
@@ -7769,7 +8389,7 @@
 - **When** ocpp_validate_chargebox_id is called
 - **Then** Returns OCPP_VALIDATE_BAD_CHARS
 
-> Test: `test_cbid_ampersand_rejected` in `test_ocpp_settings.c:263`
+> Test: `test_cbid_ampersand_rejected` in `test_ocpp_settings.c:266`
 
 ### Auth key length > 40 rejected (OCPP 1.6 limit)
 
@@ -7779,7 +8399,7 @@
 - **When** ocpp_validate_auth_key is called
 - **Then** Returns OCPP_VALIDATE_TOO_LONG
 
-> Test: `test_auth_key_too_long` in `test_ocpp_settings.c:278`
+> Test: `test_auth_key_too_long` in `test_ocpp_settings.c:281`
 
 ### Auth key exactly 40 characters is accepted
 
@@ -7789,7 +8409,7 @@
 - **When** ocpp_validate_auth_key is called
 - **Then** Returns OCPP_VALIDATE_OK
 
-> Test: `test_auth_key_exactly_40_accepted` in `test_ocpp_settings.c:291`
+> Test: `test_auth_key_exactly_40_accepted` in `test_ocpp_settings.c:294`
 
 ### Empty auth key is valid (no auth configured)
 
@@ -7799,7 +8419,98 @@
 - **When** ocpp_validate_auth_key is called
 - **Then** Returns OCPP_VALIDATE_OK because empty means no auth
 
-> Test: `test_auth_key_empty_accepted` in `test_ocpp_settings.c:304`
+> Test: `test_auth_key_empty_accepted` in `test_ocpp_settings.c:307`
+
+### Loopback IPv4 127.0.0.1 rejected
+
+**Requirement:** `REQ-OCPP-H4-001`
+
+
+> Test: `test_url_loopback_127_0_0_1_rejected` in `test_ocpp_settings.c:322`
+
+### Any 127.x loopback rejected (covers 127.42.0.1 etc.)
+
+**Requirement:** `REQ-OCPP-H4-001`
+
+
+> Test: `test_url_loopback_127_any_rejected` in `test_ocpp_settings.c:331`
+
+### localhost hostname rejected
+
+**Requirement:** `REQ-OCPP-H4-001`
+
+
+> Test: `test_url_loopback_localhost_rejected` in `test_ocpp_settings.c:340`
+
+### LOCALHOST uppercase rejected (case-insensitive host check)
+
+**Requirement:** `REQ-OCPP-H4-001`
+
+
+> Test: `test_url_loopback_localhost_uppercase_rejected` in `test_ocpp_settings.c:349`
+
+### 0.0.0.0 (bind-any / loopback alias) rejected
+
+**Requirement:** `REQ-OCPP-H4-001`
+
+
+> Test: `test_url_loopback_0_0_0_0_rejected` in `test_ocpp_settings.c:358`
+
+### IPv6 loopback [::1] rejected
+
+**Requirement:** `REQ-OCPP-H4-001`
+
+
+> Test: `test_url_loopback_ipv6_rejected` in `test_ocpp_settings.c:367`
+
+### IPv4 link-local 169.254.x rejected (AutoIP / APIPA)
+
+**Requirement:** `REQ-OCPP-H4-002`
+
+
+> Test: `test_url_linklocal_ipv4_rejected` in `test_ocpp_settings.c:376`
+
+### IPv6 link-local fe80:: rejected
+
+**Requirement:** `REQ-OCPP-H4-002`
+
+
+> Test: `test_url_linklocal_ipv6_rejected` in `test_ocpp_settings.c:385`
+
+### Embedded user:pass@host rejected
+
+**Requirement:** `REQ-OCPP-H4-003`
+
+
+> Test: `test_url_embedded_creds_rejected` in `test_ocpp_settings.c:394`
+
+### Embedded @ in authority (even without colon) rejected
+
+**Requirement:** `REQ-OCPP-H4-003`
+
+
+> Test: `test_url_embedded_at_rejected` in `test_ocpp_settings.c:403`
+
+### @ inside path component is allowed (authority is clean)
+
+**Requirement:** `REQ-OCPP-H4-004`
+
+
+> Test: `test_url_at_in_path_allowed` in `test_ocpp_settings.c:412`
+
+### RFC1918 private ranges still allowed — many users self-host CSMS on LAN
+
+**Requirement:** `REQ-OCPP-H4-005`
+
+
+> Test: `test_url_rfc1918_private_still_allowed` in `test_ocpp_settings.c:421`
+
+### Normal public hostnames still allowed (regression-proof)
+
+**Requirement:** `REQ-OCPP-H4-005`
+
+
+> Test: `test_url_public_hostname_still_allowed` in `test_ocpp_settings.c:434`
 
 ---
 
@@ -8579,6 +9290,120 @@
 
 ---
 
+## PIN Rate Limit
+
+### Clean state allows the first request
+
+**Requirement:** `REQ-AUTH-020`
+
+- **Given** A zero-initialised pin_rate_limit_t
+- **When** pin_rl_check is called
+- **Then** Returns ALLOW
+
+> Test: `test_pin_rl_clean_state_allows` in `test_pin_rate_limit.c:1`
+
+### First two failures do not trigger cooldown
+
+**Requirement:** `REQ-AUTH-020`
+
+- **Given** A clean rate limiter
+- **When** Two consecutive failures are recorded
+- **Then** pin_rl_check still returns ALLOW (no cooldown armed)
+
+> Test: `test_pin_rl_first_two_failures_free` in `test_pin_rate_limit.c:25`
+
+### Third failure arms a 10-second cooldown
+
+**Requirement:** `REQ-AUTH-021`
+
+- **Given** Two failures already recorded
+- **When** A third failure is recorded and check is called immediately
+- **Then** check returns DENY_COOLDOWN and retry_after ~= 10 s
+
+> Test: `test_pin_rl_third_failure_10s_cooldown` in `test_pin_rate_limit.c:43`
+
+### Fourth failure extends cooldown to 60 seconds
+
+**Requirement:** `REQ-AUTH-021`
+
+
+> Test: `test_pin_rl_fourth_failure_60s_cooldown` in `test_pin_rate_limit.c:62`
+
+### Fifth failure extends cooldown to 5 minutes
+
+**Requirement:** `REQ-AUTH-021`
+
+
+> Test: `test_pin_rl_fifth_failure_5min_cooldown` in `test_pin_rate_limit.c:77`
+
+### Sixth and subsequent failures cap at 30 minutes
+
+**Requirement:** `REQ-AUTH-021`
+
+
+> Test: `test_pin_rl_capped_at_30min` in `test_pin_rate_limit.c:90`
+
+### After cooldown elapses, new attempt is allowed
+
+**Requirement:** `REQ-AUTH-022`
+
+- **Given** A cooldown armed for 10 seconds at t=1000ms
+- **When** check is called at t=12000ms (11s later)
+- **Then** check returns ALLOW and retry_after == 0
+
+> Test: `test_pin_rl_cooldown_elapses` in `test_pin_rate_limit.c:108`
+
+### retry_after rounds up to whole seconds
+
+**Requirement:** `REQ-AUTH-023`
+
+- **Given** A 10s cooldown armed at t=1000
+- **When** queried at t=1500 (500ms in) it reports 10s, at t=9500 reports 1s
+
+> Test: `test_pin_rl_retry_after_rounding` in `test_pin_rate_limit.c:129`
+
+### Successful PIN resets counter and cooldown
+
+**Requirement:** `REQ-AUTH-024`
+
+- **Given** A state with an active cooldown after 3 failures
+- **When** pin_rl_record_success is called
+- **Then** Subsequent checks ALLOW immediately and count is 0
+
+> Test: `test_pin_rl_success_clears_cooldown` in `test_pin_rate_limit.c:152`
+
+### After idle > 10 min, counter auto-resets on next check
+
+**Requirement:** `REQ-AUTH-025`
+
+- **Given** 2 failures recorded (no cooldown yet)
+- **When** check is called more than 10 min later
+- **Then** fail_count resets to 0 — no accidental lockout of returning users
+
+> Test: `test_pin_rl_idle_reset` in `test_pin_rate_limit.c:174`
+
+### Idle-reset does not fire while a cooldown is still active
+
+**Requirement:** `REQ-AUTH-025`
+
+- **Given** Third failure arming a 10s cooldown
+- **When** check is called 11 minutes later — but the cooldown was only 10s
+- **Then** Cooldown has long since elapsed, allow, but fail_count stays 3
+
+> Test: `test_pin_rl_idle_reset_respects_cooldown` in `test_pin_rate_limit.c:194`
+
+### NULL state fails open (no crash, lets request through)
+
+**Requirement:** `REQ-AUTH-026`
+
+- **Given** A NULL pin_rate_limit_t pointer
+- **When** check / record_* / retry_after are called
+- **Then** No crash; check returns ALLOW, retry_after returns 0
+
+> Test: `test_pin_rl_null_safe` in `test_pin_rate_limit.c:218`
+
+---
+
 ## Power Availability
 
 ### Normal mode always reports current as available regardless of mains load
@@ -8800,6 +9625,69 @@
 - **Then** Returns a duty cycle value between 950 and 1024 (near the top of the PWM range)
 
 > Test: `test_current_to_duty_80A` in `test_power_availability.c:406`
+
+---
+
+## Reconnect backoff
+
+### Clean state allows immediate attempt
+
+**Requirement:** `REQ-NET-010`
+
+
+> Test: `test_clean_state_allows` in `test_reconnect_backoff.c:1`
+
+### First failure arms 1-second backoff
+
+**Requirement:** `REQ-NET-011`
+
+
+> Test: `test_first_failure_1s` in `test_reconnect_backoff.c:23`
+
+### Each subsequent failure doubles the backoff up to 30 s cap
+
+**Requirement:** `REQ-NET-011`
+
+
+> Test: `test_doubling_schedule` in `test_reconnect_backoff.c:37`
+
+### Success clears the failure counter and the cooldown
+
+**Requirement:** `REQ-NET-012`
+
+
+> Test: `test_success_clears` in `test_reconnect_backoff.c:57`
+
+### After cooldown elapses, attempts allowed without state mutation
+
+**Requirement:** `REQ-NET-013`
+
+- **Given** A 4-second cooldown after 3 failures
+- **When** should_attempt is called past the cooldown deadline
+- **Then** Returns true; counter unchanged (only failure or success mutates)
+
+> Test: `test_cooldown_elapses` in `test_reconnect_backoff.c:78`
+
+### seconds_until_next rounds up
+
+**Requirement:** `REQ-NET-014`
+
+
+> Test: `test_seconds_rounds_up` in `test_reconnect_backoff.c:102`
+
+### NULL state is safe and fails open
+
+**Requirement:** `REQ-NET-015`
+
+
+> Test: `test_null_safe` in `test_reconnect_backoff.c:121`
+
+### consecutive_failures saturates at 0xFF
+
+**Requirement:** `REQ-NET-016`
+
+
+> Test: `test_counter_saturates` in `test_reconnect_backoff.c:137`
 
 ---
 
@@ -10907,5 +11795,35 @@
 - **Then** ChargeDelay is CHARGEDELAY (60), not 0
 
 > Test: `test_less_6a_charge_delay_never_reaches_zero` in `test_tick_1s.c:400`
+
+### Re-set LESS_6A during solar-mode ChargeDelay countdown when current becomes unavailable
+
+**Requirement:** `REQ-TICK1S-020`
+
+- **Given** Solar mode, ChargeDelay=30, LESS_6A cleared, current NOT available (high mains load)
+- **When** A 1-second tick occurs
+- **Then** LESS_6A is re-set so the countdown restarts on the next cycle (prevents charging-without-solar oscillation)
+
+> Test: `test_charge_delay_resets_less6a_when_solar_lost` in `test_tick_1s.c:424`
+
+### ChargeDelay re-set does NOT fire when solar is still available
+
+**Requirement:** `REQ-TICK1S-021`
+
+- **Given** Solar mode, ChargeDelay=30, LESS_6A cleared, current IS available (solar surplus)
+- **When** A 1-second tick occurs
+- **Then** LESS_6A remains clear — no spurious re-set
+
+> Test: `test_charge_delay_leaves_less6a_clear_when_solar_present` in `test_tick_1s.c:447`
+
+### ChargeDelay re-set does NOT fire in non-solar mode
+
+**Requirement:** `REQ-TICK1S-022`
+
+- **Given** Smart mode, ChargeDelay=30, LESS_6A cleared, current NOT available
+- **When** A 1-second tick occurs
+- **Then** LESS_6A remains clear — the re-set logic is solar-only
+
+> Test: `test_charge_delay_less6a_reset_solar_only` in `test_tick_1s.c:472`
 
 ---
