@@ -2092,7 +2092,7 @@ void ModbusRequestLoop() {
                 ModbusRequest++;
                 // fall through
             case 25:
-                if (MainsMeter.Type == EM_EASTRON3P || MainsMeter.Type == EM_EASTRON3P_INV) {
+                if (MainsMeter.Type == EM_EASTRON3P || MainsMeter.Type == EM_EASTRON3P_INV || MainsMeter.Type == EM_EASTRON1P) {
                     if (energytimer == 0) {
                         ModbusReadInputRequest(MainsMeter.Address, 4, 342, 2);
                         break;
@@ -2101,7 +2101,7 @@ void ModbusRequestLoop() {
                 ModbusRequest++;
                 // fall through
             case 26:
-                if (MainsMeter.Type == EM_EASTRON3P || MainsMeter.Type == EM_EASTRON3P_INV) {
+                if (MainsMeter.Type == EM_EASTRON3P || MainsMeter.Type == EM_EASTRON3P_INV || MainsMeter.Type == EM_EASTRON1P) {
                     if (energytimer == 0) {
                         ModbusReadInputRequest(MainsMeter.Address, 4, 500, 22);
                         break;
@@ -2110,7 +2110,7 @@ void ModbusRequestLoop() {
                 ModbusRequest++;
                 // fall through
             case 27:
-                if (MainsMeter.Type == EM_EASTRON3P || MainsMeter.Type == EM_EASTRON3P_INV) {
+                if (MainsMeter.Type == EM_EASTRON3P || MainsMeter.Type == EM_EASTRON3P_INV || MainsMeter.Type == EM_EASTRON1P) {
                     if (energytimer == 0) {
                         ModbusReadInputRequest(MainsMeter.Address, 4, 600, 30);
                         break;

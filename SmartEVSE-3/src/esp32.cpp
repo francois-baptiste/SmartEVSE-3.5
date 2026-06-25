@@ -1276,7 +1276,7 @@ void mqttPublishData() {
         }
 
         if (MainsMeter.linky.available &&
-            (MainsMeter.Type == EM_EASTRON3P || MainsMeter.Type == EM_EASTRON3P_INV) &&
+            (MainsMeter.Type == EM_EASTRON3P || MainsMeter.Type == EM_EASTRON3P_INV || MainsMeter.Type == EM_EASTRON1P) &&
             !(ErrorFlags & CT_NOCOMM)) {                                         // don't publish stale Linky data after meter timeout/removal/type change
             StaticJsonDocument<1024> doc;
             doc["is_tempo_blue"] = MainsMeter.linky.is_tempo_blue;

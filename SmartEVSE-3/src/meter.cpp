@@ -459,12 +459,12 @@ void Meter::ResponseToMeasurement(ModBus MB) {
             for (int x = 0; x < 3; x++) {
                 EnergyPhase[x] = decodeMeasurement(MB.Data, x, EMConfig[Type].EDivisor - 3);
             }
-        } else if (MB.Register == 342 && (Type == EM_EASTRON3P || Type == EM_EASTRON3P_INV)) {
+        } else if (MB.Register == 342 && (Type == EM_EASTRON3P || Type == EM_EASTRON3P_INV || Type == EM_EASTRON1P)) {
             union { uint32_t i; float f; } u;
             combineBytes(&u.i, MB.Data, 0, EMConfig[Type].Endianness, MB_DATATYPE_FLOAT32);
             linky.active_energy_total = u.f;
             linky.available = true;
-        } else if (MB.Register == 500 && (Type == EM_EASTRON3P || Type == EM_EASTRON3P_INV)) {
+        } else if (MB.Register == 500 && (Type == EM_EASTRON3P || Type == EM_EASTRON3P_INV || Type == EM_EASTRON1P)) {
             union { uint32_t i; float f; } u;
             for (int x = 0; x < 11; x++) {
                 combineBytes(&u.i, MB.Data, x * 4, EMConfig[Type].Endianness, MB_DATATYPE_FLOAT32);
@@ -481,7 +481,7 @@ void Meter::ResponseToMeasurement(ModBus MB) {
                 else if (x == 10) linky.red_hp = u.f;
             }
             linky.available = true;
-        } else if (MB.Register == 600 && (Type == EM_EASTRON3P || Type == EM_EASTRON3P_INV)) {
+        } else if (MB.Register == 600 && (Type == EM_EASTRON3P || Type == EM_EASTRON3P_INV || Type == EM_EASTRON1P)) {
             // Register 600 is a single UINT16 status bitmask (tic-din-modbus v1.31+);
             // it replaces the former one-register-per-flag layout at 600-608.
             // Big-endian, so high byte first. Registers 601-608 are now reserved.
