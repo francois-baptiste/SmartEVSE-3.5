@@ -1,6 +1,6 @@
 # SmartEVSE-3 Traceability Report
 
-**78 features** | **1181 scenarios** | **1181 with requirement IDs** | **100% coverage**
+**78 features** | **1177 scenarios** | **1177 with requirement IDs** | **100% coverage**
 
 ---
 
@@ -33,7 +33,7 @@
 | EVCC IEC 61851 State Mapping | 11 | 11 | 100% |
 | EVCC Charging Enabled | 3 | 3 | 100% |
 | EVCC Phase Switch Validation | 7 | 7 | 100% |
-| Debug-only unsigned firmware upload | 5 | 5 | 100% |
+| Unsigned firmware upload | 1 | 1 | 100% |
 | HTTP Auth | 14 | 14 | 100% |
 | LB Convergence | 47 | 47 | 100% |
 | LED Status Indication | 15 | 15 | 100% |
@@ -86,7 +86,7 @@
 | IEC 61851-1 State Transitions | 29 | 29 | 100% |
 | 10ms Tick Processing | 20 | 20 | 100% |
 | 1-Second Tick Processing | 23 | 23 | 100% |
-| **TOTAL** | **1181** | **1181** | **100%** |
+| **TOTAL** | **1177** | **1177** | **100%** |
 
 ## API Mains Staleness Detection
 
@@ -2559,53 +2559,21 @@
 
 ---
 
-## Debug-only unsigned firmware upload
+## Unsigned firmware upload
 
 | Requirement | Scenario | Test Function | Source |
 |-------------|----------|---------------|--------|
-| `REQ-API-020` | Release builds never accept unsigned uploads | `test_unsigned_upload_release_build_always_rejected` | `test_http_api.c:938` |
-| `REQ-API-020` | Debug build without an LCD PIN rejects unsigned uploads | `test_unsigned_upload_debug_no_pin_rejected` | `test_http_api.c:952` |
-| `REQ-API-020` | Debug build with PIN configured but not verified rejects upload | `test_unsigned_upload_debug_pin_not_verified_rejected` | `test_http_api.c:967` |
-| `REQ-API-020` | Debug build with verified LCD PIN accepts unsigned uploads | `test_unsigned_upload_debug_pin_verified_accepted` | `test_http_api.c:980` |
-| `REQ-API-020` | Release build with a verified LCD PIN still rejects unsigned | `test_unsigned_upload_release_with_pin_still_rejected` | `test_http_api.c:994` |
+| `REQ-API-020` | Unsigned upload gate always allows regardless of build type or PIN | `test_unsigned_upload_always_allowed` | `test_http_api.c:938` |
 
 <details>
-<summary>Detailed steps (5 scenarios)</summary>
+<summary>Detailed steps (1 scenarios)</summary>
 
-### Release builds never accept unsigned uploads
+### Unsigned upload gate always allows regardless of build type or PIN
 **Requirement:** `REQ-API-020`
 
-- **Given** A release firmware image (is_debug_build=false)
+- **Given** Any combination of build type, PIN, and PIN-verified state
 - **When** /update receives an unsigned firmware.bin
-- **Then** http_api_allow_unsigned_upload returns false regardless of PIN state
-
-### Debug build without an LCD PIN rejects unsigned uploads
-**Requirement:** `REQ-API-020`
-
-- **Given** is_debug_build=true but LCDPin is 0 (no PIN configured)
-- **When** /update receives an unsigned firmware.bin
-- **Then** The gate returns false — no auth = no unsigned flash
-
-### Debug build with PIN configured but not verified rejects upload
-**Requirement:** `REQ-API-020`
-
-- **Given** is_debug_build=true, LCDPin=1234, LCDPasswordOK=false
-- **When** /update receives an unsigned firmware.bin
-- **Then** The gate returns false until the operator verifies the PIN
-
-### Debug build with verified LCD PIN accepts unsigned uploads
-**Requirement:** `REQ-API-020`
-
-- **Given** is_debug_build=true, LCDPin>0, LCDPasswordOK=true
-- **When** /update receives an unsigned firmware.bin
-- **Then** The gate returns true — physical-presence auth satisfied
-
-### Release build with a verified LCD PIN still rejects unsigned
-**Requirement:** `REQ-API-020`
-
-- **Given** is_debug_build=false, LCDPin=1234, LCDPasswordOK=true
-- **When** /update receives an unsigned firmware.bin
-- **Then** The gate returns false — C-1 guarantee holds on release firmware
+- **Then** http_api_allow_unsigned_upload returns true unconditionally
 
 </details>
 

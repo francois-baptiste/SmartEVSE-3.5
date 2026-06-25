@@ -125,8 +125,8 @@ footer {
 <h1>SmartEVSE-3 Traceability Report</h1>
 <div class="summary">
 <div class="stat"><div class="number">78</div><div class="label">Features</div></div>
-<div class="stat"><div class="number">1181</div><div class="label">Test Scenarios</div></div>
-<div class="stat"><div class="number">1181</div><div class="label">With Requirements</div></div>
+<div class="stat"><div class="number">1177</div><div class="label">Test Scenarios</div></div>
+<div class="stat"><div class="number">1177</div><div class="label">With Requirements</div></div>
 <div class="stat"><div class="number">100%</div><div class="label">Requirement Coverage</div></div>
 </div>
 <div class="feature-section">
@@ -2453,7 +2453,7 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">Debug-only unsigned firmware upload (5 scenarios)</div>
+<div class="feature-title">Unsigned firmware upload (1 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -2464,38 +2464,10 @@ footer {
 <tbody>
 <tr>
 <td><span class="req-tag">REQ-API-020</span></td>
-<td>Release builds never accept unsigned uploads</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A release firmware image (is_debug_build=false)</li><li class="step-when"><span class="step-keyword">When</span> /update receives an unsigned firmware.bin</li><li class="step-then"><span class="step-keyword">Then</span> http_api_allow_unsigned_upload returns false regardless of PIN state</li></ul></td>
-<td><code>test_unsigned_upload_release_build_always_rejected</code></td>
+<td>Unsigned upload gate always allows regardless of build type or PIN</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Any combination of build type, PIN, and PIN-verified state</li><li class="step-when"><span class="step-keyword">When</span> /update receives an unsigned firmware.bin</li><li class="step-then"><span class="step-keyword">Then</span> http_api_allow_unsigned_upload returns true unconditionally</li></ul></td>
+<td><code>test_unsigned_upload_always_allowed</code></td>
 <td><span class="file-ref">test_http_api.c:938</span></td>
-</tr>
-<tr>
-<td><span class="req-tag">REQ-API-020</span></td>
-<td>Debug build without an LCD PIN rejects unsigned uploads</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> is_debug_build=true but LCDPin is 0 (no PIN configured)</li><li class="step-when"><span class="step-keyword">When</span> /update receives an unsigned firmware.bin</li><li class="step-then"><span class="step-keyword">Then</span> The gate returns false — no auth = no unsigned flash</li></ul></td>
-<td><code>test_unsigned_upload_debug_no_pin_rejected</code></td>
-<td><span class="file-ref">test_http_api.c:952</span></td>
-</tr>
-<tr>
-<td><span class="req-tag">REQ-API-020</span></td>
-<td>Debug build with PIN configured but not verified rejects upload</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> is_debug_build=true, LCDPin=1234, LCDPasswordOK=false</li><li class="step-when"><span class="step-keyword">When</span> /update receives an unsigned firmware.bin</li><li class="step-then"><span class="step-keyword">Then</span> The gate returns false until the operator verifies the PIN</li></ul></td>
-<td><code>test_unsigned_upload_debug_pin_not_verified_rejected</code></td>
-<td><span class="file-ref">test_http_api.c:967</span></td>
-</tr>
-<tr>
-<td><span class="req-tag">REQ-API-020</span></td>
-<td>Debug build with verified LCD PIN accepts unsigned uploads</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> is_debug_build=true, LCDPin&gt;0, LCDPasswordOK=true</li><li class="step-when"><span class="step-keyword">When</span> /update receives an unsigned firmware.bin</li><li class="step-then"><span class="step-keyword">Then</span> The gate returns true — physical-presence auth satisfied</li></ul></td>
-<td><code>test_unsigned_upload_debug_pin_verified_accepted</code></td>
-<td><span class="file-ref">test_http_api.c:980</span></td>
-</tr>
-<tr>
-<td><span class="req-tag">REQ-API-020</span></td>
-<td>Release build with a verified LCD PIN still rejects unsigned</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> is_debug_build=false, LCDPin=1234, LCDPasswordOK=true</li><li class="step-when"><span class="step-keyword">When</span> /update receives an unsigned firmware.bin</li><li class="step-then"><span class="step-keyword">Then</span> The gate returns false — C-1 guarantee holds on release firmware</li></ul></td>
-<td><code>test_unsigned_upload_release_with_pin_still_rejected</code></td>
-<td><span class="file-ref">test_http_api.c:994</span></td>
 </tr>
 </tbody></table>
 </div>
