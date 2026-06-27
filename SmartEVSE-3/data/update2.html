@@ -17,6 +17,8 @@
         let REPO_COMM="SmartEVSE-3.5";
         let OWNER_BASM="basmeerman";
         let REPO_BASM="SmartEVSE-3.5";
+        let OWNER_FB="francois-baptiste";
+        let REPO_FB="SmartEVSE-3.5";
         let update_url="";
 // Helper function to display upload status
 var setStatus = function(text) {
@@ -104,6 +106,14 @@ var setStatus = function(text) {
               <td><button onclick="update_fw(OWNER_BASM, 1)" style="width: 100px; display:inline-block;">Debug</button>
               <td><button onclick="update_fw(OWNER_BASM, 1, 'nightly')" style="width: 140px; display:inline-block;">Latest Debug Build</button>
             </tr>
+            <tr>
+              <td>Community</td>
+              <td>extra bleediest edge&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</td>
+              <td><a href="https://github.com/francois-baptiste/SmartEVSE-3.5" target="_blank" rel="noopener"><script>document.write(OWNER_FB)</script></a></td>
+              <td><div id="latest_fb"></div></td>
+              <td><button onclick="update_fw(OWNER_FB, 0)" style="width: 100px; display:inline-block;">Standard</button>
+              <td><button onclick="update_fw(OWNER_FB, 1)" style="width: 100px; display:inline-block;">Debug</button>
+            </tr>
           </table>
           <br>
           =========================================================================================<br>
@@ -139,6 +149,7 @@ function loadData() {
     getLatestVersion(OWNER_FACT, REPO_FACT, 'latest_fact');
     getLatestVersion(OWNER_COMM, REPO_COMM, 'latest_comm');
     getLatestVersion(OWNER_BASM, REPO_BASM, 'latest_basm');
+    getLatestVersion(OWNER_FB, REPO_FB, 'latest_fb');
 }
 
 async function getLatestVersion(owner, repo, element) {
