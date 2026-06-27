@@ -1604,6 +1604,25 @@ static void fn_http_server(struct mg_connection *c, int ev, void *ev_data) {
                     }
                 }
                 if (downloadUrl) RunFirmwareUpdate();
+            } else if (!memcmp(owner, OWNER_EDGE, sizeof(OWNER_EDGE))) {
+                // francois-baptiste fork: download from GitHub release assets
+                // tag parameter selects which release (e.g. "nightly" for pre-release, or latest tag)
+                if (downloadUrl) { free(downloadUrl); downloadUrl = NULL; }
+                if (tag[0]) {
+                    // Specific tag requested (e.g. nightly pre-release)
+                    asprintf(&downloadUrl, "%s/%s/%s/releases/download/%s/firmware.%ssigned.bin",
+                             GH_RELEASE_URL, OWNER_EDGE, REPO_EDGE, tag, debug ? "debug." : "");
+                } else {
+                    // Use getLatestVersion to find the latest release tag, then build URL
+                    char version[32] = "";
+                    String owner_repo = String(OWNER_EDGE) + "/" + REPO_EDGE;
+                    String asset_name = String("firmware.") + (debug ? "debug." : "") + "signed.bin";
+                    if (getLatestVersion(owner_repo, asset_name, version) && version[0]) {
+                        asprintf(&downloadUrl, "%s/%s/%s/releases/download/%s/firmware.%ssigned.bin",
+                                 GH_RELEASE_URL, OWNER_EDGE, REPO_EDGE, version, debug ? "debug." : "");
+                    }
+                }
+                if (downloadUrl) RunFirmwareUpdate();
             }                                                                       // after the first call we just report progress
             DynamicJsonDocument doc(64); // https://arduinojson.org/v6/assistant/
             doc["progress"] = downloadProgress;
