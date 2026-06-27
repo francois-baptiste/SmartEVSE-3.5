@@ -90,6 +90,7 @@ extern bool MQTTtls;
 extern bool MQTTSmartServer;
 extern bool MQTTChangeOnly;
 extern uint16_t MQTTHeartbeat;
+extern mqtt_cache_t mqtt_cache;
 #endif
 
 #if ENABLE_OCPP && defined(SMARTEVSE_VERSION)
@@ -199,6 +200,161 @@ bool require_auth(struct mg_connection *c, struct mg_http_message *hm) {
                   "{\"success\":false,\"error\":\"auth_required\"}\n");
     return false;
 }
+
+static void serialize_meter(JsonObject obj, const Meter &m) {
+    obj["type"]             = (const char *)EMConfig[m.Type].Desc;
+    obj["address"]          = m.Address;
+    obj["irms_L1"]          = m.Irms[0];
+    obj["irms_L2"]          = m.Irms[1];
+    obj["irms_L3"]          = m.Irms[2];
+    obj["power_L1_W"]       = m.Power[0];
+    obj["power_L2_W"]       = m.Power[1];
+    obj["power_L3_W"]       = m.Power[2];
+    obj["power_measured_W"] = m.PowerMeasured;
+    obj["import_energy_Wh"] = m.Import_active_energy;
+    obj["export_energy_Wh"] = m.Export_active_energy;
+    obj["net_energy_Wh"]    = m.Energy;
+    obj["session_energy_Wh"]= m.EnergyCharged;
+    obj["energy_L1_Wh"]     = m.EnergyPhase[0];
+    obj["energy_L2_Wh"]     = m.EnergyPhase[1];
+    obj["energy_L3_Wh"]     = m.EnergyPhase[2];
+}
+
+#if MQTT
+static const char * const k_mqtt_topics[MQTT_SLOT_COUNT] = {
+    "MainsCurrentL1",               /* MQTT_SLOT_MAINS_L1              */
+    "MainsCurrentL2",               /* MQTT_SLOT_MAINS_L2              */
+    "MainsCurrentL3",               /* MQTT_SLOT_MAINS_L3              */
+    "MainsImportActiveEnergy",      /* MQTT_SLOT_MAINS_IMPORT_ENERGY   */
+    "MainsExportActiveEnergy",      /* MQTT_SLOT_MAINS_EXPORT_ENERGY   */
+    "MainsPowerL1",                 /* MQTT_SLOT_MAINS_POWER_L1        */
+    "MainsPowerL2",                 /* MQTT_SLOT_MAINS_POWER_L2        */
+    "MainsPowerL3",                 /* MQTT_SLOT_MAINS_POWER_L3        */
+    "MainsEnergyL1",                /* MQTT_SLOT_MAINS_ENERGY_L1       */
+    "MainsEnergyL2",                /* MQTT_SLOT_MAINS_ENERGY_L2       */
+    "MainsEnergyL3",                /* MQTT_SLOT_MAINS_ENERGY_L3       */
+    "EVCurrentL1",                  /* MQTT_SLOT_EV_L1                 */
+    "EVCurrentL2",                  /* MQTT_SLOT_EV_L2                 */
+    "EVCurrentL3",                  /* MQTT_SLOT_EV_L3                 */
+    "EVImportActiveEnergy",         /* MQTT_SLOT_EV_IMPORT_ENERGY      */
+    "EVExportActiveEnergy",         /* MQTT_SLOT_EV_EXPORT_ENERGY      */
+    "EVPowerL1",                    /* MQTT_SLOT_EV_POWER_L1           */
+    "EVPowerL2",                    /* MQTT_SLOT_EV_POWER_L2           */
+    "EVPowerL3",                    /* MQTT_SLOT_EV_POWER_L3           */
+    "EVEnergyL1",                   /* MQTT_SLOT_EV_ENERGY_L1          */
+    "EVEnergyL2",                   /* MQTT_SLOT_EV_ENERGY_L2          */
+    "EVEnergyL3",                   /* MQTT_SLOT_EV_ENERGY_L3          */
+    "EVSETemperature",              /* MQTT_SLOT_ESP_TEMP              */
+    "Mode",                         /* MQTT_SLOT_MODE                  */
+    "MaxCurrent",                   /* MQTT_SLOT_MAX_CURRENT           */
+    "CustomButton",                 /* MQTT_SLOT_CUSTOM_BUTTON         */
+    "ChargeCurrent",                /* MQTT_SLOT_CHARGE_CURRENT        */
+    "ChargeCurrentOverride",        /* MQTT_SLOT_CHARGE_CURRENT_OVERRIDE */
+    "NrOfPhases",                   /* MQTT_SLOT_NR_OF_PHASES          */
+    "Access",                       /* MQTT_SLOT_ACCESS                */
+    "RFID",                         /* MQTT_SLOT_RFID                  */
+    "EnableC2",                     /* MQTT_SLOT_ENABLE_C2             */
+    "RFIDLastRead",                 /* MQTT_SLOT_RFID_LAST_READ        */
+    "State",                        /* MQTT_SLOT_STATE                 */
+    "Error",                        /* MQTT_SLOT_ERROR                 */
+    "EVPlugState",                  /* MQTT_SLOT_EV_PLUG_STATE         */
+    "WiFiSSID",                     /* MQTT_SLOT_WIFI_SSID             */
+    "WiFiBSSID",                    /* MQTT_SLOT_WIFI_BSSID            */
+    "CPPWM",                        /* MQTT_SLOT_CPPWM                 */
+    "CPPWMOverride",                /* MQTT_SLOT_CPPWM_OVERRIDE        */
+    "EVInitialSoC",                 /* MQTT_SLOT_EV_INITIAL_SOC        */
+    "EVFullSoC",                    /* MQTT_SLOT_EV_FULL_SOC           */
+    "EVComputedSoC",                /* MQTT_SLOT_EV_COMPUTED_SOC       */
+    "EVRemainingSoC",               /* MQTT_SLOT_EV_REMAINING_SOC      */
+    "EVTimeUntilFull",              /* MQTT_SLOT_EV_TIME_UNTIL_FULL    */
+    "EVEnergyCapacity",             /* MQTT_SLOT_EV_ENERGY_CAPACITY    */
+    "EVEnergyRequest",              /* MQTT_SLOT_EV_ENERGY_REQUEST     */
+    "EVCCID",                       /* MQTT_SLOT_EVCCID                */
+    "RequiredEVCCID",               /* MQTT_SLOT_REQUIRED_EVCCID       */
+    "EVChargePower",                /* MQTT_SLOT_EV_CHARGE_POWER       */
+    "EVEnergyCharged",              /* MQTT_SLOT_EV_ENERGY_CHARGED     */
+    "EVTotalEnergyCharged",         /* MQTT_SLOT_EV_TOTAL_ENERGY_CHARGED */
+    "HomeBatteryCurrent",           /* MQTT_SLOT_HOME_BATTERY_CURRENT  */
+    "OCPP",                         /* MQTT_SLOT_OCPP                  */
+    "OCPPConnection",               /* MQTT_SLOT_OCPP_CONNECTION       */
+    "LEDColorOff",                  /* MQTT_SLOT_LED_COLOR_OFF         */
+    "LEDColorNormal",               /* MQTT_SLOT_LED_COLOR_NORMAL      */
+    "LEDColorSmart",                /* MQTT_SLOT_LED_COLOR_SMART       */
+    "LEDColorSolar",                /* MQTT_SLOT_LED_COLOR_SOLAR       */
+    "LEDColorCustom",               /* MQTT_SLOT_LED_COLOR_CUSTOM      */
+    "CableLock",                    /* MQTT_SLOT_CABLE_LOCK            */
+    "ESPUptime",                    /* MQTT_SLOT_ESP_UPTIME            */
+    "WiFiRSSI",                     /* MQTT_SLOT_WIFI_RSSI             */
+    "LoadBl",                       /* MQTT_SLOT_LOAD_BL               */
+    "PairingPin",                   /* MQTT_SLOT_PAIRING_PIN           */
+    "FirmwareVersion",              /* MQTT_SLOT_FIRMWARE_VERSION      */
+    "SolarStopTimer",               /* MQTT_SLOT_SOLAR_STOP_TIMER      */
+    "CurrentMaxSumMains",           /* MQTT_SLOT_CURRENT_MAX_SUM_MAINS */
+    "PrioStrategy",                 /* MQTT_SLOT_PRIO_STRATEGY         */
+    "RotationInterval",             /* MQTT_SLOT_ROTATION_INTERVAL     */
+    "IdleTimeout",                  /* MQTT_SLOT_IDLE_TIMEOUT          */
+    "RotationTimer",                /* MQTT_SLOT_ROTATION_TIMER        */
+    "ScheduleState",                /* MQTT_SLOT_SCHEDULE_STATE        */
+    "FreeHeap",                     /* MQTT_SLOT_FREE_HEAP             */
+    "MQTTMsgCount",                 /* MQTT_SLOT_MQTT_MSG_COUNT        */
+    "OCPPTxActive",                 /* MQTT_SLOT_OCPP_TX_ACTIVE        */
+    "OCPPCurrentLimit",             /* MQTT_SLOT_OCPP_CURRENT_LIMIT    */
+    "OCPPSmartCharging",            /* MQTT_SLOT_OCPP_SMART_CHARGING   */
+    "MeterTimeoutCount",            /* MQTT_SLOT_METER_TIMEOUT_COUNT   */
+    "MeterRecoveryCount",           /* MQTT_SLOT_METER_RECOVERY_COUNT  */
+    "ApiStaleCount",                /* MQTT_SLOT_API_STALE_COUNT       */
+    "CapacityLimit",                /* MQTT_SLOT_CAPACITY_LIMIT        */
+    "CapacityWindowAvg",            /* MQTT_SLOT_CAPACITY_WINDOW_AVG   */
+    "CapacityMonthlyPeak",          /* MQTT_SLOT_CAPACITY_MONTHLY_PEAK */
+    "CapacityHeadroom",             /* MQTT_SLOT_CAPACITY_HEADROOM     */
+    "CircuitCurrentL1",             /* MQTT_SLOT_CIRCUIT_L1            */
+    "CircuitCurrentL2",             /* MQTT_SLOT_CIRCUIT_L2            */
+    "CircuitCurrentL3",             /* MQTT_SLOT_CIRCUIT_L3            */
+    "CircuitPower",                 /* MQTT_SLOT_CIRCUIT_POWER         */
+    "CircuitImportActiveEnergy",    /* MQTT_SLOT_CIRCUIT_IMPORT_ENERGY */
+    "CircuitExportActiveEnergy",    /* MQTT_SLOT_CIRCUIT_EXPORT_ENERGY */
+    "MaxCircuitMains",              /* MQTT_SLOT_MAX_CIRCUIT_MAINS     */
+    "LinkyIsTempoBlue",             /* MQTT_SLOT_LINKY_TEMPO_BLUE      */
+    "LinkyIsTempoWhite",            /* MQTT_SLOT_LINKY_TEMPO_WHITE     */
+    "LinkyIsTempoRed",              /* MQTT_SLOT_LINKY_TEMPO_RED       */
+    "LinkyIsHp",                    /* MQTT_SLOT_LINKY_HP              */
+    "LinkyIsHc",                    /* MQTT_SLOT_LINKY_HC              */
+    "LinkyIsBaseTariff",            /* MQTT_SLOT_LINKY_BASE_TARIFF     */
+    "LinkyIsHphcTariff",            /* MQTT_SLOT_LINKY_HPHC_TARIFF     */
+    "LinkyIsTempoTariff",           /* MQTT_SLOT_LINKY_TEMPO_TARIFF    */
+    "LinkyIsPowerOverflow",         /* MQTT_SLOT_LINKY_POWER_OVERFLOW  */
+    "LinkyIsSummer",                /* MQTT_SLOT_LINKY_SUMMER          */
+    "LinkyActiveEnergyTotal",       /* MQTT_SLOT_LINKY_ENERGY_TOTAL    */
+    "LinkyTempoBlueTotal",          /* MQTT_SLOT_LINKY_TEMPO_BLUE_TOTAL */
+    "LinkyTempoWhiteTotal",         /* MQTT_SLOT_LINKY_TEMPO_WHITE_TOTAL */
+    "LinkyTempoRedTotal",           /* MQTT_SLOT_LINKY_TEMPO_RED_TOTAL */
+    "LinkyTotalHp",                 /* MQTT_SLOT_LINKY_TOTAL_HP        */
+    "LinkyTotalHc",                 /* MQTT_SLOT_LINKY_TOTAL_HC        */
+    "LinkyBlueHc",                  /* MQTT_SLOT_LINKY_BLUE_HC         */
+    "LinkyBlueHp",                  /* MQTT_SLOT_LINKY_BLUE_HP         */
+    "LinkyWhiteHc",                 /* MQTT_SLOT_LINKY_WHITE_HC        */
+    "LinkyWhiteHp",                 /* MQTT_SLOT_LINKY_WHITE_HP        */
+    "LinkyRedHc",                   /* MQTT_SLOT_LINKY_RED_HC          */
+    "LinkyRedHp",                   /* MQTT_SLOT_LINKY_RED_HP          */
+    "LinkyContractedPowerKva",      /* MQTT_SLOT_LINKY_CONTRACTED_POWER */
+    "LinkyInternalTempC",           /* MQTT_SLOT_LINKY_INTERNAL_TEMP   */
+    "LinkyActivePowerW",            /* MQTT_SLOT_LINKY_ACTIVE_POWER    */
+    "LinkyApparentPowerVa",         /* MQTT_SLOT_LINKY_APPARENT_POWER  */
+    "LinkyCurrentL1A",              /* MQTT_SLOT_LINKY_CURRENT_L1      */
+    "LinkyVoltageL1V",              /* MQTT_SLOT_LINKY_VOLTAGE_L1      */
+    "LinkyCcasnActivePowerW",       /* MQTT_SLOT_LINKY_CCASN_POWER     */
+    "LinkyDateYear",                /* MQTT_SLOT_LINKY_DATE_YEAR       */
+    "LinkyDateMonth",               /* MQTT_SLOT_LINKY_DATE_MONTH      */
+    "LinkyDateDay",                 /* MQTT_SLOT_LINKY_DATE_DAY        */
+    "LinkyDateHour",                /* MQTT_SLOT_LINKY_DATE_HOUR       */
+    "LinkyDateMinute",              /* MQTT_SLOT_LINKY_DATE_MINUTE     */
+    "LinkyDateSecond",              /* MQTT_SLOT_LINKY_DATE_SECOND     */
+    "LinkyPowerFactorL1",           /* MQTT_SLOT_LINKY_POWER_FACTOR_L1 */
+    "LinkyPowerFactorL2",           /* MQTT_SLOT_LINKY_POWER_FACTOR_L2 */
+    "LinkyPowerFactorL3",           /* MQTT_SLOT_LINKY_POWER_FACTOR_L3 */
+    "LinkyPowerFactor",             /* MQTT_SLOT_LINKY_POWER_FACTOR_TOTAL */
+};
+#endif /* MQTT */
 
 // handles URI, returns true if handled, false if not
 bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerRequest* request) {
@@ -1608,6 +1764,49 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
                       "{\"deleted\":%s}\r\n", ok ? "true" : "false");
         return true;
     // END PLAN-06
+
+  } else if (mg_http_match_uri(hm, "/modbus.json") && !memcmp("GET", hm->method.buf, hm->method.len)) {
+      if (!require_auth(c, hm)) return true;
+      DynamicJsonDocument doc(1024);
+      serialize_meter(doc.createNestedObject("mains_meter"),   MainsMeter);
+      serialize_meter(doc.createNestedObject("ev_meter"),      EVMeter);
+      serialize_meter(doc.createNestedObject("circuit_meter"), CircuitMeter);
+      String json;
+      serializeJson(doc, json);
+      mg_http_reply(c, 200, "Content-Type: application/json\r\n", "%s\n", json.c_str());
+      return true;
+
+#if MQTT
+  } else if (mg_http_match_uri(hm, "/mqtt.json") && !memcmp("GET", hm->method.buf, hm->method.len)) {
+      if (!require_auth(c, hm)) return true;
+      DynamicJsonDocument doc(8192);
+      doc["config"]["host"]        = MQTTHost;
+      doc["config"]["port"]        = MQTTPort;
+      doc["config"]["prefix"]      = MQTTprefix;
+      doc["config"]["connected"]   = (bool)MQTTclient.connected;
+      doc["config"]["heartbeat_s"] = mqtt_cache.heartbeat_s;
+      JsonObject cache = doc.createNestedObject("cache");
+      for (int i = 0; i < MQTT_SLOT_COUNT; i++) {
+          const mqtt_cache_entry_t &e = mqtt_cache.entries[i];
+          uint8_t type = e.flags & 0x7Fu;
+          if (type == MQTT_ENTRY_EMPTY) continue;
+          const char *topic = k_mqtt_topics[i];
+          if (!topic) continue;
+          JsonObject entry = cache.createNestedObject(topic);
+          if (type == MQTT_ENTRY_INT) {
+              entry["value"] = e.int_val;
+          } else {
+              entry["str_hash"] = e.str_hash;
+          }
+          entry["last_pub_s"] = e.last_pub_s;
+          entry["stale"] = (e.flags & MQTT_ENTRY_STALE) != 0;
+      }
+      String json;
+      serializeJson(doc, json);
+      mg_http_reply(c, 200, "Content-Type: application/json\r\n", "%s\n", json.c_str());
+      return true;
+#endif /* MQTT */
+
   }
   return false;
 }
