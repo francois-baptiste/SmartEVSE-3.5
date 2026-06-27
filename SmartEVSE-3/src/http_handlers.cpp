@@ -1776,6 +1776,74 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
       mg_http_reply(c, 200, "Content-Type: application/json\r\n", "%s\n", json.c_str());
       return true;
 
+  } else if (mg_http_match_uri(hm, "/api/modbus/cmd") && !memcmp("POST", hm->method.buf, hm->method.len)) {
+      if (!require_auth(c, hm)) return true;
+      if (LoadBl > 1) {
+          mg_http_reply(c, 409, "Content-Type: application/json\r\n",
+                        "{\"ok\":false,\"error\":\"slave mode: Modbus client not active\"}\n");
+          return true;
+      }
+      DynamicJsonDocument doc(256);
+      DeserializationError jerr = deserializeJson(doc, hm->body.buf, hm->body.len);
+      if (jerr) {
+          mg_http_reply(c, 400, "Content-Type: application/json\r\n",
+                        "{\"ok\":false,\"error\":\"invalid JSON\"}\n");
+          return true;
+      }
+      int raw_addr = doc["address"] | -1;
+      int raw_func = doc["function"] | -1;
+      int raw_reg  = doc["register"] | -1;
+      if (raw_addr < 1 || raw_addr > 247) {
+          mg_http_reply(c, 400, "Content-Type: application/json\r\n",
+                        "{\"ok\":false,\"error\":\"address must be 1-247\"}\n");
+          return true;
+      }
+      if (raw_reg < 0 || raw_reg > 65535) {
+          mg_http_reply(c, 400, "Content-Type: application/json\r\n",
+                        "{\"ok\":false,\"error\":\"register must be 0-65535\"}\n");
+          return true;
+      }
+      uint8_t  mb_addr = (uint8_t)raw_addr;
+      uint16_t mb_reg  = (uint16_t)raw_reg;
+      if (raw_func == 6) {
+          int raw_val = doc["value"] | -1;
+          if (raw_val < 0 || raw_val > 65535) {
+              mg_http_reply(c, 400, "Content-Type: application/json\r\n",
+                            "{\"ok\":false,\"error\":\"value must be 0-65535\"}\n");
+              return true;
+          }
+          ModbusUserWriteSingle(mb_addr, mb_reg, (uint16_t)raw_val);
+          mg_http_reply(c, 202, "Content-Type: application/json\r\n",
+                        "{\"ok\":true,\"queued\":true,\"address\":%u,\"register\":%u,\"value\":%u}\n",
+                        mb_addr, mb_reg, (uint16_t)raw_val);
+      } else if (raw_func == 16) {
+          JsonArray vals = doc["values"].as<JsonArray>();
+          if (!vals || vals.size() == 0 || vals.size() > 8) {
+              mg_http_reply(c, 400, "Content-Type: application/json\r\n",
+                            "{\"ok\":false,\"error\":\"values must be array of 1-8 integers\"}\n");
+              return true;
+          }
+          uint16_t mbuf[8];
+          uint8_t count = (uint8_t)vals.size();
+          for (uint8_t i = 0; i < count; i++) {
+              int v = vals[i].as<int>();
+              if (v < 0 || v > 65535) {
+                  mg_http_reply(c, 400, "Content-Type: application/json\r\n",
+                                "{\"ok\":false,\"error\":\"each value must be 0-65535\"}\n");
+                  return true;
+              }
+              mbuf[i] = (uint16_t)v;
+          }
+          ModbusUserWriteMultiple(mb_addr, mb_reg, mbuf, count);
+          mg_http_reply(c, 202, "Content-Type: application/json\r\n",
+                        "{\"ok\":true,\"queued\":true,\"address\":%u,\"register\":%u,\"count\":%u}\n",
+                        mb_addr, mb_reg, count);
+      } else {
+          mg_http_reply(c, 400, "Content-Type: application/json\r\n",
+                        "{\"ok\":false,\"error\":\"function must be 6 (write single) or 16 (write multiple)\"}\n");
+      }
+      return true;
+
 #if MQTT
   } else if (mg_http_match_uri(hm, "/mqtt.json") && !memcmp("GET", hm->method.buf, hm->method.len)) {
       if (!require_auth(c, hm)) return true;

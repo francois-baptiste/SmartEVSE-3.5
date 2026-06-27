@@ -58,6 +58,11 @@ void ModbusWriteSingleRequest(uint8_t address, uint16_t reg, uint16_t value);
 void ModbusWriteMultipleRequest(uint8_t address, uint16_t reg, uint16_t *values, uint8_t count);
 void ModbusException(uint8_t address, uint8_t function, uint8_t exception);
 
+#ifdef SMARTEVSE_VERSION
+void ModbusUserWriteSingle(uint8_t address, uint16_t reg, uint16_t value);
+void ModbusUserWriteMultiple(uint8_t address, uint16_t reg, uint16_t *values, uint8_t count);
+#endif
+
 void requestMeasurement(uint8_t Meter, uint8_t Address, uint16_t Register, uint8_t Count);
 void requestCurrentMeasurement(uint8_t Meter, uint8_t Address);
 void BroadcastSettings(void);

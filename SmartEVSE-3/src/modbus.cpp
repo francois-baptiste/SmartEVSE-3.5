@@ -225,8 +225,37 @@ void ModbusWriteMultipleRequest(uint8_t address, uint16_t reg, uint16_t *values,
 }
 
 /**
+ * User-initiated write single register (FC=06) — callable from any FreeRTOS task.
+ * Does NOT update MB.Request* so the response is treated as an orphan FC=06 ack
+ * and HandleModbusResponse() merely calls ModbusRequestLoop() (harmless).
+ */
+void ModbusUserWriteSingle(uint8_t address, uint16_t reg, uint16_t value) {
+    uint32_t token = ((uint32_t)address << 24) | ((uint32_t)0x06u << 16) | reg;
+    Error err = MBclient.addRequest(token, address, 0x06u, reg, value);
+    if (err != SUCCESS) {
+        ModbusError e(err);
+        _LOG_A("ModbusUserWriteSingle error: 0x%02x - %s\n", (int)e, (const char *)e);
+    }
+    diag_mb_record(&g_diag_mb_ring, millis(), address, 0x06u, DIAG_MB_EVENT_SENT, 0);
+}
+
+/**
+ * User-initiated write multiple registers (FC=16) — callable from any FreeRTOS task.
+ * count must be 1..8.
+ */
+void ModbusUserWriteMultiple(uint8_t address, uint16_t reg, uint16_t *values, uint8_t count) {
+    uint32_t token = ((uint32_t)address << 24) | ((uint32_t)0x10u << 16) | reg;
+    Error err = MBclient.addRequest(token, address, 0x10u, reg, (uint16_t)count, count * 2u, values);
+    if (err != SUCCESS) {
+        ModbusError e(err);
+        _LOG_A("ModbusUserWriteMultiple error: 0x%02x - %s\n", (int)e, (const char *)e);
+    }
+    diag_mb_record(&g_diag_mb_ring, millis(), address, 0x10u, DIAG_MB_EVENT_SENT, 0);
+}
+
+/**
  * Response an exception
- * 
+ *
  * @param uint8_t address
  * @param uint8_t function
  * @param uint8_t exeption

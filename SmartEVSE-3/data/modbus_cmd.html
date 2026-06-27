@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>SmartEVSE — Modbus Command</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 2em auto; padding: 0 1em; background:#f5f5f5; }
+    h2 { color: #1976d2; }
+    h3 { margin-top:1.5em; border-bottom:1px solid #ccc; padding-bottom:.25em; }
+    label { display:block; margin:.5em 0 .2em; font-weight:bold; }
+    input[type=number], textarea { width:100%; padding:.4em; box-sizing:border-box; border:1px solid #bbb; border-radius:4px; font-size:1em; }
+    button { margin-top:.8em; padding:.5em 1.5em; background:#1976d2; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:1em; }
+    button:hover { background:#1565c0; }
+    #result6, #result16 { margin-top:.8em; padding:.6em; border-radius:4px; font-family:monospace; white-space:pre-wrap; display:none; }
+    .ok    { background:#e8f5e9; border:1px solid #a5d6a7; }
+    .error { background:#ffebee; border:1px solid #ef9a9a; }
+    .note  { font-size:.85em; color:#555; margin-top:.3em; }
+    a.back { display:inline-block; margin-bottom:1em; color:#1976d2; text-decoration:none; }
+    a.back:before { content:"← "; }
+  </style>
+</head>
+<body>
+  <a class="back" href="/">Home</a>
+  <h2>Modbus Command</h2>
+  <p>Send a Modbus write command to a device on the RS485 bus. The command is queued immediately and executed as soon as the bus is free.</p>
+
+  <h3>Write Single Register — FC=6</h3>
+  <p class="note">Example: Lixee TIC DIN — activate WiFi: address&nbsp;1, register&nbsp;666, value&nbsp;1</p>
+  <label>Device address (1–247)</label>
+  <input type="number" id="addr6" min="1" max="247" value="1"/>
+  <label>Register (0–65535)</label>
+  <input type="number" id="reg6" min="0" max="65535" value="666"/>
+  <label>Value (0–65535)</label>
+  <input type="number" id="val6" min="0" max="65535" value="1"/>
+  <button onclick="send6()">Send FC=6 Write</button>
+  <div id="result6"></div>
+
+  <h3>Write Multiple Registers — FC=16</h3>
+  <p class="note">Enter up to 8 register values (0–65535), one per line, starting at the given register address.</p>
+  <label>Device address (1–247)</label>
+  <input type="number" id="addr16" min="1" max="247" value="1"/>
+  <label>Starting register (0–65535)</label>
+  <input type="number" id="reg16" min="0" max="65535" value="0"/>
+  <label>Values (one per line, max 8)</label>
+  <textarea id="vals16" rows="4" placeholder="1&#10;0&#10;42"></textarea>
+  <button onclick="send16()">Send FC=16 Write</button>
+  <div id="result16"></div>
+
+  <script>
+    function showResult(id, data, ok) {
+      var el = document.getElementById(id);
+      el.className = ok ? 'ok' : 'error';
+      el.textContent = JSON.stringify(data, null, 2);
+      el.style.display = 'block';
+    }
+
+    function send6() {
+      var body = {
+        address:  parseInt(document.getElementById('addr6').value, 10),
+        function: 6,
+        register: parseInt(document.getElementById('reg6').value, 10),
+        value:    parseInt(document.getElementById('val6').value, 10)
+      };
+      fetch('/api/modbus/cmd', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})
+        .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, data:d}; }); })
+        .then(function(r){ showResult('result6', r.data, r.ok); })
+        .catch(function(e){ showResult('result6', {error:e.message}, false); });
+    }
+
+    function send16() {
+      var lines = document.getElementById('vals16').value.trim().split('\n')
+        .map(function(l){ return parseInt(l.trim(), 10); })
+        .filter(function(v){ return !isNaN(v); });
+      if (lines.length === 0 || lines.length > 8) {
+        showResult('result16', {error:'Enter 1–8 values'}, false);
+        return;
+      }
+      var body = {
+        address:  parseInt(document.getElementById('addr16').value, 10),
+        function: 16,
+        register: parseInt(document.getElementById('reg16').value, 10),
+        values:   lines
+      };
+      fetch('/api/modbus/cmd', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})
+        .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, data:d}; }); })
+        .then(function(r){ showResult('result16', r.data, r.ok); })
+        .catch(function(e){ showResult('result16', {error:e.message}, false); });
+    }
+  </script>
+</body>
+</html>
