@@ -1,6 +1,6 @@
 # SmartEVSE-3 Test Specification
 
-**78 features** | **1177 scenarios** | **1177 with requirement IDs**
+**78 features** | **1187 scenarios** | **1187 with requirement IDs**
 
 ---
 
@@ -2962,91 +2962,191 @@
 **Requirement:** `REQ-AUTH-001`
 
 
-> Test: `test_auth_off_allows_foreign_origin` in `test_http_auth.c:23`
+> Test: `test_auth_off_allows_foreign_origin` in `test_http_auth.c:27`
+
+### AuthMode=OFF + lcd_pin=0 still allows (legacy upgrade path)
+
+**Requirement:** `REQ-AUTH-001`
+
+- **Given** Legacy installation with AuthMode never enabled and no PIN set
+- **When** Any request arrives
+- **Then** Allow — backward compat preserved regardless of PIN provisioning
+
+> Test: `test_auth_off_allows_when_pin_zero` in `test_http_auth.c:38`
 
 ### AuthMode=REQUIRED denies request without PIN verification
 
 **Requirement:** `REQ-AUTH-002`
 
 
-> Test: `test_auth_required_denies_unauth` in `test_http_auth.c:36`
+> Test: `test_auth_required_denies_unauth` in `test_http_auth.c:54`
 
 ### AuthMode=REQUIRED allows PIN-verified request
 
 **Requirement:** `REQ-AUTH-002`
 
 
-> Test: `test_auth_required_allows_authed` in `test_http_auth.c:47`
+> Test: `test_auth_required_allows_authed` in `test_http_auth.c:65`
 
 ### Authenticated session expires after HTTP_AUTH_SESSION_TIMEOUT_MS idle
 
 **Requirement:** `REQ-AUTH-003`
 
 
-> Test: `test_auth_session_expires` in `test_http_auth.c:61`
+> Test: `test_auth_session_expires` in `test_http_auth.c:79`
 
 ### Authenticated session still valid just before the timeout boundary
 
 **Requirement:** `REQ-AUTH-003`
 
 
-> Test: `test_auth_session_just_before_timeout` in `test_http_auth.c:73`
+> Test: `test_auth_session_just_before_timeout` in `test_http_auth.c:91`
 
 ### Session with zero timestamp is treated as "never set" (defensive)
 
 **Requirement:** `REQ-AUTH-003`
 
 
-> Test: `test_auth_session_zero_ts_does_not_expire` in `test_http_auth.c:85`
+> Test: `test_auth_session_zero_ts_does_not_expire` in `test_http_auth.c:103`
 
 ### Missing Origin header allowed (non-browser integration)
 
 **Requirement:** `REQ-AUTH-004`
 
 
-> Test: `test_auth_no_origin_allowed` in `test_http_auth.c:97`
+> Test: `test_auth_no_origin_allowed` in `test_http_auth.c:115`
 
 ### Matching Origin allowed
 
 **Requirement:** `REQ-AUTH-004`
 
 
-> Test: `test_auth_matching_origin_allowed` in `test_http_auth.c:108`
+> Test: `test_auth_matching_origin_allowed` in `test_http_auth.c:126`
 
 ### Matching hostname in origin allowed
 
 **Requirement:** `REQ-AUTH-004`
 
 
-> Test: `test_auth_matching_hostname_origin_allowed` in `test_http_auth.c:119`
+> Test: `test_auth_matching_hostname_origin_allowed` in `test_http_auth.c:137`
 
 ### Foreign Origin blocked as CSRF
 
 **Requirement:** `REQ-AUTH-004`
 
 
-> Test: `test_auth_foreign_origin_blocked` in `test_http_auth.c:130`
+> Test: `test_auth_foreign_origin_blocked` in `test_http_auth.c:148`
 
 ### Origin with unexpected scheme blocked
 
 **Requirement:** `REQ-AUTH-004`
 
 
-> Test: `test_auth_origin_bad_scheme_blocked` in `test_http_auth.c:141`
+> Test: `test_auth_origin_bad_scheme_blocked` in `test_http_auth.c:159`
 
 ### https:// Origin matching device IP allowed
 
 **Requirement:** `REQ-AUTH-004`
 
 
-> Test: `test_auth_https_matching_origin_allowed` in `test_http_auth.c:152`
+> Test: `test_auth_https_matching_origin_allowed` in `test_http_auth.c:170`
 
 ### Unauth + foreign Origin reports UNAUTH first (PIN check precedes CSRF)
 
 **Requirement:** `REQ-AUTH-005`
 
 
-> Test: `test_auth_unauth_precedes_csrf` in `test_http_auth.c:165`
+> Test: `test_auth_unauth_precedes_csrf` in `test_http_auth.c:183`
+
+### AuthMode=REQUIRED with no PIN configured denies unauthenticated request
+
+**Requirement:** `REQ-AUTH-006`
+
+- **Given** AuthMode=REQUIRED, lcd_pin=0, lcd_password_ok=false
+- **When** A request arrives at a require_auth-gated endpoint
+- **Then** Return DENY_UNAUTH — auth is not reachable until a PIN is provisioned
+
+> Test: `test_auth_required_no_pin_configured_denies` in `test_http_auth.c:202`
+
+### AuthMode=REQUIRED with no PIN configured ignores LCDPasswordOK=true
+
+**Requirement:** `REQ-AUTH-006`
+
+- **Given** Somehow lcd_password_ok=true (bug, stale state, or bypass attempt) but lcd_pin=0
+- **When** A request arrives at a require_auth-gated endpoint
+- **Then** Return DENY_UNAUTH — a cleared PIN must invalidate any cached auth
+
+> Test: `test_auth_required_no_pin_denies_even_if_flag_set` in `test_http_auth.c:216`
+
+### Attacker subdomain that suffixes the device mDNS host is rejected
+
+**Requirement:** `REQ-AUTH-007`
+
+- **Given** Device host is "smartevse-1234.local", admin has a live session
+- **When** Origin is "http://smartevse-1234.local.evil.com"
+- **Then** DENY_CSRF — the host must match exactly, not just be a substring
+
+> Test: `test_auth_csrf_substring_suffix_rejected` in `test_http_auth.c:240`
+
+### Attacker IP-suffix domain (nip.io-style) is rejected
+
+**Requirement:** `REQ-AUTH-007`
+
+- **Given** Device IP is 192.168.1.50
+- **When** Origin is "http://192.168.1.50.nip.io"
+- **Then** DENY_CSRF
+
+> Test: `test_auth_csrf_ip_suffix_rejected` in `test_http_auth.c:255`
+
+### Attacker domain that prefixes the device host is rejected
+
+**Requirement:** `REQ-AUTH-007`
+
+- **Given** Device host is "smartevse.local"
+- **When** Origin is "http://evil.smartevse.local" (subdomain of attacker-owned TLD)
+- **Then** DENY_CSRF
+
+> Test: `test_auth_csrf_substring_prefix_rejected` in `test_http_auth.c:270`
+
+### Origin that embeds device host in userinfo/path is rejected
+
+**Requirement:** `REQ-AUTH-007`
+
+- **Given** Device host is "smartevse.local"
+- **When** Origin is "http://evil.com/smartevse.local" (host portion is "evil.com")
+- **Then** DENY_CSRF — only the hostname portion of the Origin is compared
+
+> Test: `test_auth_csrf_host_in_path_rejected` in `test_http_auth.c:285`
+
+### Case-insensitive host match accepted (DNS labels are case-insensitive)
+
+**Requirement:** `REQ-AUTH-007`
+
+- **Given** Device host is "smartevse-1234.local"
+- **When** Origin is "http://SmartEVSE-1234.LOCAL"
+- **Then** ALLOW
+
+> Test: `test_auth_csrf_case_insensitive_match_allowed` in `test_http_auth.c:300`
+
+### Matching host with explicit port accepted
+
+**Requirement:** `REQ-AUTH-007`
+
+- **Given** Device host is "192.168.1.50"
+- **When** Origin is "http://192.168.1.50:80"
+- **Then** ALLOW
+
+> Test: `test_auth_csrf_matching_host_with_port_allowed` in `test_http_auth.c:315`
+
+### Matching host with trailing slash accepted
+
+**Requirement:** `REQ-AUTH-007`
+
+- **Given** Device host is "smartevse.local"
+- **When** Origin is "http://smartevse.local/" (browsers don't send this, but be safe)
+- **Then** ALLOW
+
+> Test: `test_auth_csrf_matching_host_with_trailing_slash_allowed` in `test_http_auth.c:330`
 
 ---
 

@@ -1,6 +1,6 @@
 # SmartEVSE-3 Traceability Report
 
-**78 features** | **1177 scenarios** | **1177 with requirement IDs** | **100% coverage**
+**78 features** | **1187 scenarios** | **1187 with requirement IDs** | **100% coverage**
 
 ---
 
@@ -34,7 +34,7 @@
 | EVCC Charging Enabled | 3 | 3 | 100% |
 | EVCC Phase Switch Validation | 7 | 7 | 100% |
 | Unsigned firmware upload | 1 | 1 | 100% |
-| HTTP Auth | 14 | 14 | 100% |
+| HTTP Auth | 24 | 24 | 100% |
 | LB Convergence | 47 | 47 | 100% |
 | LED Status Indication | 15 | 15 | 100% |
 | LED Color Configuration | 4 | 4 | 100% |
@@ -86,7 +86,7 @@
 | IEC 61851-1 State Transitions | 29 | 29 | 100% |
 | 10ms Tick Processing | 20 | 20 | 100% |
 | 1-Second Tick Processing | 23 | 23 | 100% |
-| **TOTAL** | **1177** | **1177** | **100%** |
+| **TOTAL** | **1187** | **1187** | **100%** |
 
 ## API Mains Staleness Detection
 
@@ -2584,22 +2584,32 @@
 | Requirement | Scenario | Test Function | Source |
 |-------------|----------|---------------|--------|
 | `REQ-AUTH-001` | AuthMode=OFF allows any request (no PIN, no Origin) | `test_auth_off_allows_unauthenticated` | `test_http_auth.c:1` |
-| `REQ-AUTH-001` | AuthMode=OFF allows request with foreign Origin (no CSRF check) | `test_auth_off_allows_foreign_origin` | `test_http_auth.c:23` |
-| `REQ-AUTH-002` | AuthMode=REQUIRED denies request without PIN verification | `test_auth_required_denies_unauth` | `test_http_auth.c:36` |
-| `REQ-AUTH-002` | AuthMode=REQUIRED allows PIN-verified request | `test_auth_required_allows_authed` | `test_http_auth.c:47` |
-| `REQ-AUTH-003` | Authenticated session expires after HTTP_AUTH_SESSION_TIMEOUT_MS idle | `test_auth_session_expires` | `test_http_auth.c:61` |
-| `REQ-AUTH-003` | Authenticated session still valid just before the timeout boundary | `test_auth_session_just_before_timeout` | `test_http_auth.c:73` |
-| `REQ-AUTH-003` | Session with zero timestamp is treated as "never set" (defensive) | `test_auth_session_zero_ts_does_not_expire` | `test_http_auth.c:85` |
-| `REQ-AUTH-004` | Missing Origin header allowed (non-browser integration) | `test_auth_no_origin_allowed` | `test_http_auth.c:97` |
-| `REQ-AUTH-004` | Matching Origin allowed | `test_auth_matching_origin_allowed` | `test_http_auth.c:108` |
-| `REQ-AUTH-004` | Matching hostname in origin allowed | `test_auth_matching_hostname_origin_allowed` | `test_http_auth.c:119` |
-| `REQ-AUTH-004` | Foreign Origin blocked as CSRF | `test_auth_foreign_origin_blocked` | `test_http_auth.c:130` |
-| `REQ-AUTH-004` | Origin with unexpected scheme blocked | `test_auth_origin_bad_scheme_blocked` | `test_http_auth.c:141` |
-| `REQ-AUTH-004` | https:// Origin matching device IP allowed | `test_auth_https_matching_origin_allowed` | `test_http_auth.c:152` |
-| `REQ-AUTH-005` | Unauth + foreign Origin reports UNAUTH first (PIN check precedes CSRF) | `test_auth_unauth_precedes_csrf` | `test_http_auth.c:165` |
+| `REQ-AUTH-001` | AuthMode=OFF allows request with foreign Origin (no CSRF check) | `test_auth_off_allows_foreign_origin` | `test_http_auth.c:27` |
+| `REQ-AUTH-001` | AuthMode=OFF + lcd_pin=0 still allows (legacy upgrade path) | `test_auth_off_allows_when_pin_zero` | `test_http_auth.c:38` |
+| `REQ-AUTH-002` | AuthMode=REQUIRED denies request without PIN verification | `test_auth_required_denies_unauth` | `test_http_auth.c:54` |
+| `REQ-AUTH-002` | AuthMode=REQUIRED allows PIN-verified request | `test_auth_required_allows_authed` | `test_http_auth.c:65` |
+| `REQ-AUTH-003` | Authenticated session expires after HTTP_AUTH_SESSION_TIMEOUT_MS idle | `test_auth_session_expires` | `test_http_auth.c:79` |
+| `REQ-AUTH-003` | Authenticated session still valid just before the timeout boundary | `test_auth_session_just_before_timeout` | `test_http_auth.c:91` |
+| `REQ-AUTH-003` | Session with zero timestamp is treated as "never set" (defensive) | `test_auth_session_zero_ts_does_not_expire` | `test_http_auth.c:103` |
+| `REQ-AUTH-004` | Missing Origin header allowed (non-browser integration) | `test_auth_no_origin_allowed` | `test_http_auth.c:115` |
+| `REQ-AUTH-004` | Matching Origin allowed | `test_auth_matching_origin_allowed` | `test_http_auth.c:126` |
+| `REQ-AUTH-004` | Matching hostname in origin allowed | `test_auth_matching_hostname_origin_allowed` | `test_http_auth.c:137` |
+| `REQ-AUTH-004` | Foreign Origin blocked as CSRF | `test_auth_foreign_origin_blocked` | `test_http_auth.c:148` |
+| `REQ-AUTH-004` | Origin with unexpected scheme blocked | `test_auth_origin_bad_scheme_blocked` | `test_http_auth.c:159` |
+| `REQ-AUTH-004` | https:// Origin matching device IP allowed | `test_auth_https_matching_origin_allowed` | `test_http_auth.c:170` |
+| `REQ-AUTH-005` | Unauth + foreign Origin reports UNAUTH first (PIN check precedes CSRF) | `test_auth_unauth_precedes_csrf` | `test_http_auth.c:183` |
+| `REQ-AUTH-006` | AuthMode=REQUIRED with no PIN configured denies unauthenticated request | `test_auth_required_no_pin_configured_denies` | `test_http_auth.c:202` |
+| `REQ-AUTH-006` | AuthMode=REQUIRED with no PIN configured ignores LCDPasswordOK=true | `test_auth_required_no_pin_denies_even_if_flag_set` | `test_http_auth.c:216` |
+| `REQ-AUTH-007` | Attacker subdomain that suffixes the device mDNS host is rejected | `test_auth_csrf_substring_suffix_rejected` | `test_http_auth.c:240` |
+| `REQ-AUTH-007` | Attacker IP-suffix domain (nip.io-style) is rejected | `test_auth_csrf_ip_suffix_rejected` | `test_http_auth.c:255` |
+| `REQ-AUTH-007` | Attacker domain that prefixes the device host is rejected | `test_auth_csrf_substring_prefix_rejected` | `test_http_auth.c:270` |
+| `REQ-AUTH-007` | Origin that embeds device host in userinfo/path is rejected | `test_auth_csrf_host_in_path_rejected` | `test_http_auth.c:285` |
+| `REQ-AUTH-007` | Case-insensitive host match accepted (DNS labels are case-insensitive) | `test_auth_csrf_case_insensitive_match_allowed` | `test_http_auth.c:300` |
+| `REQ-AUTH-007` | Matching host with explicit port accepted | `test_auth_csrf_matching_host_with_port_allowed` | `test_http_auth.c:315` |
+| `REQ-AUTH-007` | Matching host with trailing slash accepted | `test_auth_csrf_matching_host_with_trailing_slash_allowed` | `test_http_auth.c:330` |
 
 <details>
-<summary>Detailed steps (14 scenarios)</summary>
+<summary>Detailed steps (24 scenarios)</summary>
 
 ### AuthMode=OFF allows any request (no PIN, no Origin)
 **Requirement:** `REQ-AUTH-001`
@@ -2608,6 +2618,13 @@
 ### AuthMode=OFF allows request with foreign Origin (no CSRF check)
 **Requirement:** `REQ-AUTH-001`
 
+
+### AuthMode=OFF + lcd_pin=0 still allows (legacy upgrade path)
+**Requirement:** `REQ-AUTH-001`
+
+- **Given** Legacy installation with AuthMode never enabled and no PIN set
+- **When** Any request arrives
+- **Then** Allow — backward compat preserved regardless of PIN provisioning
 
 ### AuthMode=REQUIRED denies request without PIN verification
 **Requirement:** `REQ-AUTH-002`
@@ -2656,6 +2673,69 @@
 ### Unauth + foreign Origin reports UNAUTH first (PIN check precedes CSRF)
 **Requirement:** `REQ-AUTH-005`
 
+
+### AuthMode=REQUIRED with no PIN configured denies unauthenticated request
+**Requirement:** `REQ-AUTH-006`
+
+- **Given** AuthMode=REQUIRED, lcd_pin=0, lcd_password_ok=false
+- **When** A request arrives at a require_auth-gated endpoint
+- **Then** Return DENY_UNAUTH — auth is not reachable until a PIN is provisioned
+
+### AuthMode=REQUIRED with no PIN configured ignores LCDPasswordOK=true
+**Requirement:** `REQ-AUTH-006`
+
+- **Given** Somehow lcd_password_ok=true (bug, stale state, or bypass attempt) but lcd_pin=0
+- **When** A request arrives at a require_auth-gated endpoint
+- **Then** Return DENY_UNAUTH — a cleared PIN must invalidate any cached auth
+
+### Attacker subdomain that suffixes the device mDNS host is rejected
+**Requirement:** `REQ-AUTH-007`
+
+- **Given** Device host is "smartevse-1234.local", admin has a live session
+- **When** Origin is "http://smartevse-1234.local.evil.com"
+- **Then** DENY_CSRF — the host must match exactly, not just be a substring
+
+### Attacker IP-suffix domain (nip.io-style) is rejected
+**Requirement:** `REQ-AUTH-007`
+
+- **Given** Device IP is 192.168.1.50
+- **When** Origin is "http://192.168.1.50.nip.io"
+- **Then** DENY_CSRF
+
+### Attacker domain that prefixes the device host is rejected
+**Requirement:** `REQ-AUTH-007`
+
+- **Given** Device host is "smartevse.local"
+- **When** Origin is "http://evil.smartevse.local" (subdomain of attacker-owned TLD)
+- **Then** DENY_CSRF
+
+### Origin that embeds device host in userinfo/path is rejected
+**Requirement:** `REQ-AUTH-007`
+
+- **Given** Device host is "smartevse.local"
+- **When** Origin is "http://evil.com/smartevse.local" (host portion is "evil.com")
+- **Then** DENY_CSRF — only the hostname portion of the Origin is compared
+
+### Case-insensitive host match accepted (DNS labels are case-insensitive)
+**Requirement:** `REQ-AUTH-007`
+
+- **Given** Device host is "smartevse-1234.local"
+- **When** Origin is "http://SmartEVSE-1234.LOCAL"
+- **Then** ALLOW
+
+### Matching host with explicit port accepted
+**Requirement:** `REQ-AUTH-007`
+
+- **Given** Device host is "192.168.1.50"
+- **When** Origin is "http://192.168.1.50:80"
+- **Then** ALLOW
+
+### Matching host with trailing slash accepted
+**Requirement:** `REQ-AUTH-007`
+
+- **Given** Device host is "smartevse.local"
+- **When** Origin is "http://smartevse.local/" (browsers don't send this, but be safe)
+- **Then** ALLOW
 
 </details>
 
