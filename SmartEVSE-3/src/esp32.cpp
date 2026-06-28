@@ -3074,37 +3074,11 @@ void loop() {
             }
         }
 
-        // TODO move this to a once a minute loop?
-        if (DelayedStartTime.epoch2 && LocalTimeSet) {
-            // Compare the times
-            time_t now = time(nullptr);             //get current local time
-            DelayedStartTime.diff = DelayedStartTime.epoch2 - (mktime(localtime(&now)) - EPOCH2_OFFSET);
-            if (DelayedStartTime.diff > 0) {
-                if (AccessStatus != OFF && (DelayedStopTime.epoch2 == 0 || DelayedStopTime.epoch2 > DelayedStartTime.epoch2))
-                    setAccess(OFF);                         //switch to OFF, we are Delayed Charging
-            }
-            else {
-                //starttime is in the past so we are NOT Delayed Charging, or we are Delayed Charging but the starttime has passed!
-                if (DelayedRepeat == 1)
-                    DelayedStartTime.epoch2 += 24 * 3600;                           //add 24 hours so we now have a new starttime
-                else
-                    DelayedStartTime.epoch2 = DELAYEDSTARTTIME;
+        if (MainsMeter.linky.available) {
+            if (MainsMeter.linky.is_hp)
+                setAccess(OFF);
+            else
                 setAccess(ON);
-            }
-        }
-        //only update StopTime.diff if starttime has already passed
-        if (DelayedStopTime.epoch2 && LocalTimeSet) {
-            // Compare the times
-            time_t now = time(nullptr);             //get current local time
-            DelayedStopTime.diff = DelayedStopTime.epoch2 - (mktime(localtime(&now)) - EPOCH2_OFFSET);
-            if (DelayedStopTime.diff <= 0) {
-                //DelayedStopTime has passed
-                if (DelayedRepeat == 1)                                         //we are on a daily repetition schedule
-                    DelayedStopTime.epoch2 += 24 * 3600;                        //add 24 hours so we now have a new starttime
-                else
-                    DelayedStopTime.epoch2 = DELAYEDSTOPTIME;
-                setAccess(OFF);                         //switch to OFF
-            }
         }
         //_LOG_A("DINGO: firmwareUpdateTimer just before decrement=%i.\n", firmwareUpdateTimer);
         if (AutoUpdate && !shouldReboot) {                                      // we don't want to autoupdate if we are on the verge of rebooting
