@@ -81,6 +81,10 @@ function applyWsData(d) {
             showById('override_current_box');
             showById('override_current_box2');
         }
+        if (d.mode_id !== 0) {
+            hideEl($id('mode_sub'));
+            hideEl($id('suspend_reason_row'));
+        }
     }
     if (d.charge_current !== undefined)
         $id('charge_current').textContent = (d.charge_current / 10).toFixed(1) + " A";
@@ -581,6 +585,39 @@ function loadData() {
                 $id('linky_hp_bypass').checked = !!data.settings.linky_hp_bypass;
             if (data.settings.linky_failsafe !== undefined)
                 $id('linky_failsafe').checked = !!data.settings.linky_failsafe;
+
+            // Linky suspension context — override mode display and show reason when HP gate or failsafe blocks charging
+            var linkyHpGating = linkyAvail && data.settings.linky_is_hp && !data.settings.linky_hp_bypass;
+            var linkyFailBlock = !linkyAvail && !!data.settings.linky_failsafe;
+            var evseRawMode = data.evse && data.evse.mode;
+            var evseModeStr = {1: 'NORMAL', 2: 'SOLAR', 3: 'SMART'}[evseRawMode] || '';
+            var modeSub = $id('mode_sub');
+            var suspendRow = $id('suspend_reason_row');
+            if (data.mode_id === 0) {
+                if (linkyHpGating) {
+                    $qs('#mode').textContent = 'HP PAUSE';
+                    if (modeSub) { modeSub.textContent = '→ ' + evseModeStr + ' when HC'; showEl(modeSub); }
+                    if (suspendRow) {
+                        suspendRow.innerHTML = '⏳ Suspended — waiting for off-peak (HC)' + (evseModeStr ? ', will charge in <strong>' + evseModeStr + '</strong> mode' : '');
+                        suspendRow.style.color = '#e06c00';
+                        showEl(suspendRow);
+                    }
+                } else if (linkyFailBlock) {
+                    $qs('#mode').textContent = 'BLOCKED';
+                    if (modeSub) { modeSub.textContent = '→ ' + evseModeStr + ' when meter OK'; showEl(modeSub); }
+                    if (suspendRow) {
+                        suspendRow.innerHTML = '⚠ Linky meter offline — fail-safe blocking' + (evseModeStr ? ' <strong>' + evseModeStr + '</strong> mode' : '');
+                        suspendRow.style.color = '#c0392b';
+                        showEl(suspendRow);
+                    }
+                } else {
+                    if (modeSub) hideEl(modeSub);
+                    if (suspendRow) hideEl(suspendRow);
+                }
+            } else {
+                if (modeSub) hideEl(modeSub);
+                if (suspendRow) hideEl(suspendRow);
+            }
 
             $id('battery_current').textContent = (data.home_battery.current / 10).toFixed(1) + " A";
 

@@ -796,8 +796,18 @@ void GLCD(void) {
                             GLCD_sendbuf(7, 1);
                         }
                     } else {
-                        GLCD_print_buf2(2, (const char *) "ACCESS");
-                        GLCD_print_buf2(4, (const char *) "DENIED");
+                        if (MainsMeter.linky.available && MainsMeter.linky.is_hp && !LinkyHpBypass) {
+                            GLCD_print_buf2(2, (const char *) "WAIT HC");
+                            if (Mode == MODE_SOLAR) GLCD_print_buf2(4, (const char *) "SOLAR");
+                            else if (Mode == MODE_SMART) GLCD_print_buf2(4, (const char *) "SMART");
+                            else GLCD_print_buf2(4, (const char *) "NORMAL");
+                        } else if (!MainsMeter.linky.available && LinkyFailSafe) {
+                            GLCD_print_buf2(2, (const char *) "LINKY");
+                            GLCD_print_buf2(4, (const char *) "OFFLINE");
+                        } else {
+                            GLCD_print_buf2(2, (const char *) "ACCESS");
+                            GLCD_print_buf2(4, (const char *) "DENIED");
+                        }
                     }
                 }
             }
@@ -921,7 +931,10 @@ void GLCD(void) {
         } else if (State != STATE_C) {
                 switch (Switching_Phases_C2) {
                     case NO_SWITCH:
-                        snprintf(Str, sizeof(Str), "READY %u", ChargeDelay);
+                        if (Mode == MODE_SOLAR)
+                            snprintf(Str, sizeof(Str), "SOLAR %u", ChargeDelay);
+                        else
+                            snprintf(Str, sizeof(Str), "SMART %u", ChargeDelay);
                         if (!ChargeDelay) Str[5] = '\0';
                         break;
                     case GOING_TO_SWITCH_1P:
