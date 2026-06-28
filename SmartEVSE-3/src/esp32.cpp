@@ -170,6 +170,7 @@ struct SettingsCache {
     uint16_t RotationInterval;
     uint16_t IdleTimeout;
     uint8_t AutoUpdate, LCDlock, CableLock;
+    uint8_t LinkyHpBypass, LinkyFailSafe;
     uint16_t LCDPin;
     bool MQTTSmartServer;
 #if MQTT
@@ -1706,6 +1707,8 @@ void read_settings() {
         DelayedRepeat = preferences.getUShort("DelayedRepeat", 0);
         LCDlock = preferences.getUChar("LCDlock", LCD_LOCK);
         CableLock = preferences.getUChar("CableLock", CABLE_LOCK);
+        LinkyHpBypass = preferences.getUChar("LinkyHpBypass", 0);
+        LinkyFailSafe = preferences.getUChar("LinkyFailSafe", 0);
         LCDPin = preferences.getUShort("LCDPin", 0);
         AutoUpdate = preferences.getUChar("AutoUpdate", AUTOUPDATE);
         MQTTSmartServer = preferences.getBool("MQTTSmartServer", APPSERVER);
@@ -1795,6 +1798,8 @@ void read_settings() {
         settingsCache.AutoUpdate = AutoUpdate;
         settingsCache.LCDlock = LCDlock;
         settingsCache.CableLock = CableLock;
+        settingsCache.LinkyHpBypass = LinkyHpBypass;
+        settingsCache.LinkyFailSafe = LinkyFailSafe;
         settingsCache.LCDPin = LCDPin;
         settingsCache.MQTTSmartServer = MQTTSmartServer;
 #if MQTT
@@ -1883,6 +1888,8 @@ void write_settings(void) {
     PREFS_PUT_UCHAR_IF_CHANGED("AutoUpdate", AutoUpdate, AutoUpdate);
     PREFS_PUT_UCHAR_IF_CHANGED("LCDlock", LCDlock, LCDlock);
     PREFS_PUT_UCHAR_IF_CHANGED("CableLock", CableLock, CableLock);
+    PREFS_PUT_UCHAR_IF_CHANGED("LinkyHpBypass", LinkyHpBypass, LinkyHpBypass);
+    PREFS_PUT_UCHAR_IF_CHANGED("LinkyFailSafe", LinkyFailSafe, LinkyFailSafe);
     PREFS_PUT_USHORT_IF_CHANGED("LCDPin", LCDPin, LCDPin);
     PREFS_PUT_BOOL_IF_CHANGED("MQTTSmartServer", MQTTSmartServer, MQTTSmartServer);
 #if MQTT
@@ -3075,10 +3082,12 @@ void loop() {
         }
 
         if (MainsMeter.linky.available) {
-            if (MainsMeter.linky.is_hp)
+            if (!LinkyHpBypass && MainsMeter.linky.is_hp)
                 setAccess(OFF);
             else
                 setAccess(ON);
+        } else if (LinkyFailSafe) {
+            setAccess(OFF);
         }
         //_LOG_A("DINGO: firmwareUpdateTimer just before decrement=%i.\n", firmwareUpdateTimer);
         if (AutoUpdate && !shouldReboot) {                                      // we don't want to autoupdate if we are on the verge of rebooting

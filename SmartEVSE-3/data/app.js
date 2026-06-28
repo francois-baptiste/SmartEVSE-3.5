@@ -552,37 +552,35 @@ function loadData() {
                     data.settings.capacity_headroom);
             }
 
-            // Format a Date as local YYYY-MM-DDTHH:MM for <input type="datetime-local">.
-            // Must use LOCAL time — toISOString() returns UTC which the backend's
-            // mktime() would misinterpret as local, shifting the schedule by the
-            // timezone offset and potentially clearing it as "in the past".
-            function toLocalDT(d) {
-                var p = function(n) { return n < 10 ? '0' + n : '' + n; };
-                return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate())
-                    + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
-            }
-            if (data.settings.starttime) {
-                var st = new Date(data.settings.starttime * 1000);
-                $id('starttime_date_time').textContent = st.toLocaleDateString() + " " + st.toLocaleTimeString();
-                var stInput = $id('starttime');
-                if (stInput && !stInput.matches(':focus')) {
-                    stInput.value = toLocalDT(st);
+            // Linky HP/HC status
+            var linkyAvail = data.settings.linky_available;
+            var linkyBadge = $id('linky_tariff_badge');
+            var linkyMeterStatus = $id('linky_meter_status');
+            if (linkyAvail) {
+                var isHp = data.settings.linky_is_hp;
+                var isHc = data.settings.linky_is_hc;
+                if (isHp) {
+                    linkyBadge.textContent = 'HP — Peak';
+                    linkyBadge.style.color = '#e06c00';
+                } else if (isHc) {
+                    linkyBadge.textContent = 'HC — Off-peak';
+                    linkyBadge.style.color = '#2a9d2a';
+                } else {
+                    linkyBadge.textContent = 'Unknown';
+                    linkyBadge.style.color = 'var(--fg3)';
                 }
+                linkyMeterStatus.textContent = '(meter OK)';
+                linkyMeterStatus.style.color = 'var(--fg3)';
             } else {
-                $id('starttime_date_time').textContent = "none";
+                linkyBadge.textContent = 'No signal';
+                linkyBadge.style.color = 'var(--fg3)';
+                linkyMeterStatus.textContent = '(meter unavailable)';
+                linkyMeterStatus.style.color = '#c0392b';
             }
-            if (data.settings.stoptime) {
-                var sp = new Date(data.settings.stoptime * 1000);
-                $id('stoptime_date_time').textContent = sp.toLocaleDateString() + " " + sp.toLocaleTimeString();
-                var spInput = $id('stoptime');
-                if (spInput && !spInput.matches(':focus')) {
-                    spInput.value = toLocalDT(sp);
-                }
-            } else {
-                $id('stoptime_date_time').textContent = "none";
-            }
-            $id('repeat').textContent = data.settings.repeat == 1 ? "Daily" : "none";
-            $id('daily_repeat').checked = data.settings.repeat == 1;
+            if (data.settings.linky_hp_bypass !== undefined)
+                $id('linky_hp_bypass').checked = !!data.settings.linky_hp_bypass;
+            if (data.settings.linky_failsafe !== undefined)
+                $id('linky_failsafe').checked = !!data.settings.linky_failsafe;
 
             $id('battery_current').textContent = (data.home_battery.current / 10).toFixed(1) + " A";
 
@@ -767,20 +765,6 @@ function setIdleTimeout() {
 /* ========== Mode activation ========== */
 function activate(mode) {
     var params = new URLSearchParams({ mode: '' + mode });
-    // Schedule params (starttime/stoptime/repeat) only make sense for
-    // charging modes (1=Normal, 2=Solar, 3=Smart). OFF (0) and PAUSE (4)
-    // just switch access state — sending schedule params would
-    // unnecessarily trigger the backend's schedule parser and risk
-    // overwriting or clearing a stored schedule.
-    if ([1, 2, 3].includes(mode)) {
-        var starttime = $qs('input[name="starttime"]').value;
-        if (starttime) {
-            params.append('starttime', starttime);
-            var stoptime = $qs('input[name="stoptime"]').value;
-            if (stoptime) params.append('stoptime', stoptime);
-            params.append('repeat', '' + (+$qs('#daily_repeat').checked));
-        }
-    }
     if ([1, 2, 3].includes(mode)) {
         /* Only send override_current when the dropdown is NOT disabled.
          * On slave nodes (LoadBl >= 2) the dropdown is disabled via
@@ -844,27 +828,21 @@ function configureMqtt() {
 /* ========== Control & Schedule save ========== */
 /* Batches all Control & Schedule settings into one POST — same pattern
  * as Save MQTT / Save OCPP. Includes solar thresholds, override current,
- * schedule (starttime/stoptime/repeat), and lock toggles. */
+ * Linky HP gate flags, and lock toggles. */
 function saveControlSchedule() {
     var params = {
         solar_start_current: $id('solar_start_current').value,
         solar_max_import:    $id('solar_max_import_current').value,
         stop_timer:          $id('solar_stop_time').value,
-        lcdlock:             $id('lcdlock').checked ? 1 : 0
+        lcdlock:             $id('lcdlock').checked ? 1 : 0,
+        linky_hp_bypass:     $id('linky_hp_bypass').checked ? 1 : 0,
+        linky_failsafe:      $id('linky_failsafe').checked ? 1 : 0
     };
     var cableLockEl = $id('cablelock');
     if (cableLockEl) params.cablelock = cableLockEl.checked ? 1 : 0;
     var overrideEl = $id('mode_override_current');
     if (overrideEl && !overrideEl.disabled) {
         params.override_current = '' + (overrideEl.value * 10);
-    }
-    // Schedule — starttime/stoptime/repeat can now be saved without a mode param
-    var starttime = $qs('input[name="starttime"]').value;
-    if (starttime) {
-        params.starttime = starttime;
-        var stoptime = $qs('input[name="stoptime"]').value;
-        if (stoptime) params.stoptime = stoptime;
-        params.repeat = '' + (+$qs('#daily_repeat').checked);
     }
     var query = Object.keys(params)
         .map(function(k) { return k + '=' + encodeURIComponent(params[k]); })
@@ -1414,22 +1392,6 @@ fetch('/diag/status').then(function(r) { return r.json(); }).then(function(d) {
 
 /* ========== Initialization ========== */
 (function() {
-    /* Set datetime inputs to current time */
-    var now = new Date();
-    var dateString = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2) + '-' + ('0' + now.getDate()).slice(-2);
-    var timeString = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
-    var dateTimeString = dateString + 'T' + timeString;
-
-    $id('starttime').value = dateTimeString;
-    $id('stoptime').value = dateTimeString;
-
-    hideById('stoptime_group');
-    hideById('daily_repeat_group');
-
-    $id('starttime').addEventListener('change', function() { showById('stoptime_group'); });
-    $id('stoptime').addEventListener('change', function() { showById('daily_repeat_group'); });
-    $id('daily_repeat').checked = false;
-
     /* MQTT TLS checkbox listener */
     $id('mqtt_tls').addEventListener('change', toggleCertVisibility);
 
@@ -1539,7 +1501,8 @@ fetch('/diag/status').then(function(r) { return r.json(); }).then(function(d) {
     var HELP = {
         '#solar_start_current':      'solar-smart-stability.md#current-regulation',
         '#mode_override_current':    'guide-owner.md#3-starting-a-charge-session',
-        '#starttime':                'guide-owner.md#scheduled--delayed',
+        '#linky_hp_bypass':          'guide-owner.md#linky-hphc-gate',
+        '#linky_failsafe':           'guide-owner.md#linky-hphc-gate',
         '#lock_row':                 'guide-owner.md#8-access-control',
         '#capacity_limit_input':     'guide-owner.md#7-common-adjustments',
         '#mqtt_host':                'guide-integrator.md#setup',

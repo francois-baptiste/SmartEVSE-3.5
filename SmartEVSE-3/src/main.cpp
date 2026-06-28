@@ -252,6 +252,8 @@ uint16_t SolarStopTimer = 0;
 uint8_t RCmon = RC_MON;                                                     // Residual Current Monitor (0:Disable / 1:Enable)
 uint8_t DelayedRepeat;                                                      // 0 = no repeat, 1 = daily repeat
 uint8_t LCDlock = LCD_LOCK;                                                 // 0 = LCD buttons operational, 1 = LCD buttons disabled
+uint8_t LinkyHpBypass = 0;                                                  // 0 = block charging during Linky HP (peak), 1 = bypass (always allow)
+uint8_t LinkyFailSafe = 0;                                                  // 0 = no action when Linky unavailable, 1 = block charging on meter loss
 uint16_t BacklightTimer = 0;                                                // Backlight timer (sec)
 uint8_t BacklightSet = 0;
 uint8_t LCDTimer = 0;

@@ -41,6 +41,8 @@ extern uint8_t Lock;
 extern uint8_t Config;
 extern uint8_t LCDlock;
 extern uint8_t CableLock;
+extern uint8_t LinkyHpBypass;
+extern uint8_t LinkyFailSafe;
 extern EnableC2_t EnableC2;
 extern uint8_t BacklightSet;
 extern uint16_t OverrideCurrent;
@@ -470,6 +472,11 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
         doc["settings"]["lcdlock"] = LCDlock;
         doc["settings"]["lock"] = Lock;
         doc["settings"]["cablelock"] = CableLock;
+        doc["settings"]["linky_hp_bypass"] = LinkyHpBypass;
+        doc["settings"]["linky_failsafe"] = LinkyFailSafe;
+        doc["settings"]["linky_available"] = (uint8_t)MainsMeter.linky.available;
+        doc["settings"]["linky_is_hp"] = MainsMeter.linky.is_hp;
+        doc["settings"]["linky_is_hc"] = MainsMeter.linky.is_hc;
         doc["settings"]["ledmode"] = LedMode;
         /* Plan 16 Phase 1 — HTTP auth state. `auth_mode` is the persisted setting
          * (0=Off legacy / 1=Required); `auth_required` is the same boolean in a
@@ -965,6 +972,22 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
             if (c_lock >= 0 && c_lock <= 1) {                               //boundary check
                 CableLock = c_lock;
                 doc["cablelock"] = c_lock;
+            }
+        }
+
+        if(request->hasParam("linky_hp_bypass")) {
+            int v = request->getParam("linky_hp_bypass")->value().toInt();
+            if (v >= 0 && v <= 1) {
+                LinkyHpBypass = v;
+                doc["linky_hp_bypass"] = v;
+            }
+        }
+
+        if(request->hasParam("linky_failsafe")) {
+            int v = request->getParam("linky_failsafe")->value().toInt();
+            if (v >= 0 && v <= 1) {
+                LinkyFailSafe = v;
+                doc["linky_failsafe"] = v;
             }
         }
 

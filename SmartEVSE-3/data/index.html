@@ -55,10 +55,9 @@
     <span id="loadbl_text" style="display:none"></span>
     <span id="contactor2" title="Second contactor for automatic 1-phase / 3-phase switching"> &middot; Contactor 2: <span id="enable_C2"></span></span>
   </div>
-  <div class="info-row" title="Scheduled charging — set start/stop below, then press a mode button to activate">
-    <span title="Scheduled start time">Start: <span id="starttime_date_time">-</span></span>
-    &middot; <span title="Scheduled stop time">Stop: <span id="stoptime_date_time">-</span></span>
-    &middot; <span title="Whether the schedule repeats daily">Repeat: <span id="repeat">-</span></span>
+  <div class="info-row" id="linky_status_row" title="Linky HP/HC tariff status from Modbus meter">
+    Linky: <span id="linky_tariff_badge" style="font-weight:600">-</span>
+    <span id="linky_meter_status" style="margin-left:8px;font-size:.8rem;color:var(--fg3)"></span>
   </div>
 
   <!-- Mode bar -->
@@ -222,18 +221,14 @@
         <span id="override_slave_note" style="display:none;font-size:.75rem;color:var(--fg3);margin-left:8px">Set on master node</span>
       </div>
     </div>
-    <!-- Schedule -->
+    <!-- Linky HP/HC gate -->
     <div class="form-row">
-      <span class="form-label" title="Set a future start time, then press a mode button to schedule">Start Time</span>
-      <input type="datetime-local" id="starttime" name="starttime" class="form-input">
+      <span class="form-label" title="Bypass the Linky HP/HC gate — charge at any time regardless of peak/off-peak status">Bypass HP gate</span>
+      <input type="checkbox" id="linky_hp_bypass" name="linky_hp_bypass">
     </div>
-    <div class="form-row" id="stoptime_group">
-      <span class="form-label" title="Charging stops at this time. Press a mode button to activate.">Stop Time</span>
-      <input type="datetime-local" id="stoptime" name="stoptime" class="form-input">
-    </div>
-    <div class="form-row" id="daily_repeat_group">
-      <span class="form-label" title="Repeat this start/stop schedule every day">Daily Repeat</span>
-      <input type="checkbox" id="daily_repeat" name="daily_repeat" value="daily">
+    <div class="form-row">
+      <span class="form-label" title="Block charging when the Linky meter loses Modbus communication (fail-safe mode)">Fail safe (no Linky = no charge)</span>
+      <input type="checkbox" id="linky_failsafe" name="linky_failsafe">
     </div>
     <!-- Lock -->
     <div class="form-row" id="lock_row">
