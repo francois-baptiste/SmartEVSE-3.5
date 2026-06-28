@@ -1122,6 +1122,7 @@ void SetupMQTTClient() {
     MQTTclient.announce("WiFi RSSI", "sensor", optional_payload);
     optional_payload = MQTTclient.jsna("entity_category","diagnostic") + MQTTclient.jsna("device_class","temperature") + MQTTclient.jsna("unit_of_measurement","°C") + MQTTclient.jsna("state_class","measurement");
     MQTTclient.announce("ESP Temp", "sensor", optional_payload);
+    MQTTclient.announce("Linky Internal Temp C", "sensor", optional_payload);
     optional_payload = MQTTclient.jsna("entity_category","diagnostic") + MQTTclient.jsna("device_class","duration") + MQTTclient.jsna("unit_of_measurement","s") + MQTTclient.jsna("state_class","total_increasing") + MQTTclient.jsna("entity_registry_enabled_default","False");
     MQTTclient.announce("ESP Uptime", "sensor", optional_payload);
     optional_payload = MQTTclient.jsna("entity_category","diagnostic");
