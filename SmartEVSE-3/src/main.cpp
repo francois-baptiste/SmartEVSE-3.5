@@ -1915,7 +1915,7 @@ static unsigned int locktimer = 0, unlocktimer = 0;
 void ModbusRequestLoop() {
 
     static uint8_t PollEVNode = NR_EVSES;
-    static uint16_t energytimer = 0;
+    static uint16_t energytimer = 65535; // wraps to 0 on first tick so Linky regs poll within ~5s of boot
     static uint8_t NodeOfflineProbe = 1;
     static bool probedThisCycle = false;
     uint8_t updated = 0;
