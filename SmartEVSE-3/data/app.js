@@ -853,6 +853,14 @@ function activate(mode) {
     for (var x of [0, 1, 2, 3, 4]) {
         $qs('#mode_' + x).classList.toggle('active', x === mode);
     }
+
+    /* While in HP pause (mode_id=0), mode buttons 1-3 set the pending mode.
+     * Update wsState immediately so the suspend row reflects the selection
+     * before the WS round-trip arrives. */
+    if (mode >= 1 && mode <= 3 && wsState.modeId === 0) {
+        wsState.evseMode = mode;
+        refreshSuspendRow();
+    }
 }
 
 /* ========== MQTT config ========== */

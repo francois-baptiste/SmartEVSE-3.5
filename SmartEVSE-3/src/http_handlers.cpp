@@ -429,7 +429,7 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
         doc["evse"]["temp_max"] = maxTemp;
         doc["evse"]["connected"] = evConnected;
         doc["evse"]["access"] = AccessStatus;
-        doc["evse"]["mode"] = Mode;
+        doc["evse"]["mode"] = (Mode==MODE_NORMAL?1:Mode==MODE_SMART?3:Mode==MODE_SOLAR?2:0);
         doc["evse"]["loadbl"] = LoadBl;
         doc["evse"]["pwm"] = CurrentPWM;
         doc["evse"]["custombutton"] = CustomButton;

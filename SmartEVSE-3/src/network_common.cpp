@@ -149,6 +149,18 @@ static uint8_t wsGetModeId() {
     }
 }
 
+/* Configured mode as a UI mode ID (1=NORMAL, 2=SOLAR, 3=SMART), independent
+ * of AccessStatus. Used for evse_mode WS field so the JS can show which mode
+ * will resume after HP pause without needing to know the raw Mode constants. */
+static uint8_t wsGetConfiguredModeId() {
+    switch (Mode) {
+        case MODE_NORMAL: return 1;
+        case MODE_SOLAR:  return 2;
+        case MODE_SMART:  return 3;
+        default:          return 0;
+    }
+}
+
 static void stopWsDataTimer(struct mg_mgr *manager) {
     if (wsDataTimer != nullptr && manager != nullptr) {
         mg_timer_free(&manager->timers, wsDataTimer);
@@ -193,7 +205,7 @@ static void wsBuildFullState(DynamicJsonDocument &doc) {
     d["battery_current"] = homeBatteryCurrent;
     d["battery_last_update"] = homeBatteryLastUpdate;
     d["phases_last_update"] = phasesLastUpdate;
-    d["evse_mode"] = (uint8_t)Mode;
+    d["evse_mode"] = wsGetConfiguredModeId();
     d["linky_is_hp"] = (uint8_t)MainsMeter.linky.is_hp;
 }
 
@@ -277,7 +289,7 @@ static void ws_data_timer_fn(void *arg) {
         WS_DIFF(evmeter_power, EVMeter.PowerMeasured);
         WS_DIFF(evmeter_charged_wh, EVMeter.EnergyCharged);
         WS_DIFF(battery_current, homeBatteryCurrent);
-        WS_DIFF(evse_mode, (uint8_t)Mode);
+        WS_DIFF(evse_mode, wsGetConfiguredModeId());
         WS_DIFF(linky_is_hp, (uint8_t)MainsMeter.linky.is_hp);
 
         #undef WS_DIFF
@@ -313,7 +325,7 @@ static void ws_data_timer_fn(void *arg) {
         wsPrev.evmeter_power = EVMeter.PowerMeasured;
         wsPrev.evmeter_charged_wh = EVMeter.EnergyCharged;
         wsPrev.battery_current = homeBatteryCurrent;
-        wsPrev.evse_mode = Mode;
+        wsPrev.evse_mode = wsGetConfiguredModeId();
         wsPrev.linky_is_hp = MainsMeter.linky.is_hp;
         wsPrev.initialized = true;
     }
