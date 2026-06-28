@@ -42,6 +42,57 @@ let mqttEditMode = false;
 let ocppEditMode = false;
 let last_evse_state_id = 0;
 
+/* Linky / mode suspend state — kept in sync by both loadData and applyWsData */
+var wsState = {
+    modeId: 0,
+    evseMode: 0,
+    linkyIsHp: 0,
+    linkyAvail: false,
+    linkyHpBypass: false,
+    linkyFailSafe: false
+};
+
+/* Update the HP-pause / fail-safe suspension UI from wsState */
+function refreshSuspendRow() {
+    var linkyHpGating  = wsState.linkyAvail && wsState.linkyIsHp && !wsState.linkyHpBypass;
+    var linkyFailBlock = !wsState.linkyAvail && wsState.linkyFailSafe;
+    var evseModeStr = {1:'NORMAL', 2:'SOLAR', 3:'SMART'}[wsState.evseMode] || '';
+    var modeSub    = $id('mode_sub');
+    var suspendRow = $id('suspend_reason_row');
+    var modeEl     = $qs('#mode');
+    var linkyPaused = wsState.modeId === 0 && (linkyHpGating || linkyFailBlock);
+    if (wsState.modeId === 0) {
+        if (linkyHpGating) {
+            if (modeEl) modeEl.textContent = 'HP PAUSE';
+            if (modeSub)    { modeSub.textContent = '→ ' + evseModeStr + ' when HC'; showEl(modeSub); }
+            if (suspendRow) {
+                suspendRow.innerHTML = '⏳ Suspended — waiting for off-peak (HC)' + (evseModeStr ? ', will charge in <strong>' + evseModeStr + '</strong> mode' : '');
+                suspendRow.style.color = '#e06c00';
+                showEl(suspendRow);
+            }
+        } else if (linkyFailBlock) {
+            if (modeEl) modeEl.textContent = 'BLOCKED';
+            if (modeSub)    { modeSub.textContent = '→ ' + evseModeStr + ' when meter OK'; showEl(modeSub); }
+            if (suspendRow) {
+                suspendRow.innerHTML = '⚠ Linky meter offline — fail-safe blocking' + (evseModeStr ? ' <strong>' + evseModeStr + '</strong> mode' : '');
+                suspendRow.style.color = '#c0392b';
+                showEl(suspendRow);
+            }
+        } else {
+            if (modeSub)    hideEl(modeSub);
+            if (suspendRow) hideEl(suspendRow);
+        }
+    } else {
+        if (modeSub)    hideEl(modeSub);
+        if (suspendRow) hideEl(suspendRow);
+    }
+    /* Dim-highlight the pending mode button while in HP pause */
+    for (var x of [0, 1, 2, 3, 4]) {
+        var btn = $qs('#mode_' + x);
+        if (btn) btn.classList.toggle('pending', linkyPaused && x === wsState.evseMode);
+    }
+}
+
 /* ========== WebSocket Data Channel ========== */
 var dataWs = null;
 var dataWsReconnectTimer = null;
@@ -65,7 +116,16 @@ function updateConnStatus(connected) {
 function applyWsData(d) {
     if (d.state_id !== undefined || d.error_flags !== undefined)
         updateStateDot(d.state_id, d.error_flags);
+    if (d.evse_mode !== undefined) {
+        wsState.evseMode = d.evse_mode;
+        refreshSuspendRow();
+    }
+    if (d.linky_is_hp !== undefined) {
+        wsState.linkyIsHp = d.linky_is_hp;
+        refreshSuspendRow();
+    }
     if (d.mode_id !== undefined) {
+        wsState.modeId = d.mode_id;
         var modeNames = {0:'OFF', 1:'NORMAL', 2:'SOLAR', 3:'SMART', 4:'PAUSE'};
         $qs('#mode').textContent = modeNames[d.mode_id] || 'N/A';
         for (var x of [0, 1, 2, 3, 4]) {
@@ -81,10 +141,7 @@ function applyWsData(d) {
             showById('override_current_box');
             showById('override_current_box2');
         }
-        if (d.mode_id !== 0) {
-            hideEl($id('mode_sub'));
-            hideEl($id('suspend_reason_row'));
-        }
+        refreshSuspendRow();
     }
     if (d.charge_current !== undefined)
         $id('charge_current').textContent = (d.charge_current / 10).toFixed(1) + " A";
@@ -586,38 +643,14 @@ function loadData() {
             if (data.settings.linky_failsafe !== undefined)
                 $id('linky_failsafe').checked = !!data.settings.linky_failsafe;
 
-            // Linky suspension context — override mode display and show reason when HP gate or failsafe blocks charging
-            var linkyHpGating = linkyAvail && data.settings.linky_is_hp && !data.settings.linky_hp_bypass;
-            var linkyFailBlock = !linkyAvail && !!data.settings.linky_failsafe;
-            var evseRawMode = data.evse && data.evse.mode;
-            var evseModeStr = {1: 'NORMAL', 2: 'SOLAR', 3: 'SMART'}[evseRawMode] || '';
-            var modeSub = $id('mode_sub');
-            var suspendRow = $id('suspend_reason_row');
-            if (data.mode_id === 0) {
-                if (linkyHpGating) {
-                    $qs('#mode').textContent = 'HP PAUSE';
-                    if (modeSub) { modeSub.textContent = '→ ' + evseModeStr + ' when HC'; showEl(modeSub); }
-                    if (suspendRow) {
-                        suspendRow.innerHTML = '⏳ Suspended — waiting for off-peak (HC)' + (evseModeStr ? ', will charge in <strong>' + evseModeStr + '</strong> mode' : '');
-                        suspendRow.style.color = '#e06c00';
-                        showEl(suspendRow);
-                    }
-                } else if (linkyFailBlock) {
-                    $qs('#mode').textContent = 'BLOCKED';
-                    if (modeSub) { modeSub.textContent = '→ ' + evseModeStr + ' when meter OK'; showEl(modeSub); }
-                    if (suspendRow) {
-                        suspendRow.innerHTML = '⚠ Linky meter offline — fail-safe blocking' + (evseModeStr ? ' <strong>' + evseModeStr + '</strong> mode' : '');
-                        suspendRow.style.color = '#c0392b';
-                        showEl(suspendRow);
-                    }
-                } else {
-                    if (modeSub) hideEl(modeSub);
-                    if (suspendRow) hideEl(suspendRow);
-                }
-            } else {
-                if (modeSub) hideEl(modeSub);
-                if (suspendRow) hideEl(suspendRow);
-            }
+            // Populate wsState for dynamic suspend row updates
+            wsState.linkyAvail    = linkyAvail;
+            wsState.linkyIsHp     = data.settings.linky_is_hp || 0;
+            wsState.linkyHpBypass = !!data.settings.linky_hp_bypass;
+            wsState.linkyFailSafe = !!data.settings.linky_failsafe;
+            wsState.evseMode      = (data.evse && data.evse.mode) || 0;
+            wsState.modeId        = data.mode_id || 0;
+            refreshSuspendRow();
 
             $id('battery_current').textContent = (data.home_battery.current / 10).toFixed(1) + " A";
 

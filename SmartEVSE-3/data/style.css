@@ -46,6 +46,7 @@ svg{overflow:hidden;vertical-align:middle}
 .mode-btn{padding:8px 18px;border-radius:24px;border:2px solid var(--bg3);background:var(--bg3);font-size:.8rem;font-weight:600;cursor:pointer;color:var(--fg2);transition:all .15s}
 .mode-btn:hover{border-color:var(--accent)}
 .mode-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.mode-btn.pending{background:var(--accent);color:#fff;border-color:var(--accent);opacity:.45}
 
 /* Power flow SVG */
 .power-flow-card{margin-bottom:16px}

@@ -132,6 +132,8 @@ struct WsDataPrev {
     int32_t evmeter_charged_wh;
     int16_t battery_current;
     uint16_t override_current;
+    uint8_t evse_mode;
+    uint8_t linky_is_hp;
     bool initialized;
 };
 static WsDataPrev wsPrev = {};
@@ -191,6 +193,8 @@ static void wsBuildFullState(DynamicJsonDocument &doc) {
     d["battery_current"] = homeBatteryCurrent;
     d["battery_last_update"] = homeBatteryLastUpdate;
     d["phases_last_update"] = phasesLastUpdate;
+    d["evse_mode"] = (uint8_t)Mode;
+    d["linky_is_hp"] = (uint8_t)MainsMeter.linky.is_hp;
 }
 
 // Timer function - sends state updates to all connected websocket clients
@@ -273,6 +277,8 @@ static void ws_data_timer_fn(void *arg) {
         WS_DIFF(evmeter_power, EVMeter.PowerMeasured);
         WS_DIFF(evmeter_charged_wh, EVMeter.EnergyCharged);
         WS_DIFF(battery_current, homeBatteryCurrent);
+        WS_DIFF(evse_mode, (uint8_t)Mode);
+        WS_DIFF(linky_is_hp, (uint8_t)MainsMeter.linky.is_hp);
 
         #undef WS_DIFF
 
@@ -307,6 +313,8 @@ static void ws_data_timer_fn(void *arg) {
         wsPrev.evmeter_power = EVMeter.PowerMeasured;
         wsPrev.evmeter_charged_wh = EVMeter.EnergyCharged;
         wsPrev.battery_current = homeBatteryCurrent;
+        wsPrev.evse_mode = Mode;
+        wsPrev.linky_is_hp = MainsMeter.linky.is_hp;
         wsPrev.initialized = true;
     }
 }
