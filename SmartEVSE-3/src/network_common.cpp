@@ -1378,13 +1378,6 @@ static int countConnections(struct mg_mgr *mgr) {
 // fn_data is NULL for plain HTTP, and non-NULL for HTTPS
 static void fn_http_server(struct mg_connection *c, int ev, void *ev_data) {
   if (ev == MG_EV_ACCEPT) {
-    // Limit concurrent connections to prevent socket exhaustion
-    int nconns = countConnections(c->mgr);
-    if (nconns > MAX_HTTP_CONNECTIONS) {
-      _LOG_W("Too many connections (%d), rejecting new connection\n", nconns);
-      c->is_closing = 1;  // Immediately close the connection
-      return;
-    }
     // Initialize TLS for HTTPS connections (fn_data != NULL)
     if (c->fn_data != NULL) {
     struct mg_tls_opts opts = { .ca = empty, .cert = mg_unpacked("/data/cert.pem"), .key = mg_unpacked("/data/key.pem"), .name = empty, .skip_verification = 0};
@@ -1511,6 +1504,15 @@ static void fn_http_server(struct mg_connection *c, int ev, void *ev_data) {
     // END PLAN-07
   } else if (ev == MG_EV_HTTP_MSG) {  // New HTTP request received
     struct mg_http_message *hm = (struct mg_http_message *) ev_data;            // Parsed HTTP request
+
+    // Limit concurrent connections to prevent socket exhaustion/hangs
+    int nconns = countConnections(c->mgr);
+    if (nconns > MAX_HTTP_CONNECTIONS) {
+      _LOG_W("Too many connections (%d), shedding load with 503\n", nconns);
+      mg_http_reply(c, 503, "Connection: close\r\n", "Too many connections\n");
+      c->is_draining = 1;
+      return;
+    }
 
     // Check for websocket upgrade request for LCD image stream
     if (mg_match(hm->uri, mg_str("/ws/lcd"), NULL)) {
