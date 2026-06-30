@@ -257,6 +257,7 @@ bool forceUpdate(const char* firmwareURL, bool validate) {
     HTTPClient httpClient;
     //WiFiClientSecure _client;
     int partition = U_FLASH;
+    bool ret = false;
 
     httpClient.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
     _LOG_A("Connecting to: %s.\n", firmwareURL );
@@ -274,6 +275,8 @@ bool forceUpdate(const char* firmwareURL, bool validate) {
     httpClient.collectHeaders( get_headers, sizeof(get_headers)/sizeof(const char*) );
 
     int updateSize = 0;
+    int written = 0;
+    Stream * stream = nullptr;
     int httpCode = httpClient.GET();
     String contentType;
 
@@ -288,14 +291,14 @@ bool forceUpdate(const char* firmwareURL, bool validate) {
         }
     } else {
         _LOG_A("ERROR: Server responded with HTTP Status %i.\n", httpCode );
-        return false;
+        ret = false; goto cleanup;
     }
 
     _LOG_D("updateSize : %i, contentType: %s.\n", updateSize, contentType.c_str());
-    Stream * stream = httpClient.getStreamPtr();
+    stream = httpClient.getStreamPtr();
     if( updateSize<=0 || stream == nullptr ) {
         _LOG_A("HTTP Error.\n");
-        return false;
+        ret = false; goto cleanup;
     }
 
     // some network streams (e.g. Ethernet) can be laggy and need to 'breathe'
@@ -304,7 +307,7 @@ bool forceUpdate(const char* firmwareURL, bool validate) {
         while( ! stream->available() ) {
             if( millis()>timeout ) {
                 _LOG_A("Stream timed out.\n");
-                return false;
+                ret = false; goto cleanup;
             }
             vTaskDelay(1);
         }
@@ -313,7 +316,7 @@ bool forceUpdate(const char* firmwareURL, bool validate) {
     if( validate ) {
         if( updateSize == UPDATE_SIZE_UNKNOWN || updateSize <= SIGNATURE_LENGTH ) {
             _LOG_A("Malformed signature+fw combo.\n");
-            return false;
+            ret = false; goto cleanup;
         }
         updateSize -= SIGNATURE_LENGTH;
     }
@@ -321,7 +324,7 @@ bool forceUpdate(const char* firmwareURL, bool validate) {
     if( !Update.begin(updateSize, partition) ) {
         _LOG_A("ERROR Not enough space to begin OTA, partition size mismatch? Update failed!\n");
         Update.abort();
-        return false;
+        ret = false; goto cleanup;
     }
 
     Update.onProgress( [](uint32_t progress, uint32_t size) {
@@ -342,7 +345,7 @@ bool forceUpdate(const char* firmwareURL, bool validate) {
     _LOG_I("Begin %s OTA. This may take 2 - 5 mins to complete. Things might be quiet for a while.. Patience!\n", partition==U_FLASH?"Firmware":"Filesystem");
 
     // Some activity may appear in the Serial monitor during the update (depends on Update.onProgress)
-    int written = Update.writeStream(*stream);                                 // although writeStream returns size_t, we don't expect >2Gb
+    written = Update.writeStream(*stream);                                 // although writeStream returns size_t, we don't expect >2Gb
 
     if ( written == updateSize ) {
         _LOG_D("Written : %d successfully", written);
@@ -350,14 +353,12 @@ bool forceUpdate(const char* firmwareURL, bool validate) {
     } else {
         _LOG_A("Written only : %u/%u Premature end of stream?", written, updateSize);
         Update.abort();
-        FREE(signature);
-        return false;
+        ret = false; goto cleanup;
     }
 
     if (!Update.end()) {
         _LOG_A("An Update Error Occurred. Error #: %d", Update.getError());
-        FREE(signature);
-        return false;
+        ret = false; goto cleanup;
     }
 
     if( validate ) { // check signature
@@ -371,8 +372,7 @@ bool forceUpdate(const char* firmwareURL, bool validate) {
 
         if( !_target_partition ) {
             _LOG_A("Can't access partition #%d to check signature!", partition);
-            FREE(signature);
-            return false;
+                ret = false; goto cleanup;
         }
 
         _LOG_D("Checking signature for partition %d...", partition);
@@ -391,14 +391,12 @@ bool forceUpdate(const char* firmwareURL, bool validate) {
         }
 
         if( !validate_sig( _target_partition, signature, updateSize ) ) {
-            FREE(signature);
-            // erase partition
+                // erase partition
             esp_partition_erase_range( _target_partition, _target_partition->address, _target_partition->size );
             _LOG_A("Signature check failed!.\n");
-            return false;
+            ret = false; goto cleanup;
         } else {
-            FREE(signature);
-            _LOG_D("Signature check successful!.\n");
+                _LOG_D("Signature check successful!.\n");
             if( partition == U_FLASH ) {
                 // Set updated partition as bootable now that it's been verified
                 esp_ota_set_boot_partition( _target_partition );
@@ -408,11 +406,16 @@ bool forceUpdate(const char* firmwareURL, bool validate) {
     _LOG_D("OTA Update complete!.\n");
     if (Update.isFinished()) {
         _LOG_V("Update succesfully completed at %s partition\n", partition==U_SPIFFS ? "spiffs" : "firmware" );
-        return true;
+        ret = true; goto cleanup;
     } else {
         _LOG_A("ERROR: Update not finished! Something went wrong!.\n");
     }
-    return false;
+    ret = false;
+
+cleanup:
+    httpClient.end();
+    FREE(signature);
+    return ret;
 }
 
 
@@ -432,7 +435,7 @@ void FirmwareUpdate(void *parameter) {
         //_http.end();
         downloadProgress = -2;
     }
-    if (downloadUrl) free(downloadUrl);
+    if (downloadUrl) { free(downloadUrl); downloadUrl = NULL; }
     vTaskDelete(NULL);                                                        //end this task so it will not take up resources
 }
 
