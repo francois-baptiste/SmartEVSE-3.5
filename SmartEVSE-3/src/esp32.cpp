@@ -3084,11 +3084,11 @@ void loop() {
 
         if (MainsMeter.linky.available) {
             if (!LinkyHpBypass && MainsMeter.linky.is_hp)
-                setAccess(OFF);
+                setAccess(PAUSE);
             else
                 setAccess(ON);
         } else if (LinkyFailSafe) {
-            setAccess(OFF);
+            setAccess(PAUSE);
         }
         //_LOG_A("DINGO: firmwareUpdateTimer just before decrement=%i.\n", firmwareUpdateTimer);
         if (AutoUpdate && !shouldReboot) {                                      // we don't want to autoupdate if we are on the verge of rebooting
