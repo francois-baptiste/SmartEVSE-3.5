@@ -1,6 +1,6 @@
 # SmartEVSE-3 Test Specification
 
-**78 features** | **1187 scenarios** | **1187 with requirement IDs**
+**78 features** | **1189 scenarios** | **1189 with requirement IDs**
 
 ---
 
@@ -467,6 +467,26 @@
 - **Then** Car B is blocked until RFID swipe, then RFID swipe sets AccessStatus ON and charging starts
 
 > Test: `test_tesla_disconnect_then_new_car_rfid_starts_session` in `test_authorization.c:452`
+
+### Plugging in while access is PAUSEd still locks the cable
+
+**Requirement:** `REQ-AUTH-024`
+
+- **Given** The EVSE is in STATE_A with AccessStatus PAUSE (e.g. Linky HP/fail-safe wait)
+- **When** A 9V pilot signal is received (vehicle connected)
+- **Then** The state transitions to STATE_B1 so the cable actuator locks, but not to STATE_B/C
+
+> Test: `test_pause_access_locks_cable_from_A` in `test_authorization.c:487`
+
+### PAUSEd access locks the cable but never allows charging to start
+
+**Requirement:** `REQ-AUTH-025`
+
+- **Given** The EVSE reached STATE_B1 with AccessStatus PAUSE (car plugged in during off-peak wait)
+- **When** Further 9V pilot ticks occur while AccessStatus remains PAUSE
+- **Then** The state stays STATE_B1 (never advances to STATE_B or STATE_C)
+
+> Test: `test_pause_access_does_not_progress_to_charging` in `test_authorization.c:502`
 
 ---
 

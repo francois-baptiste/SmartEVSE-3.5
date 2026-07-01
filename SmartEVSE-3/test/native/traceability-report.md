@@ -1,6 +1,6 @@
 # SmartEVSE-3 Traceability Report
 
-**78 features** | **1187 scenarios** | **1187 with requirement IDs** | **100% coverage**
+**78 features** | **1189 scenarios** | **1189 with requirement IDs** | **100% coverage**
 
 ---
 
@@ -10,7 +10,7 @@
 |---------|-----------|-------------|----------|
 | API Mains Staleness Detection | 12 | 12 | 100% |
 | HomeWizard P1 Manual IP Fallback | 3 | 3 | 100% |
-| Authorization & Access Control | 22 | 22 | 100% |
+| Authorization & Access Control | 24 | 24 | 100% |
 | Bridge Transaction Integrity | 8 | 8 | 100% |
 | Capacity Tariff Peak Tracking | 26 | 26 | 100% |
 | Load Balancing — CAPACITY integration | 3 | 3 | 100% |
@@ -86,7 +86,7 @@
 | IEC 61851-1 State Transitions | 29 | 29 | 100% |
 | 10ms Tick Processing | 20 | 20 | 100% |
 | 1-Second Tick Processing | 23 | 23 | 100% |
-| **TOTAL** | **1187** | **1187** | **100%** |
+| **TOTAL** | **1189** | **1189** | **100%** |
 
 ## API Mains Staleness Detection
 
@@ -258,9 +258,11 @@
 | `REQ-AUTH-021` | AccessStatus cleared on Tesla-style disconnect (C → B → A) | `test_access_status_cleared_on_tesla_disconnect_c_b_a` | `test_authorization.c:390` |
 | `REQ-AUTH-022` | AccessStatus cleared on solar-stop disconnect (C1 → B1 → A) | `test_access_status_cleared_on_disconnect_from_b1` | `test_authorization.c:420` |
 | `REQ-AUTH-023` | Tesla disconnect then new car + RFID swipe starts session correctly | `test_tesla_disconnect_then_new_car_rfid_starts_session` | `test_authorization.c:452` |
+| `REQ-AUTH-024` | Plugging in while access is PAUSEd still locks the cable | `test_pause_access_locks_cable_from_A` | `test_authorization.c:487` |
+| `REQ-AUTH-025` | PAUSEd access locks the cable but never allows charging to start | `test_pause_access_does_not_progress_to_charging` | `test_authorization.c:502` |
 
 <details>
-<summary>Detailed steps (22 scenarios)</summary>
+<summary>Detailed steps (24 scenarios)</summary>
 
 ### Setting access to ON stores the authorization status
 **Requirement:** `REQ-AUTH-001`
@@ -418,6 +420,20 @@
 - **Given** EVSE charged Car A in STATE_C, RFIDReader=EnableOne, AccessStatus=ON
 - **When** Car A does Tesla-style disconnect (C→B→A), Car B plugs in, user swipes RFID
 - **Then** Car B is blocked until RFID swipe, then RFID swipe sets AccessStatus ON and charging starts
+
+### Plugging in while access is PAUSEd still locks the cable
+**Requirement:** `REQ-AUTH-024`
+
+- **Given** The EVSE is in STATE_A with AccessStatus PAUSE (e.g. Linky HP/fail-safe wait)
+- **When** A 9V pilot signal is received (vehicle connected)
+- **Then** The state transitions to STATE_B1 so the cable actuator locks, but not to STATE_B/C
+
+### PAUSEd access locks the cable but never allows charging to start
+**Requirement:** `REQ-AUTH-025`
+
+- **Given** The EVSE reached STATE_B1 with AccessStatus PAUSE (car plugged in during off-peak wait)
+- **When** Further 9V pilot ticks occur while AccessStatus remains PAUSE
+- **Then** The state stays STATE_B1 (never advances to STATE_B or STATE_C)
 
 </details>
 
