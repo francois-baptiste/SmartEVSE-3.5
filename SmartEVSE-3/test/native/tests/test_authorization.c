@@ -484,6 +484,41 @@ void test_tesla_disconnect_then_new_car_rfid_starts_session(void) {
     TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
 }
 
+/*
+ * @feature Authorization & Access Control
+ * @req REQ-AUTH-024
+ * @scenario Plugging in while access is PAUSEd still locks the cable
+ * @given The EVSE is in STATE_A with AccessStatus PAUSE (e.g. Linky HP/fail-safe wait)
+ * @when A 9V pilot signal is received (vehicle connected)
+ * @then The state transitions to STATE_B1 so the cable actuator locks, but not to STATE_B/C
+ */
+void test_pause_access_locks_cable_from_A(void) {
+    setup_basic();
+    ctx.AccessStatus = PAUSE;
+    evse_tick_10ms(&ctx, PILOT_9V);
+    TEST_ASSERT_EQUAL_INT(STATE_B1, ctx.State);
+}
+
+/*
+ * @feature Authorization & Access Control
+ * @req REQ-AUTH-025
+ * @scenario PAUSEd access locks the cable but never allows charging to start
+ * @given The EVSE reached STATE_B1 with AccessStatus PAUSE (car plugged in during off-peak wait)
+ * @when Further 9V pilot ticks occur while AccessStatus remains PAUSE
+ * @then The state stays STATE_B1 (never advances to STATE_B or STATE_C)
+ */
+void test_pause_access_does_not_progress_to_charging(void) {
+    setup_basic();
+    ctx.AccessStatus = PAUSE;
+    evse_tick_10ms(&ctx, PILOT_9V);
+    TEST_ASSERT_EQUAL_INT(STATE_B1, ctx.State);
+
+    for (int i = 0; i < 10; i++) {
+        evse_tick_10ms(&ctx, PILOT_9V);
+    }
+    TEST_ASSERT_EQUAL_INT(STATE_B1, ctx.State);
+}
+
 // ---- Main ----
 int main(void) {
     TEST_SUITE_BEGIN("Authorization");
@@ -511,6 +546,8 @@ int main(void) {
     RUN_TEST(test_access_status_cleared_on_tesla_disconnect_c_b_a);
     RUN_TEST(test_access_status_cleared_on_disconnect_from_b1);
     RUN_TEST(test_tesla_disconnect_then_new_car_rfid_starts_session);
+    RUN_TEST(test_pause_access_locks_cable_from_A);
+    RUN_TEST(test_pause_access_does_not_progress_to_charging);
 
     TEST_SUITE_RESULTS();
 }

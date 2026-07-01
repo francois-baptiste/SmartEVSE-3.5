@@ -1391,8 +1391,12 @@ void evse_tick_10ms(evse_ctx_t *ctx, uint8_t pilot) {
                 evse_set_error_flags(ctx, LESS_6A);
             }
         } else if (pilot == PILOT_9V && ctx->State != STATE_B1 &&
-                   ctx->State != STATE_COMM_B && ctx->AccessStatus == ON) {
-            // Errors or ChargeDelay prevent full transition, go to B1 (line 3127-3128)
+                   ctx->State != STATE_COMM_B &&
+                   (ctx->AccessStatus == ON || ctx->AccessStatus == PAUSE)) {
+            // Errors or ChargeDelay prevent full transition, go to B1 (line 3127-3128).
+            // PAUSE (e.g. Linky HP/fail-safe wait) also locks the cable here instead of
+            // staying in STATE_A, while AccessStatus != ON still blocks the first branch
+            // above from ever reaching STATE_B/STATE_C.
             evse_set_state(ctx, STATE_B1);
         }
     }
