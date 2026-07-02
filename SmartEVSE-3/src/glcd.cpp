@@ -32,6 +32,7 @@
 #include "utils.h"
 #include "meter.h"
 #include "network_common.h"
+#include "http_api.h"
 #include "font.cpp"
 #include "font2.cpp"
 
@@ -451,6 +452,7 @@ void GLCD(void) {
     static unsigned char energy_mains = 20; // X position
     static unsigned char energy_ev = 74; // X position
     char Str[26];
+    char StateLetter[2];
     LCDTimer++;
     
     if (LCDNav) {
@@ -616,7 +618,11 @@ void GLCD(void) {
                                                                                 // MODE NORMAL
     if (Mode == MODE_NORMAL || AccessStatus == OFF) {
 
-        glcd_clrln(0, 0x00);
+        GLCD_buffer_clr();                                                      // row 0: show IEC 61851 CP state letter (A-F), top-left
+        StateLetter[0] = evse_state_to_iec61851(State, ErrorFlags);
+        StateLetter[1] = '\0';
+        GLCD_write_buf_str(20, 0, StateLetter, GLCD_ALIGN_LEFT);
+        GLCD_sendbuf(0, 1);
         glcd_clrln(1, 0x04);                                                    // horizontal line
         glcd_clrln(6, 0x10);                                                    // horizontal line
         glcd_clrln(7, 0x00);
@@ -908,6 +914,11 @@ void GLCD(void) {
                 GLCD_write_buf_str(46, x, Str, GLCD_ALIGN_RIGHT);               // print to buffer
             }
         }
+
+        StateLetter[0] = evse_state_to_iec61851(State, ErrorFlags);            // IEC 61851 CP state letter (A-F), top-left gap in flow bitmap
+        StateLetter[1] = '\0';
+        GLCD_write_buf_str(20, 0, StateLetter, GLCD_ALIGN_LEFT);
+
         GLCD_sendbuf(0, 4);                                                     // Copy LCD buffer to GLCD
 
         glcd_clrln(4, 0);                                                       // Clear line 4
