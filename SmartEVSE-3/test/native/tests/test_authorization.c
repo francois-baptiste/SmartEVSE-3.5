@@ -487,36 +487,131 @@ void test_tesla_disconnect_then_new_car_rfid_starts_session(void) {
 /*
  * @feature Authorization & Access Control
  * @req REQ-AUTH-024
- * @scenario Plugging in while access is PAUSEd still locks the cable
- * @given The EVSE is in STATE_A with AccessStatus PAUSE (e.g. Linky HP/fail-safe wait)
+ * @scenario Plugging in while access is PAUSEd presents STATE_B so the car locks the cable
+ * @given The EVSE is in STATE_A with AccessStatus PAUSE (e.g. Linky HP/delayed charging wait)
  * @when A 9V pilot signal is received (vehicle connected)
- * @then The state transitions to STATE_B1 so the cable actuator locks, but not to STATE_B/C
+ * @then The state goes to STATE_B (9V + PWM, IEC 61851 B2) with contactors open and the
+ *       activation pulse disabled, so the vehicle keeps the cable locked without energy
  */
 void test_pause_access_locks_cable_from_A(void) {
     setup_basic();
     ctx.AccessStatus = PAUSE;
     evse_tick_10ms(&ctx, PILOT_9V);
-    TEST_ASSERT_EQUAL_INT(STATE_B1, ctx.State);
+    TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
+    TEST_ASSERT_FALSE(ctx.contactor1_state);
+    TEST_ASSERT_FALSE(ctx.contactor2_state);
+    TEST_ASSERT_EQUAL_INT(255, ctx.ActivationMode);
 }
 
 /*
  * @feature Authorization & Access Control
  * @req REQ-AUTH-025
  * @scenario PAUSEd access locks the cable but never allows charging to start
- * @given The EVSE reached STATE_B1 with AccessStatus PAUSE (car plugged in during off-peak wait)
- * @when Further 9V pilot ticks occur while AccessStatus remains PAUSE
- * @then The state stays STATE_B1 (never advances to STATE_B or STATE_C)
+ * @given The EVSE reached STATE_B with AccessStatus PAUSE (car plugged in during off-peak wait)
+ * @when The vehicle requests charging (6V pilot with diode check) past the 500ms debounce
+ * @then The state stays STATE_B (never advances to STATE_C) and contactors stay open
  */
 void test_pause_access_does_not_progress_to_charging(void) {
     setup_basic();
     ctx.AccessStatus = PAUSE;
     evse_tick_10ms(&ctx, PILOT_9V);
+    TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
+
+    evse_tick_10ms(&ctx, PILOT_DIODE);           // diode check seen
+    for (int i = 0; i < 100; i++) {              // well past the 500ms debounce
+        evse_tick_10ms(&ctx, PILOT_6V);
+    }
+    TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
+    TEST_ASSERT_FALSE(ctx.contactor1_state);
+    TEST_ASSERT_FALSE(ctx.contactor2_state);
+}
+
+/*
+ * @feature Authorization & Access Control
+ * @req REQ-AUTH-031
+ * @scenario Pausing access while connected keeps STATE_B so the cable stays locked
+ * @given The EVSE is in STATE_B (connected, not charging) with AccessStatus ON
+ * @when evse_set_access is called with PAUSE (e.g. Linky switches to HP)
+ * @then The state remains STATE_B (PWM stays on) and the activation pulse is disabled
+ */
+void test_set_access_pause_from_B_stays_B(void) {
+    setup_basic();
+    ctx.AccessStatus = ON;
+    evse_set_state(&ctx, STATE_B);
+    ctx.ActivationMode = 30;
+
+    evse_set_access(&ctx, PAUSE);
+    TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
+    TEST_ASSERT_EQUAL_INT(255, ctx.ActivationMode);
+    TEST_ASSERT_EQUAL_INT(PAUSE, ctx.AccessStatus);
+}
+
+/*
+ * @feature Authorization & Access Control
+ * @req REQ-AUTH-032
+ * @scenario Revoking access (OFF) in STATE_B still demotes to STATE_B1
+ * @given The EVSE is in STATE_B with AccessStatus ON
+ * @when evse_set_access is called with OFF (session ended / access denied)
+ * @then The state transitions to STATE_B1 (PWM off) — only PAUSE keeps STATE_B
+ */
+void test_set_access_off_from_B_still_goes_B1(void) {
+    setup_basic();
+    ctx.AccessStatus = ON;
+    evse_set_state(&ctx, STATE_B);
+
+    evse_set_access(&ctx, OFF);
+    TEST_ASSERT_EQUAL_INT(STATE_B1, ctx.State);
+}
+
+/*
+ * @feature Authorization & Access Control
+ * @req REQ-AUTH-033
+ * @scenario Pause during charging stops current, then re-presents STATE_B after ChargeDelay
+ * @given The EVSE is charging in STATE_C when access is set to PAUSE
+ * @when The current stops (C1), the car returns to 9V, and the ChargeDelay expires
+ * @then The state goes C -> C1 -> B1 and back to STATE_B with contactors open
+ */
+void test_pause_while_charging_recovers_to_B(void) {
+    setup_basic();
+    ctx.AccessStatus = ON;
+    evse_set_state(&ctx, STATE_C);
+
+    evse_set_access(&ctx, PAUSE);
+    TEST_ASSERT_EQUAL_INT(STATE_C1, ctx.State);
+
+    evse_tick_10ms(&ctx, PILOT_9V);              // car opened S2
     TEST_ASSERT_EQUAL_INT(STATE_B1, ctx.State);
 
-    for (int i = 0; i < 10; i++) {
-        evse_tick_10ms(&ctx, PILOT_9V);
+    for (int i = 0; i < 20 && ctx.ChargeDelay; i++)  // let ChargeDelay (15s) expire
+        evse_tick_1s(&ctx);
+    TEST_ASSERT_EQUAL_INT(0, ctx.ChargeDelay);
+
+    evse_tick_10ms(&ctx, PILOT_9V);
+    TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
+    TEST_ASSERT_FALSE(ctx.contactor1_state);
+    TEST_ASSERT_FALSE(ctx.contactor2_state);
+}
+
+/*
+ * @feature Authorization & Access Control
+ * @req REQ-AUTH-034
+ * @scenario Resuming from PAUSE allows the pending charge request to start
+ * @given The EVSE is in STATE_B with AccessStatus PAUSE and the car requesting 6V
+ * @when Access is set to ON (off-peak begins) and the 6V request passes the debounce
+ * @then The state transitions to STATE_C and charging starts
+ */
+void test_resume_from_pause_starts_charging(void) {
+    setup_basic();
+    ctx.AccessStatus = PAUSE;
+    evse_tick_10ms(&ctx, PILOT_9V);
+    TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
+
+    evse_set_access(&ctx, ON);
+    evse_tick_10ms(&ctx, PILOT_DIODE);           // diode check seen
+    for (int i = 0; i < 60; i++) {
+        evse_tick_10ms(&ctx, PILOT_6V);
     }
-    TEST_ASSERT_EQUAL_INT(STATE_B1, ctx.State);
+    TEST_ASSERT_EQUAL_INT(STATE_C, ctx.State);
 }
 
 // ---- Main ----
@@ -548,6 +643,10 @@ int main(void) {
     RUN_TEST(test_tesla_disconnect_then_new_car_rfid_starts_session);
     RUN_TEST(test_pause_access_locks_cable_from_A);
     RUN_TEST(test_pause_access_does_not_progress_to_charging);
+    RUN_TEST(test_set_access_pause_from_B_stays_B);
+    RUN_TEST(test_set_access_off_from_B_still_goes_B1);
+    RUN_TEST(test_pause_while_charging_recovers_to_B);
+    RUN_TEST(test_resume_from_pause_starts_charging);
 
     TEST_SUITE_RESULTS();
 }

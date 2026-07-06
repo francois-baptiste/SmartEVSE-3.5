@@ -3082,13 +3082,50 @@ void loop() {
             }
         }
 
-        if (MainsMeter.linky.available) {
-            if (!LinkyHpBypass && MainsMeter.linky.is_hp)
-                setAccess(PAUSE);
-            else
+        // Delayed charging (web UI starttime/stoptime). Uses PAUSE, not OFF, so the
+        // state machine presents STATE_B (9V + PWM) and the vehicle keeps the cable
+        // locked while waiting for the start time (restored from pre-8b2fdb3, was OFF).
+        if (DelayedStartTime.epoch2 && LocalTimeSet) {
+            time_t now = time(nullptr);             //get current local time
+            DelayedStartTime.diff = DelayedStartTime.epoch2 - (mktime(localtime(&now)) - EPOCH2_OFFSET);
+            if (DelayedStartTime.diff > 0) {
+                if (AccessStatus != PAUSE && (DelayedStopTime.epoch2 == 0 || DelayedStopTime.epoch2 > DelayedStartTime.epoch2))
+                    setAccess(PAUSE);               //waiting for start time: cable locked, no energy
+            }
+            else {
+                //starttime has passed: start charging
+                if (DelayedRepeat == 1)
+                    DelayedStartTime.epoch2 += 24 * 3600;                       //add 24 hours so we now have a new starttime
+                else
+                    DelayedStartTime.epoch2 = DELAYEDSTARTTIME;
                 setAccess(ON);
-        } else if (LinkyFailSafe) {
-            setAccess(PAUSE);
+            }
+        }
+        //only update StopTime.diff if starttime has already passed
+        if (DelayedStopTime.epoch2 && LocalTimeSet) {
+            time_t now = time(nullptr);             //get current local time
+            DelayedStopTime.diff = DelayedStopTime.epoch2 - (mktime(localtime(&now)) - EPOCH2_OFFSET);
+            if (DelayedStopTime.diff <= 0) {
+                //DelayedStopTime has passed
+                if (DelayedRepeat == 1)                                         //we are on a daily repetition schedule
+                    DelayedStopTime.epoch2 += 24 * 3600;                        //add 24 hours so we now have a new stoptime
+                else
+                    DelayedStopTime.epoch2 = DELAYEDSTOPTIME;
+                setAccess(PAUSE);                   //stop energy but keep the cable locked
+            }
+        }
+
+        // Linky HP/HC gate — an explicit delayed-charging schedule takes precedence,
+        // otherwise this would overwrite the schedule's access state every second.
+        if (!DelayedStartTime.epoch2 && !DelayedStopTime.epoch2) {
+            if (MainsMeter.linky.available) {
+                if (!LinkyHpBypass && MainsMeter.linky.is_hp)
+                    setAccess(PAUSE);
+                else
+                    setAccess(ON);
+            } else if (LinkyFailSafe) {
+                setAccess(PAUSE);
+            }
         }
         //_LOG_A("DINGO: firmwareUpdateTimer just before decrement=%i.\n", firmwareUpdateTimer);
         if (AutoUpdate && !shouldReboot) {                                      // we don't want to autoupdate if we are on the verge of rebooting

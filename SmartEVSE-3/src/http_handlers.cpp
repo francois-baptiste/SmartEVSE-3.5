@@ -752,7 +752,7 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
             String DelayedStartTimeStr = request->getParam("starttime")->value();
             if (!StoreTimeString(DelayedStartTimeStr, &DelayedStartTime)) {
                 if (DelayedStartTime.diff > 0)
-                    setAccess(OFF);                         //switch to OFF, we are Delayed Charging
+                    setAccess(PAUSE);                       //Delayed Charging: keep cable locked (STATE_B + PWM), no energy
                 else {
                     DelayedStartTime.epoch2 = DELAYEDSTARTTIME;
                     DelayedStopTime.epoch2 = DELAYEDSTOPTIME;
