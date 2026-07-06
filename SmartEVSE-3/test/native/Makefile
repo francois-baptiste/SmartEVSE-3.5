@@ -36,6 +36,7 @@ SESSION_LOG_SRC      := $(SRC_DIR)/session_log.c
 DIAG_TELEMETRY_SRC  := $(SRC_DIR)/diag_telemetry.c
 DIAG_MODBUS_SRC     := $(SRC_DIR)/diag_modbus.c
 CAPACITY_PEAK_SRC   := $(SRC_DIR)/capacity_peak.c
+MODE_POLICY_SRC     := $(SRC_DIR)/mode_policy.c
 
 # Discover all test files
 TEST_SRCS := $(wildcard $(TEST_DIR)/test_*.c)
@@ -58,6 +59,9 @@ $(BUILD)/test_mqtt_publish: $(TEST_DIR)/test_mqtt_publish.c $(MQTT_PUBLISH_SRC) 
 
 $(BUILD)/test_http_api: $(TEST_DIR)/test_http_api.c $(HTTP_API_SRC) $(SRC_DIR)/http_api.h include/*.h | $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(TEST_DIR)/test_http_api.c $(HTTP_API_SRC)
+
+$(BUILD)/test_mode_policy: $(TEST_DIR)/test_mode_policy.c $(MODE_POLICY_SRC) $(SRC_DIR)/mode_policy.h include/*.h | $(BUILD)
+	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(TEST_DIR)/test_mode_policy.c $(MODE_POLICY_SRC)
 
 $(BUILD)/test_serial_parser: $(TEST_DIR)/test_serial_parser.c $(SERIAL_PARSER_SRC) $(SRC_DIR)/serial_parser.h include/*.h | $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(TEST_DIR)/test_serial_parser.c $(SERIAL_PARSER_SRC)

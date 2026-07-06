@@ -199,3 +199,6 @@ input[type="datetime-local"],input[type="number"],input[type="text"],input[type=
 .footer-help .sep{display:none}
 .footer-help a{display:block;padding:4px 0}
 }
+
+/* Mode buttons hidden via the Disabled-modes setting */
+.mode-hidden { display: none !important; }

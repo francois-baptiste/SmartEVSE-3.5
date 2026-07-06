@@ -211,7 +211,8 @@ cppcheck --enable=warning,style,performance \
   SmartEVSE-3/src/solar_debug_json.c \
   SmartEVSE-3/src/diag_telemetry.c \
   SmartEVSE-3/src/diag_modbus.c \
-  SmartEVSE-3/src/capacity_peak.c
+  SmartEVSE-3/src/capacity_peak.c \
+  SmartEVSE-3/src/mode_policy.c
 
 # Build ESP32 firmware
 pio run -e release -d SmartEVSE-3/
@@ -264,7 +265,8 @@ cppcheck --enable=warning,style,performance \
   SmartEVSE-3/src/solar_debug_json.c \
   SmartEVSE-3/src/diag_telemetry.c \
   SmartEVSE-3/src/diag_modbus.c \
-  SmartEVSE-3/src/capacity_peak.c
+  SmartEVSE-3/src/capacity_peak.c \
+  SmartEVSE-3/src/mode_policy.c
 
 # 4. ESP32 firmware build
 pio run -e release -d SmartEVSE-3/
