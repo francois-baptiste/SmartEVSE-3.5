@@ -1,6 +1,6 @@
 # SmartEVSE-3 Test Specification
 
-**78 features** | **1193 scenarios** | **1193 with requirement IDs**
+**78 features** | **1206 scenarios** | **1206 with requirement IDs**
 
 ---
 
@@ -44,30 +44,30 @@
 36. [Metering Diagnostics](#metering-diagnostics)
 37. [Modbus Frame Decoding](#modbus-frame-decoding)
 38. [Modbus Frame Logging](#modbus-frame-logging)
-39. [Mode Synchronization](#mode-synchronization)
-40. [Modem / ISO15118 Negotiation](#modem--iso15118-negotiation)
-41. [MQTT Command Parsing](#mqtt-command-parsing)
-42. [MQTT Input Validation](#mqtt-input-validation)
-43. [MQTT Meter Parsing](#mqtt-meter-parsing)
-44. [MQTT Color Parsing](#mqtt-color-parsing)
-45. [Solar Debug Telemetry](#solar-debug-telemetry)
-46. [Capacity Tariff MQTT](#capacity-tariff-mqtt)
-47. [MQTT Change-Only Publishing](#mqtt-change-only-publishing)
-48. [MQTT SoC Parsing](#mqtt-soc-parsing)
-49. [MQTT SoC Input Validation](#mqtt-soc-input-validation)
-50. [Multi-Node Load Balancing](#multi-node-load-balancing)
-51. [Multi-Node Solar Charging](#multi-node-solar-charging)
-52. [OCPP Current Limiting](#ocpp-current-limiting)
-53. [OCPP Authorization](#ocpp-authorization)
-54. [OCPP Connector State](#ocpp-connector-state)
-55. [OCPP Connector Lock](#ocpp-connector-lock)
-56. [OCPP IEC 61851 Status Mapping](#ocpp-iec-61851-status-mapping)
-57. [OCPP Load Balancing Exclusivity](#ocpp-load-balancing-exclusivity)
-58. [OCPP Silence Detection](#ocpp-silence-detection)
-59. [OCPP RFID Formatting](#ocpp-rfid-formatting)
-60. [OCPP Settings Validation](#ocpp-settings-validation)
-61. [OCPP Telemetry](#ocpp-telemetry)
-62. [Operating Modes](#operating-modes)
+39. [Operating Modes](#operating-modes)
+40. [Mode Synchronization](#mode-synchronization)
+41. [Modem / ISO15118 Negotiation](#modem--iso15118-negotiation)
+42. [MQTT Command Parsing](#mqtt-command-parsing)
+43. [MQTT Input Validation](#mqtt-input-validation)
+44. [MQTT Meter Parsing](#mqtt-meter-parsing)
+45. [MQTT Color Parsing](#mqtt-color-parsing)
+46. [Solar Debug Telemetry](#solar-debug-telemetry)
+47. [Capacity Tariff MQTT](#capacity-tariff-mqtt)
+48. [MQTT Change-Only Publishing](#mqtt-change-only-publishing)
+49. [MQTT SoC Parsing](#mqtt-soc-parsing)
+50. [MQTT SoC Input Validation](#mqtt-soc-input-validation)
+51. [Multi-Node Load Balancing](#multi-node-load-balancing)
+52. [Multi-Node Solar Charging](#multi-node-solar-charging)
+53. [OCPP Current Limiting](#ocpp-current-limiting)
+54. [OCPP Authorization](#ocpp-authorization)
+55. [OCPP Connector State](#ocpp-connector-state)
+56. [OCPP Connector Lock](#ocpp-connector-lock)
+57. [OCPP IEC 61851 Status Mapping](#ocpp-iec-61851-status-mapping)
+58. [OCPP Load Balancing Exclusivity](#ocpp-load-balancing-exclusivity)
+59. [OCPP Silence Detection](#ocpp-silence-detection)
+60. [OCPP RFID Formatting](#ocpp-rfid-formatting)
+61. [OCPP Settings Validation](#ocpp-settings-validation)
+62. [OCPP Telemetry](#ocpp-telemetry)
 63. [P1 Meter Parsing](#p1-meter-parsing)
 64. [Phase Switching](#phase-switching)
 65. [PIN Rate Limit](#pin-rate-limit)
@@ -5167,6 +5167,350 @@
 
 ---
 
+## Operating Modes
+
+### Normal mode is always allowed
+
+**Requirement:** `REQ-MODE-030`
+
+- **Given** ModesDisabled has every disable bit set
+- **When** a switch to MODE_NORMAL is checked
+- **Then** the switch is allowed (Normal is the safety fallback)
+
+> Test: `test_normal_always_allowed` in `test_mode_policy.c:1`
+
+### Solar mode rejected when disabled
+
+**Requirement:** `REQ-MODE-031`
+
+- **Given** ModesDisabled has the Solar bit set
+- **When** a switch to MODE_SOLAR is checked
+- **Then** the switch is rejected while MODE_SMART stays allowed
+
+> Test: `test_solar_disabled_rejected` in `test_mode_policy.c:29`
+
+### Smart mode rejected when disabled
+
+**Requirement:** `REQ-MODE-032`
+
+- **Given** ModesDisabled has the Smart bit set
+- **When** a switch to MODE_SMART is checked
+- **Then** the switch is rejected while MODE_SOLAR stays allowed
+
+> Test: `test_smart_disabled_rejected` in `test_mode_policy.c:42`
+
+### All modes allowed with empty mask
+
+**Requirement:** `REQ-MODE-033`
+
+- **Given** ModesDisabled is 0
+- **When** switches to every mode are checked
+- **Then** Normal, Smart and Solar are all allowed and unknown modes rejected
+
+> Test: `test_empty_mask_allows_all` in `test_mode_policy.c:55`
+
+### ModesDisabled setting accepts only Smart/Solar bit combinations
+
+**Requirement:** `REQ-MODE-034`
+
+- **Given** values from HTTP POST /settings modes_disabled
+- **When** the mask is validated
+- **Then** 0, 2, 4, 6 are valid; odd values, >6 and negatives are rejected
+
+> Test: `test_mask_validation` in `test_mode_policy.c:73`
+
+### Active mode falls back to Normal when it becomes disabled
+
+**Requirement:** `REQ-MODE-035`
+
+- **Given** the EVSE is in Solar mode
+- **When** the user disables Solar mode
+- **Then** the sanitized mode is MODE_NORMAL
+
+> Test: `test_sanitize_falls_back_to_normal` in `test_mode_policy.c:97`
+
+### Active mode preserved when still allowed
+
+**Requirement:** `REQ-MODE-036`
+
+- **Given** the EVSE is in Smart mode
+- **When** the user disables only Solar mode
+- **Then** the sanitized mode remains MODE_SMART
+
+> Test: `test_sanitize_keeps_allowed_mode` in `test_mode_policy.c:112`
+
+### LCD short-press toggles between Smart and Solar
+
+**Requirement:** `REQ-MODE-037`
+
+- **Given** no modes are disabled
+- **When** the '<' button toggle is evaluated
+- **Then** Smart becomes Solar and Solar becomes Smart; Normal is unchanged
+
+> Test: `test_toggle_smart_solar` in `test_mode_policy.c:130`
+
+### LCD toggle does not enter a disabled mode
+
+**Requirement:** `REQ-MODE-038`
+
+- **Given** Solar mode is disabled and the EVSE is in Smart mode
+- **When** the '<' button toggle is evaluated
+- **Then** the mode stays MODE_SMART (toggle target rejected)
+
+> Test: `test_toggle_respects_disabled` in `test_mode_policy.c:147`
+
+### LCD shows the active mode name explicitly
+
+**Requirement:** `REQ-MODE-039`
+
+- **Given** access is ON
+- **When** the status text is built for each mode
+- **Then** it reads NORMAL, SMART or SOLAR
+
+> Test: `test_status_text_mode_names` in `test_mode_policy.c:164`
+
+### LCD shows PAUSED next to the mode when charging is paused
+
+**Requirement:** `REQ-MODE-040`
+
+- **Given** access status is PAUSE (2)
+- **When** the status text is built
+- **Then** the mode name is suffixed with PAUSED
+
+> Test: `test_status_text_paused` in `test_mode_policy.c:182`
+
+### LCD shows OFF next to the mode when access is switched off
+
+**Requirement:** `REQ-MODE-041`
+
+- **Given** access status is OFF (0)
+- **When** the status text is built
+- **Then** the mode name is suffixed with OFF
+
+> Test: `test_status_text_off` in `test_mode_policy.c:198`
+
+### Status text never overflows a small buffer
+
+**Requirement:** `REQ-MODE-042`
+
+- **Given** a 7-byte destination buffer
+- **When** a paused Solar status text is built
+- **Then** the output is truncated and NUL-terminated
+
+> Test: `test_status_text_truncation` in `test_mode_policy.c:212`
+
+### Normal mode sets IsetBalanced to MaxCurrent
+
+**Requirement:** `REQ-MODE-001`
+
+- **Given** EVSE is standalone in STATE_C in Normal mode
+- **When** Balanced current is calculated
+- **Then** IsetBalanced equals MaxCurrent * 10 (fixed current allocation)
+
+> Test: `test_normal_mode_uses_max_current` in `test_operating_modes.c:1`
+
+### Normal mode ignores mains meter readings
+
+**Requirement:** `REQ-MODE-002`
+
+- **Given** EVSE is standalone in STATE_C in Normal mode with high MainsMeterImeasured=300
+- **When** Balanced current is calculated
+- **Then** IsetBalanced remains at MaxCurrent * 10 regardless of mains load
+
+> Test: `test_normal_mode_ignores_mains` in `test_operating_modes.c:45`
+
+### Normal mode respects MaxCapacity as upper bound
+
+**Requirement:** `REQ-MODE-003`
+
+- **Given** EVSE is standalone in STATE_C in Normal mode with MaxCapacity=10A and MaxCurrent=16A
+- **When** Balanced current is calculated
+- **Then** ChargeCurrent is limited to 100 deciamps (MaxCapacity * 10) instead of MaxCurrent
+
+> Test: `test_normal_mode_respects_max_capacity` in `test_operating_modes.c:62`
+
+### Smart mode limits current based on MaxMains minus baseload
+
+**Requirement:** `REQ-MODE-004`
+
+- **Given** EVSE is standalone in STATE_C in Smart mode with MaxMains=25A and MainsMeterImeasured=200
+- **When** Balanced current is calculated
+- **Then** IsetBalanced does not exceed (MaxMains * 10) minus baseload
+
+> Test: `test_smart_mode_respects_maxmains` in `test_operating_modes.c:81`
+
+### Smart mode increases current conservatively (Idifference/4)
+
+**Requirement:** `REQ-MODE-005`
+
+- **Given** EVSE is standalone in STATE_C in Smart mode with low mains usage and measurements updated
+- **When** Balanced current is calculated with headroom available
+- **Then** IsetBalanced increases from its initial value but conservatively (not full step)
+
+> Test: `test_smart_mode_slow_increase` in `test_operating_modes.c:101`
+
+### Smart mode decreases current rapidly when over mains limit
+
+**Requirement:** `REQ-MODE-006`
+
+- **Given** EVSE is standalone in STATE_C in Smart mode with IsetBalanced=200 and mains way over MaxMains=10A
+- **When** Balanced current is calculated with negative Idifference
+- **Then** IsetBalanced decreases rapidly (full Idifference, not divided) below the initial 200
+
+> Test: `test_smart_mode_fast_decrease` in `test_operating_modes.c:123`
+
+### Solar mode requires surplus power to make current available
+
+**Requirement:** `REQ-MODE-007`
+
+- **Given** EVSE is in Solar mode with StartCurrent=6A and Isum=0 (no surplus)
+- **When** evse_is_current_available is called
+- **Then** Returns 0 (unavailable) because there is no solar surplus for charging
+
+> Test: `test_solar_current_available_requires_surplus` in `test_operating_modes.c:146`
+
+### Solar mode allows charging when sufficient surplus is available
+
+**Requirement:** `REQ-MODE-008`
+
+- **Given** EVSE is in Solar mode with StartCurrent=6A and Isum=-80 (8A export surplus)
+- **When** evse_is_current_available is called
+- **Then** Returns 1 (available) because export surplus exceeds StartCurrent threshold
+
+> Test: `test_solar_current_available_with_surplus` in `test_operating_modes.c:165`
+
+### Solar mode increases current in small steps when surplus is available
+
+**Requirement:** `REQ-MODE-009`
+
+- **Given** EVSE is standalone in STATE_C in Solar mode with 2A export surplus and past solar startup phase
+- **When** Balanced current is calculated
+- **Then** IsetBalanced increases from its initial 100 value in fine-grained solar increments
+
+> Test: `test_solar_fine_grained_increase` in `test_operating_modes.c:185`
+
+### Solar mode decreases current rapidly when importing from grid
+
+**Requirement:** `REQ-MODE-010`
+
+- **Given** EVSE is standalone in STATE_C in Solar mode with Isum=50 (5A import) and IsetBalanced=100
+- **When** Balanced current is calculated with grid import detected
+- **Then** IsetBalanced decreases below 100 to reduce grid import quickly
+
+> Test: `test_solar_rapid_decrease_on_import` in `test_operating_modes.c:209`
+
+### Solar mode ImportCurrent offset allows controlled grid import
+
+**Requirement:** `REQ-MODE-011`
+
+- **Given** EVSE is in Solar mode with ImportCurrent=3A allowance and Isum=20 (2A import within allowance)
+- **When** Balanced current is calculated with import within the allowed offset
+- **Then** IsetBalanced increases because IsumImport (20 - 30 = -10) indicates effective surplus
+
+> Test: `test_solar_import_current_offset` in `test_operating_modes.c:233`
+
+### EnableC2=NOT_PRESENT does not force single phase
+
+**Requirement:** `REQ-MODE-012`
+
+- **Given** EVSE has EnableC2 set to NOT_PRESENT (contactor 2 not installed)
+- **When** evse_force_single_phase is called
+- **Then** Returns 0 because the phase switching hardware is not present
+
+> Test: `test_force_single_phase_not_present` in `test_operating_modes.c:259`
+
+### EnableC2=ALWAYS_OFF forces single phase operation
+
+**Requirement:** `REQ-MODE-013`
+
+- **Given** EVSE has EnableC2 set to ALWAYS_OFF (contactor 2 always disabled)
+- **When** evse_force_single_phase is called
+- **Then** Returns 1 because the EVSE is configured to always operate in single phase
+
+> Test: `test_force_single_phase_always_off` in `test_operating_modes.c:273`
+
+### EnableC2=SOLAR_OFF forces single phase when in Solar mode
+
+**Requirement:** `REQ-MODE-014`
+
+- **Given** EVSE has EnableC2 set to SOLAR_OFF and Mode is MODE_SOLAR
+- **When** evse_force_single_phase is called
+- **Then** Returns 1 because SOLAR_OFF disables contactor 2 in solar mode
+
+> Test: `test_force_single_phase_solar_off_in_solar_mode` in `test_operating_modes.c:287`
+
+### EnableC2=SOLAR_OFF does not force single phase in Smart mode
+
+**Requirement:** `REQ-MODE-015`
+
+- **Given** EVSE has EnableC2 set to SOLAR_OFF and Mode is MODE_SMART
+- **When** evse_force_single_phase is called
+- **Then** Returns 0 because SOLAR_OFF only applies in Solar mode, not Smart mode
+
+> Test: `test_force_single_phase_solar_off_in_smart_mode` in `test_operating_modes.c:302`
+
+### EnableC2=AUTO forces single phase when charging on 1 phase
+
+**Requirement:** `REQ-MODE-016`
+
+- **Given** EVSE has EnableC2 set to AUTO and Nr_Of_Phases_Charging=1
+- **When** evse_force_single_phase is called
+- **Then** Returns 1 because AUTO mode follows the current phase count
+
+> Test: `test_force_single_phase_auto_c2_1p` in `test_operating_modes.c:317`
+
+### EnableC2=AUTO does not force single phase when charging on 3 phases
+
+**Requirement:** `REQ-MODE-017`
+
+- **Given** EVSE has EnableC2 set to AUTO and Nr_Of_Phases_Charging=3
+- **When** evse_force_single_phase is called
+- **Then** Returns 0 because AUTO mode allows 3-phase operation when already on 3 phases
+
+> Test: `test_force_single_phase_auto_c2_3p` in `test_operating_modes.c:332`
+
+### EnableC2=ALWAYS_ON does not force single phase
+
+**Requirement:** `REQ-MODE-018`
+
+- **Given** EVSE has EnableC2 set to ALWAYS_ON (contactor 2 always enabled for 3-phase)
+- **When** evse_force_single_phase is called
+- **Then** Returns 0 because the EVSE is configured to always operate in three phase
+
+> Test: `test_force_single_phase_always_on` in `test_operating_modes.c:347`
+
+### STATE_C entry with single phase disables contactor 2
+
+**Requirement:** `REQ-MODE-019`
+
+- **Given** EVSE has EnableC2 set to ALWAYS_OFF (force single phase)
+- **When** EVSE transitions to STATE_C
+- **Then** Contactor 1 is on, contactor 2 is off, and Nr_Of_Phases_Charging is 1
+
+> Test: `test_state_C_contactor2_off_when_single_phase` in `test_operating_modes.c:361`
+
+### STATE_C entry with three phase enables both contactors
+
+**Requirement:** `REQ-MODE-020`
+
+- **Given** EVSE has EnableC2 set to NOT_PRESENT (default 3-phase behavior)
+- **When** EVSE transitions to STATE_C
+- **Then** Both contactor 1 and contactor 2 are on and Nr_Of_Phases_Charging is 3
+
+> Test: `test_state_C_contactor2_on_when_three_phase` in `test_operating_modes.c:378`
+
+### Phase switch from 3P to 1P completes on STATE_C entry
+
+**Requirement:** `REQ-MODE-021`
+
+- **Given** EVSE has Switching_Phases_C2=GOING_TO_SWITCH_1P and EnableC2=AUTO
+- **When** EVSE transitions to STATE_C
+- **Then** Nr_Of_Phases_Charging is set to 1 and Switching_Phases_C2 is cleared to NO_SWITCH
+
+> Test: `test_phase_switch_going_to_1p` in `test_operating_modes.c:395`
+
+---
+
 ## Mode Synchronization
 
 ### SOLAR_OFF: switching to Solar requires single-phase (evse_force_single_phase)
@@ -8705,220 +9049,6 @@
 - **Then** No crash occurs
 
 > Test: `test_telemetry_null_safety` in `test_ocpp_telemetry.c:137`
-
----
-
-## Operating Modes
-
-### Normal mode sets IsetBalanced to MaxCurrent
-
-**Requirement:** `REQ-MODE-001`
-
-- **Given** EVSE is standalone in STATE_C in Normal mode
-- **When** Balanced current is calculated
-- **Then** IsetBalanced equals MaxCurrent * 10 (fixed current allocation)
-
-> Test: `test_normal_mode_uses_max_current` in `test_operating_modes.c:1`
-
-### Normal mode ignores mains meter readings
-
-**Requirement:** `REQ-MODE-002`
-
-- **Given** EVSE is standalone in STATE_C in Normal mode with high MainsMeterImeasured=300
-- **When** Balanced current is calculated
-- **Then** IsetBalanced remains at MaxCurrent * 10 regardless of mains load
-
-> Test: `test_normal_mode_ignores_mains` in `test_operating_modes.c:45`
-
-### Normal mode respects MaxCapacity as upper bound
-
-**Requirement:** `REQ-MODE-003`
-
-- **Given** EVSE is standalone in STATE_C in Normal mode with MaxCapacity=10A and MaxCurrent=16A
-- **When** Balanced current is calculated
-- **Then** ChargeCurrent is limited to 100 deciamps (MaxCapacity * 10) instead of MaxCurrent
-
-> Test: `test_normal_mode_respects_max_capacity` in `test_operating_modes.c:62`
-
-### Smart mode limits current based on MaxMains minus baseload
-
-**Requirement:** `REQ-MODE-004`
-
-- **Given** EVSE is standalone in STATE_C in Smart mode with MaxMains=25A and MainsMeterImeasured=200
-- **When** Balanced current is calculated
-- **Then** IsetBalanced does not exceed (MaxMains * 10) minus baseload
-
-> Test: `test_smart_mode_respects_maxmains` in `test_operating_modes.c:81`
-
-### Smart mode increases current conservatively (Idifference/4)
-
-**Requirement:** `REQ-MODE-005`
-
-- **Given** EVSE is standalone in STATE_C in Smart mode with low mains usage and measurements updated
-- **When** Balanced current is calculated with headroom available
-- **Then** IsetBalanced increases from its initial value but conservatively (not full step)
-
-> Test: `test_smart_mode_slow_increase` in `test_operating_modes.c:101`
-
-### Smart mode decreases current rapidly when over mains limit
-
-**Requirement:** `REQ-MODE-006`
-
-- **Given** EVSE is standalone in STATE_C in Smart mode with IsetBalanced=200 and mains way over MaxMains=10A
-- **When** Balanced current is calculated with negative Idifference
-- **Then** IsetBalanced decreases rapidly (full Idifference, not divided) below the initial 200
-
-> Test: `test_smart_mode_fast_decrease` in `test_operating_modes.c:123`
-
-### Solar mode requires surplus power to make current available
-
-**Requirement:** `REQ-MODE-007`
-
-- **Given** EVSE is in Solar mode with StartCurrent=6A and Isum=0 (no surplus)
-- **When** evse_is_current_available is called
-- **Then** Returns 0 (unavailable) because there is no solar surplus for charging
-
-> Test: `test_solar_current_available_requires_surplus` in `test_operating_modes.c:146`
-
-### Solar mode allows charging when sufficient surplus is available
-
-**Requirement:** `REQ-MODE-008`
-
-- **Given** EVSE is in Solar mode with StartCurrent=6A and Isum=-80 (8A export surplus)
-- **When** evse_is_current_available is called
-- **Then** Returns 1 (available) because export surplus exceeds StartCurrent threshold
-
-> Test: `test_solar_current_available_with_surplus` in `test_operating_modes.c:165`
-
-### Solar mode increases current in small steps when surplus is available
-
-**Requirement:** `REQ-MODE-009`
-
-- **Given** EVSE is standalone in STATE_C in Solar mode with 2A export surplus and past solar startup phase
-- **When** Balanced current is calculated
-- **Then** IsetBalanced increases from its initial 100 value in fine-grained solar increments
-
-> Test: `test_solar_fine_grained_increase` in `test_operating_modes.c:185`
-
-### Solar mode decreases current rapidly when importing from grid
-
-**Requirement:** `REQ-MODE-010`
-
-- **Given** EVSE is standalone in STATE_C in Solar mode with Isum=50 (5A import) and IsetBalanced=100
-- **When** Balanced current is calculated with grid import detected
-- **Then** IsetBalanced decreases below 100 to reduce grid import quickly
-
-> Test: `test_solar_rapid_decrease_on_import` in `test_operating_modes.c:209`
-
-### Solar mode ImportCurrent offset allows controlled grid import
-
-**Requirement:** `REQ-MODE-011`
-
-- **Given** EVSE is in Solar mode with ImportCurrent=3A allowance and Isum=20 (2A import within allowance)
-- **When** Balanced current is calculated with import within the allowed offset
-- **Then** IsetBalanced increases because IsumImport (20 - 30 = -10) indicates effective surplus
-
-> Test: `test_solar_import_current_offset` in `test_operating_modes.c:233`
-
-### EnableC2=NOT_PRESENT does not force single phase
-
-**Requirement:** `REQ-MODE-012`
-
-- **Given** EVSE has EnableC2 set to NOT_PRESENT (contactor 2 not installed)
-- **When** evse_force_single_phase is called
-- **Then** Returns 0 because the phase switching hardware is not present
-
-> Test: `test_force_single_phase_not_present` in `test_operating_modes.c:259`
-
-### EnableC2=ALWAYS_OFF forces single phase operation
-
-**Requirement:** `REQ-MODE-013`
-
-- **Given** EVSE has EnableC2 set to ALWAYS_OFF (contactor 2 always disabled)
-- **When** evse_force_single_phase is called
-- **Then** Returns 1 because the EVSE is configured to always operate in single phase
-
-> Test: `test_force_single_phase_always_off` in `test_operating_modes.c:273`
-
-### EnableC2=SOLAR_OFF forces single phase when in Solar mode
-
-**Requirement:** `REQ-MODE-014`
-
-- **Given** EVSE has EnableC2 set to SOLAR_OFF and Mode is MODE_SOLAR
-- **When** evse_force_single_phase is called
-- **Then** Returns 1 because SOLAR_OFF disables contactor 2 in solar mode
-
-> Test: `test_force_single_phase_solar_off_in_solar_mode` in `test_operating_modes.c:287`
-
-### EnableC2=SOLAR_OFF does not force single phase in Smart mode
-
-**Requirement:** `REQ-MODE-015`
-
-- **Given** EVSE has EnableC2 set to SOLAR_OFF and Mode is MODE_SMART
-- **When** evse_force_single_phase is called
-- **Then** Returns 0 because SOLAR_OFF only applies in Solar mode, not Smart mode
-
-> Test: `test_force_single_phase_solar_off_in_smart_mode` in `test_operating_modes.c:302`
-
-### EnableC2=AUTO forces single phase when charging on 1 phase
-
-**Requirement:** `REQ-MODE-016`
-
-- **Given** EVSE has EnableC2 set to AUTO and Nr_Of_Phases_Charging=1
-- **When** evse_force_single_phase is called
-- **Then** Returns 1 because AUTO mode follows the current phase count
-
-> Test: `test_force_single_phase_auto_c2_1p` in `test_operating_modes.c:317`
-
-### EnableC2=AUTO does not force single phase when charging on 3 phases
-
-**Requirement:** `REQ-MODE-017`
-
-- **Given** EVSE has EnableC2 set to AUTO and Nr_Of_Phases_Charging=3
-- **When** evse_force_single_phase is called
-- **Then** Returns 0 because AUTO mode allows 3-phase operation when already on 3 phases
-
-> Test: `test_force_single_phase_auto_c2_3p` in `test_operating_modes.c:332`
-
-### EnableC2=ALWAYS_ON does not force single phase
-
-**Requirement:** `REQ-MODE-018`
-
-- **Given** EVSE has EnableC2 set to ALWAYS_ON (contactor 2 always enabled for 3-phase)
-- **When** evse_force_single_phase is called
-- **Then** Returns 0 because the EVSE is configured to always operate in three phase
-
-> Test: `test_force_single_phase_always_on` in `test_operating_modes.c:347`
-
-### STATE_C entry with single phase disables contactor 2
-
-**Requirement:** `REQ-MODE-019`
-
-- **Given** EVSE has EnableC2 set to ALWAYS_OFF (force single phase)
-- **When** EVSE transitions to STATE_C
-- **Then** Contactor 1 is on, contactor 2 is off, and Nr_Of_Phases_Charging is 1
-
-> Test: `test_state_C_contactor2_off_when_single_phase` in `test_operating_modes.c:361`
-
-### STATE_C entry with three phase enables both contactors
-
-**Requirement:** `REQ-MODE-020`
-
-- **Given** EVSE has EnableC2 set to NOT_PRESENT (default 3-phase behavior)
-- **When** EVSE transitions to STATE_C
-- **Then** Both contactor 1 and contactor 2 are on and Nr_Of_Phases_Charging is 3
-
-> Test: `test_state_C_contactor2_on_when_three_phase` in `test_operating_modes.c:378`
-
-### Phase switch from 3P to 1P completes on STATE_C entry
-
-**Requirement:** `REQ-MODE-021`
-
-- **Given** EVSE has Switching_Phases_C2=GOING_TO_SWITCH_1P and EnableC2=AUTO
-- **When** EVSE transitions to STATE_C
-- **Then** Nr_Of_Phases_Charging is set to 1 and Switching_Phases_C2 is cleared to NO_SWITCH
-
-> Test: `test_phase_switch_going_to_1p` in `test_operating_modes.c:395`
 
 ---
 
