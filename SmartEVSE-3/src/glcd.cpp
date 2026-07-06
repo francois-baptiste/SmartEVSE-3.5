@@ -29,6 +29,7 @@
 #include <WiFi.h>
 #include "esp32.h"
 #include "glcd.h"
+#include "mode_policy.h"
 #include "utils.h"
 #include "meter.h"
 #include "network_common.h"
@@ -431,6 +432,7 @@ void GLCDHelp(void)                                                             
         case MENU_IDLE_TIMEOUT: desc = "Idle timeout in seconds (anti-flap)"; break;
         case MENU_CAPLIMIT:     desc = "Capacity tariff 15-min peak limit (kW)"; break;
         case MENU_LEDMODE:      desc = "LED color scheme (Standard / Public)";   break;
+        case MENU_MODESDIS:     desc = "Disable Smart and/or Solar mode";        break;
         default:                desc = (LCDNav < MENU_EXIT) ? MenuStr[LCDNav].Desc : ""; break;
     }
     unsigned int x = strlen(desc);
@@ -622,6 +624,8 @@ void GLCD(void) {
         StateLetter[0] = evse_state_to_iec61851(State, ErrorFlags);
         StateLetter[1] = '\0';
         GLCD_write_buf_str(20, 0, StateLetter, GLCD_ALIGN_LEFT);
+        mode_policy_status_text(Mode, AccessStatus, Str, sizeof(Str));          // explicit mode + OFF/PAUSED indicator, top-right
+        GLCD_write_buf_str(127, 0, Str, GLCD_ALIGN_RIGHT);
         GLCD_sendbuf(0, 1);
         glcd_clrln(1, 0x04);                                                    // horizontal line
         glcd_clrln(6, 0x10);                                                    // horizontal line
@@ -938,7 +942,10 @@ void GLCD(void) {
             GLCD_print_buf2(5, (const char *) "MODEM");
 #endif
         } else if (AccessStatus == PAUSE) {
-                    GLCD_print_buf2(5, "PAUSE");
+                    if (LCDToggle)                                              // alternate so both the pause state and the mode are explicit
+                        GLCD_print_buf2(5, (Mode == MODE_SOLAR) ? "SOLAR" : "SMART");
+                    else
+                        GLCD_print_buf2(5, "PAUSED");
         } else if (State != STATE_C) {
                 switch (Switching_Phases_C2) {
                     case NO_SWITCH:
@@ -1046,6 +1053,13 @@ const char * getMenuItemOption(uint8_t nav) {
             if (Mode == MODE_SMART) return StrSmart;
             else if (Mode == MODE_SOLAR) return StrSolar;
             else return StrNormal;
+        case MENU_MODESDIS:
+            switch (value) {
+                case MODE_DISABLE_SMART: return "No Smart";
+                case MODE_DISABLE_SOLAR: return "No Solar";
+                case MODE_DISABLE_ALL:   return "Norml only";
+                default:                 return "All modes";
+            }
         case MENU_START:
                 snprintf(Str, sizeof(Str), "-%2u A", value);
                 return Str;
@@ -1257,6 +1271,7 @@ uint8_t getMenuItems (void) {
     }
     MenuItems[m++] = MENU_LCDPIN;
     MenuItems[m++] = MENU_LEDMODE;                                              // LED color scheme (0:Standard / 1:Public)
+    MenuItems[m++] = MENU_MODESDIS;                                             // Disable Smart/Solar modes (bitmask)
     MenuItems[m++] = MENU_EXIT;
 
     return m;
@@ -1304,7 +1319,7 @@ void GLCDMenu(uint8_t Buttons) {
     } else if ((LCDNav == MENU_OFF) && (Buttons == 0x7)) {                      // Button 1 released before entering menu?
         //if < button is pressed shorter then 2 seconds we are switching from Smart mode to Solar mode and vice versa
         if (Mode)
-            setMode(~Mode & 0x3);                                               // Change from Solar to Smart mode and vice versa.
+            setMode(mode_policy_toggle_smart_solar(Mode, ModesDisabled));       // Change from Solar to Smart mode and vice versa (unless disabled).
         LCDNav = 0;
         ButtonRelease = 0;
         GLCD();
@@ -1403,6 +1418,18 @@ void GLCDMenu(uint8_t Buttons) {
                         value = MenuNavInt(Buttons, value, 0, 1);
                         setItemValue(LCDNav, value);
                         break;
+                    case MENU_MODE:                                             // skip modes disabled via MODES setting
+                        do {
+                            value = MenuNavInt(Buttons, value, MenuStr[LCDNav].Min, MenuStr[LCDNav].Max);
+                        } while (!mode_policy_allowed(value, ModesDisabled));
+                        setItemValue(LCDNav, value);
+                        break;
+                    case MENU_MODESDIS:                                         // only Smart/Solar bits may be set
+                        do {
+                            value = MenuNavInt(Buttons, value, 0, MODE_DISABLE_ALL);
+                        } while (!mode_policy_mask_valid(value));
+                        setItemValue(LCDNav, value);
+                        break;
                     default:
                         value = MenuNavInt(Buttons, value, MenuStr[LCDNav].Min, MenuStr[LCDNav].Max);
                         setItemValue(LCDNav, value);
@@ -1478,6 +1505,7 @@ void GLCDMenu(uint8_t Buttons) {
                         case MENU_IDLE_TIMEOUT: lcdLabel = "IDLE TMO"; break;
                         case MENU_CAPLIMIT:     lcdLabel = "CAP PEAK"; break;
                         case MENU_LEDMODE:      lcdLabel = "LED MODE"; break;
+                        case MENU_MODESDIS:     lcdLabel = "MODES"; break;
                         default:                lcdLabel = (LCDNav < MENU_EXIT) ? MenuStr[LCDNav].LCD : ""; break;
                     }
                     GLCD_print_menu(2, lcdLabel);                                           // add navigation arrows on both sides

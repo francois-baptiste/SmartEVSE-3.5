@@ -245,6 +245,19 @@
         </label>
       </div>
     </div>
+    <div class="form-row">
+      <span class="form-label" title="Hide and block the selected charge modes. Normal mode is always available.">Disabled modes</span>
+      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+        <label style="font-size:.85rem;display:flex;align-items:center;gap:4px" title="Disable Solar mode (hides the SOLAR button and rejects mode changes to Solar)">
+          <input type="checkbox" id="dis_solar" onclick="setModesDisabled()">
+          <span>Disable Solar</span>
+        </label>
+        <label style="font-size:.85rem;display:flex;align-items:center;gap:4px" title="Disable Smart mode (hides the SMART button and rejects mode changes to Smart)">
+          <input type="checkbox" id="dis_smart" onclick="setModesDisabled()">
+          <span>Disable Smart</span>
+        </label>
+      </div>
+    </div>
     <div class="form-row" style="justify-content:flex-end;border:none">
       <button type="button" class="btn btn-sm" style="background:var(--accent);color:#fff" onclick="saveControlSchedule()">Save Settings</button>
     </div>

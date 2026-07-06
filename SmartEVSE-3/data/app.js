@@ -754,6 +754,8 @@ function loadData() {
 
             $id('lcdlock').checked = data.settings.lcdlock == 1;
 
+            applyModesDisabled(data.settings.modes_disabled || 0);
+
             if (data.settings.lock != 0) {
                 $id('cablelock').checked = data.settings.cablelock == 1;
             } else {
@@ -927,6 +929,26 @@ function saveControlSchedule() {
         .join('&');
     fetch('/settings?' + query, { method: 'POST', body: '' })
         .then(function() { loadData(); alert('Settings saved'); });
+}
+
+/* ========== Disabled modes (bit 2 = Smart, bit 4 = Solar) ========== */
+function applyModesDisabled(mask) {
+    $id('dis_smart').checked = !!(mask & 2);
+    $id('dis_solar').checked = !!(mask & 4);
+    /* Hide mode buttons (top bar + mobile nav) for disabled modes */
+    [[2, 4], [3, 2]].forEach(function(p) {           /* [mode button id, mask bit] */
+        var off = !!(mask & p[1]);
+        ['#mode_', '#mnav_'].forEach(function(prefix) {
+            var btn = $qs(prefix + p[0]);
+            if (btn) btn.classList.toggle('mode-hidden', off);
+        });
+    });
+}
+function setModesDisabled() {
+    var mask = ($id('dis_smart').checked ? 2 : 0) | ($id('dis_solar').checked ? 4 : 0);
+    fetch("/settings?modes_disabled=" + mask, { method: 'POST' , body: '' })
+        .then(function() { loadData(); });
+    applyModesDisabled(mask);
 }
 
 /* ========== Checkbox toggles ========== */

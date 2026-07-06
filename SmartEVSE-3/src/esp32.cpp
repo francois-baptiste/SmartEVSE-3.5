@@ -43,6 +43,7 @@ char RequiredEVCCID[32] = "";                                               // R
 #include <soc/rtc_io_struct.h>
 
 #include "esp32.h"
+#include "mode_policy.h"
 #include "glcd.h"
 #include "utils.h"
 #include "OneWire.h"
@@ -181,6 +182,7 @@ struct SettingsCache {
     uint8_t OcppMode;
 #endif
     uint8_t LedMode;
+    uint8_t ModesDisabled;
     uint8_t AuthMode;
     uint16_t CapacityLimit;
     bool valid;  // True once cache is populated from read_settings()
@@ -1735,6 +1737,8 @@ void read_settings() {
 #endif //ENABLE_OCPP
 
         LedMode = preferences.getUChar("LedMode", 0);
+        ModesDisabled = preferences.getUChar("ModesDisabled", 0);
+        if (!mode_policy_mask_valid(ModesDisabled)) ModesDisabled = 0;   // reject corrupt NVS value
         AuthMode = preferences.getUChar("AuthMode", 0);   // Plan 16: default 0 (legacy) on upgrade
 
         CapacityLimit = preferences.getUShort("CapacityLim", 0);
@@ -1811,6 +1815,7 @@ void read_settings() {
         settingsCache.OcppMode = OcppMode;
 #endif
         settingsCache.LedMode = LedMode;
+        settingsCache.ModesDisabled = ModesDisabled;
         settingsCache.AuthMode = AuthMode;
         settingsCache.CapacityLimit = CapacityLimit;
         settingsCache.valid = true;
@@ -1903,6 +1908,7 @@ void write_settings(void) {
 #endif //ENABLE_OCPP
 
     PREFS_PUT_UCHAR_IF_CHANGED("LedMode", LedMode, LedMode);
+    PREFS_PUT_UCHAR_IF_CHANGED("ModesDisabled", ModesDisabled, ModesDisabled);
     PREFS_PUT_UCHAR_IF_CHANGED("AuthMode", AuthMode, AuthMode);
 
     PREFS_PUT_USHORT_IF_CHANGED("CapacityLim", CapacityLimit, CapacityLimit);

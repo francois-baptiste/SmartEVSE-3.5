@@ -8,6 +8,7 @@
 #include "esp32.h"
 #include "network_common.h"
 #include "http_api.h"
+#include "mode_policy.h"
 #include "session_log.h"
 #include "utils.h"
 #include "glcd.h"
@@ -478,6 +479,7 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
         doc["settings"]["linky_is_hp"] = MainsMeter.linky.is_hp;
         doc["settings"]["linky_is_hc"] = MainsMeter.linky.is_hc;
         doc["settings"]["ledmode"] = LedMode;
+        doc["settings"]["modes_disabled"] = ModesDisabled;
         /* Plan 16 Phase 1 — HTTP auth state. `auth_mode` is the persisted setting
          * (0=Off legacy / 1=Required); `auth_required` is the same boolean in a
          * name the Web UI can use directly for banner / prompt logic. */
@@ -807,10 +809,12 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
                     setMode(MODE_NORMAL);
                     break;
                 case 2:
-                    setMode(MODE_SOLAR);
+                    if (mode_policy_allowed(MODE_SOLAR, ModesDisabled)) setMode(MODE_SOLAR);
+                    else mode = "Value not allowed!";
                     break;
                 case 3:
-                    setMode(MODE_SMART);
+                    if (mode_policy_allowed(MODE_SMART, ModesDisabled)) setMode(MODE_SMART);
+                    else mode = "Value not allowed!";
                     break;
                 case 4: // PAUSE
                     setAccess(PAUSE);
@@ -956,6 +960,16 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
                 doc["idle_timeout"] = IdleTimeout;
             } else {
                 doc["idle_timeout"] = err;
+            }
+        }
+
+        if(request->hasParam("modes_disabled")) {
+            int mask = request->getParam("modes_disabled")->value().toInt();
+            if (mode_policy_mask_valid(mask)) {
+                setItemValue(MENU_MODESDIS, mask);                          // falls back to Normal mode if the active mode got disabled
+                doc["modes_disabled"] = ModesDisabled;
+            } else {
+                doc["modes_disabled"] = "Value not allowed!";
             }
         }
 

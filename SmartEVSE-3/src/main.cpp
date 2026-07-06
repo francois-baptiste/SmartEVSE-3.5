@@ -20,6 +20,7 @@
 #include "evse_bridge.h"
 #include "serial_parser.h"
 #include "led_color.h"
+#include "mode_policy.h"
 #include "session_log.h"
 #include "capacity_peak.h"
 
@@ -283,6 +284,7 @@ uint8_t ColorSolar[3] = {255, 170, 0};    // Orange
 uint8_t ColorCustom[3] = {0, 0, 255};    // Blue
 
 uint8_t LedMode = 0;                    // LED color scheme: 0=Standard, 1=Public charging station (upstream 3679fe3)
+uint8_t ModesDisabled = 0;              // Bitmask of user-disabled operating modes (MODE_DISABLE_SMART/MODE_DISABLE_SOLAR); Normal can't be disabled
 uint8_t AuthMode = 0;                   // HTTP auth mode: 0=Off (legacy, default on upgrade), 1=Required — Plan 16 Phase 1
 uint32_t LCDPasswordOkSince = 0;        // millis() when LCDPasswordOK was last asserted — drives the 30-min auth session timeout
 
@@ -609,6 +611,11 @@ void setMode(uint8_t NewMode) {
 #ifdef SMARTEVSE_VERSION //v3 and v4
     if (NewMode > MODE_SOLAR) { //this should never happen
         _LOG_A("ERROR: setMode tries to set Mode to %u.\n", NewMode);
+        return;
+    }
+
+    if (!mode_policy_allowed(NewMode, ModesDisabled)) {                         // Mode disabled by user (web UI / LCD setting)
+        _LOG_A("setMode: Mode %u is disabled by ModesDisabled=%u.\n", NewMode, ModesDisabled);
         return;
     }
 
@@ -2496,7 +2503,7 @@ static void timer10ms_buttons(void) {
     }
 
     // Update/Show Helpmenu
-    if (LCDNav > MENU_ENTER && (LCDNav < MENU_EXIT || (LCDNav >= MENU_PRIO && LCDNav <= MENU_IDLE_TIMEOUT) || LCDNav == MENU_LEDMODE) && (!SubMenu)) GLCDHelp();
+    if (LCDNav > MENU_ENTER && (LCDNav < MENU_EXIT || (LCDNav >= MENU_PRIO && LCDNav <= MENU_IDLE_TIMEOUT) || LCDNav == MENU_LEDMODE || LCDNav == MENU_MODESDIS) && (!SubMenu)) GLCDHelp();
 
     if (timeinfo.tm_sec != old_sec) {
         old_sec = timeinfo.tm_sec;
@@ -2819,6 +2826,15 @@ uint8_t setItemValue(uint8_t nav, uint16_t val) {
         SETITEM(MENU_IDLE_TIMEOUT, IdleTimeout)
         SETITEM(MENU_LEDMODE, LedMode)
         SETITEM(MENU_AUTHMODE, AuthMode)
+        case MENU_MODESDIS:
+            if (!mode_policy_mask_valid(val)) return 0;
+            ModesDisabled = val;
+            SEND_TO_CH32(ModesDisabled)
+            SEND_TO_ESP32(ModesDisabled)
+            // If the active mode just got disabled, fall back to Normal
+            if (!mode_policy_allowed(Mode, ModesDisabled))
+                setMode(MODE_NORMAL);
+            break;
         case MENU_CAPLIMIT:
             CapacityLimit = val * 100;
             capacity_set_limit(&CapacityState, (int32_t)CapacityLimit);
@@ -2913,6 +2929,8 @@ uint16_t getItemValue(uint8_t nav) {
         case MENU_MODE:
         case STATUS_MODE:
             return Mode;
+        case MENU_MODESDIS:
+            return ModesDisabled;
         case MENU_START:
             return StartCurrent;
         case MENU_STOP:
