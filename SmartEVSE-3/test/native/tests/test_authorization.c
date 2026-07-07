@@ -490,8 +490,9 @@ void test_tesla_disconnect_then_new_car_rfid_starts_session(void) {
  * @scenario Plugging in while access is PAUSEd presents STATE_B so the car locks the cable
  * @given The EVSE is in STATE_A with AccessStatus PAUSE (e.g. Linky HP/delayed charging wait)
  * @when A 9V pilot signal is received (vehicle connected)
- * @then The state goes to STATE_B (9V + PWM, IEC 61851 B2) with contactors open and the
- *       activation pulse disabled, so the vehicle keeps the cable locked without energy
+ * @then The state goes to STATE_B with 5% PWM duty (digital-communication signal) so the
+ *       vehicle keeps the cable locked but does not attempt to draw current; contactors
+ *       stay open and the activation pulse is disabled
  */
 void test_pause_access_locks_cable_from_A(void) {
     setup_basic();
@@ -501,6 +502,7 @@ void test_pause_access_locks_cable_from_A(void) {
     TEST_ASSERT_FALSE(ctx.contactor1_state);
     TEST_ASSERT_FALSE(ctx.contactor2_state);
     TEST_ASSERT_EQUAL_INT(255, ctx.ActivationMode);
+    TEST_ASSERT_EQUAL_INT(51, (int)ctx.last_pwm_duty);   // 5% duty while paused
 }
 
 /*
@@ -532,7 +534,8 @@ void test_pause_access_does_not_progress_to_charging(void) {
  * @scenario Pausing access while connected keeps STATE_B so the cable stays locked
  * @given The EVSE is in STATE_B (connected, not charging) with AccessStatus ON
  * @when evse_set_access is called with PAUSE (e.g. Linky switches to HP)
- * @then The state remains STATE_B (PWM stays on) and the activation pulse is disabled
+ * @then The state remains STATE_B, the PWM drops to 5% duty (digital-communication
+ *       signal, no analog current available) and the activation pulse is disabled
  */
 void test_set_access_pause_from_B_stays_B(void) {
     setup_basic();
@@ -544,6 +547,23 @@ void test_set_access_pause_from_B_stays_B(void) {
     TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
     TEST_ASSERT_EQUAL_INT(255, ctx.ActivationMode);
     TEST_ASSERT_EQUAL_INT(PAUSE, ctx.AccessStatus);
+    TEST_ASSERT_EQUAL_INT(51, (int)ctx.last_pwm_duty);   // 5% duty while paused
+}
+
+/*
+ * @feature Authorization & Access Control
+ * @req REQ-AUTH-035
+ * @scenario Normal STATE_B entry with access ON does not force the 5% pause duty
+ * @given The EVSE is in STATE_A with AccessStatus ON
+ * @when A 9V pilot signal is received and the state machine enters STATE_B
+ * @then The CP duty is not forced to the 5% pause value (the 100ms loop drives it)
+ */
+void test_state_b_with_access_on_keeps_normal_duty(void) {
+    setup_basic();
+    ctx.AccessStatus = ON;
+    evse_tick_10ms(&ctx, PILOT_9V);
+    TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
+    TEST_ASSERT_TRUE(ctx.last_pwm_duty != 51);
 }
 
 /*
@@ -590,6 +610,7 @@ void test_pause_while_charging_recovers_to_B(void) {
     TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
     TEST_ASSERT_FALSE(ctx.contactor1_state);
     TEST_ASSERT_FALSE(ctx.contactor2_state);
+    TEST_ASSERT_EQUAL_INT(51, (int)ctx.last_pwm_duty);   // 5% duty while paused
 }
 
 /*
@@ -644,6 +665,7 @@ int main(void) {
     RUN_TEST(test_pause_access_locks_cable_from_A);
     RUN_TEST(test_pause_access_does_not_progress_to_charging);
     RUN_TEST(test_set_access_pause_from_B_stays_B);
+    RUN_TEST(test_state_b_with_access_on_keeps_normal_duty);
     RUN_TEST(test_set_access_off_from_B_still_goes_B1);
     RUN_TEST(test_pause_while_charging_recovers_to_B);
     RUN_TEST(test_resume_from_pause_starts_charging);

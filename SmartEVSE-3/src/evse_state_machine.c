@@ -314,11 +314,16 @@ void evse_set_access(evse_ctx_t *ctx, AccessStatus_t access) {
     if (access == OFF || access == PAUSE) {
         if (ctx->State == STATE_C)
             evse_set_state(ctx, STATE_C1);
-        else if (access == PAUSE && ctx->State == STATE_B)
-            // PAUSE keeps STATE_B: the PWM stays on (IEC 61851 state B2) so the
-            // vehicle keeps the cable locked while waiting for off-peak hours.
+        else if (access == PAUSE && ctx->State == STATE_B) {
+            // PAUSE keeps STATE_B: the PWM stays on so the vehicle keeps the
+            // cable locked while waiting for off-peak hours, but at 5% duty
+            // (digital-communication signal, no analog current available) so
+            // the vehicle does not try to draw current and fault on the
+            // refused charge request (seen on BMW i3 with a 6A advertisement).
             // Energy stays blocked because B->C requires AccessStatus == ON.
             ctx->ActivationMode = 255;               // no activation pulse while paused
+            record_cp_duty(ctx, 51);                 // 5% duty
+        }
         else if (ctx->State != STATE_C1 &&
                  (ctx->State == STATE_B ||
                   ctx->State == STATE_MODEM_REQUEST ||
@@ -408,6 +413,8 @@ void evse_set_state(evse_ctx_t *ctx, uint8_t new_state) {
             }
             record_contactor1(ctx, false);
             record_contactor2(ctx, false);
+            if (ctx->AccessStatus == PAUSE)
+                record_cp_duty(ctx, 51);             // 5% duty while paused (cable stays locked)
             break;
 
         case STATE_C:
