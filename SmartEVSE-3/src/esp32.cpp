@@ -3034,6 +3034,7 @@ bool fwNeedsUpdate(char * version) {
     for (int i = 0; i < result.phases; i++)
         MainsMeter.Irms[i] = result.currents[i];
     if (result.phases) {
+        MainsMeter.DetectedPhases = result.phases;
         // BEGIN PLAN-09: HomeWizard energy data
         if (result.import_energy_wh > 0)
             MainsMeter.Import_active_energy = result.import_energy_wh;

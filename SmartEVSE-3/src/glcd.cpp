@@ -32,6 +32,7 @@
 #include "mode_policy.h"
 #include "utils.h"
 #include "meter.h"
+#include "meter_decode.h"
 #include "network_common.h"
 #include "http_api.h"
 #include "font.cpp"
@@ -910,8 +911,15 @@ void GLCD(void) {
             sprintfl(Str, sizeof(Str),"%dA", Isum, 1, 0);
             GLCD_write_buf_str(46, 2, Str, GLCD_ALIGN_RIGHT);                   // print to buffer
         } else {                                                                // Displayed only in Smart and Solar modes
-            for (x = 0; x < 3; x++) {                                           // Display L1, L2 and L3 currents on LCD
-                sprintfl(Str, sizeof(Str),"%dA", MainsMeter.Irms[x], 1, 0);
+            if (meter_mains_phase_count(MainsMeter.Type, MainsMeter.DetectedPhases) == 1) {
+                sprintfl(Str, sizeof(Str),"%d.%01dA", MainsMeter.Irms[0] * 10L, 2, 1);// Single-phase installation: L1 current only, 0.1A resolution
+                GLCD_write_buf_str(46, 0, Str, GLCD_ALIGN_RIGHT);
+                int32_t va = meter_apparent_power_va(MainsMeter.Irms[0], MainsMeter.linky.apparent_power, MainsMeter.linky.available);
+                sprintfl(Str, sizeof(Str),"%d.%01d", va, 3, 1);                 // Apparent power in kVA (Linky SINSTS or 230V estimate)
+                GLCD_write_buf_str(46, 1, Str, GLCD_ALIGN_RIGHT);
+                GLCD_write_buf_str(46, 2, (const char *) "kVA", GLCD_ALIGN_RIGHT);
+            } else for (x = 0; x < 3; x++) {                                    // Display L1, L2 and L3 currents on LCD
+                sprintfl(Str, sizeof(Str),"%d.%01dA", MainsMeter.Irms[x] * 10L, 2, 1);
                 GLCD_write_buf_str(46, x, Str, GLCD_ALIGN_RIGHT);               // print to buffer
             }
         }

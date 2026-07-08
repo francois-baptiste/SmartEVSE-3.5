@@ -74,6 +74,36 @@ meter_reading_t meter_decode_value(const uint8_t *buf, uint8_t index,
  */
 uint8_t meter_register_size(meter_datatype_t datatype);
 
+/* Meter type ids — must match the EM_* constants in meter.h */
+#define METER_TYPE_EASTRON1P     10
+#define METER_TYPE_HOMEWIZARD_P1 13
+#define METER_TYPE_ORNO1P        18
+
+/*
+ * Number of phases of the mains installation as seen by the mains meter.
+ *
+ * @param meter_type  EM_* mains meter type
+ * @param p1_phases   Phase count reported by a HomeWizard P1 meter
+ *                    (0 = unknown/not a P1 meter)
+ * @return            1 for single-phase installations (inherently 1-phase
+ *                    meter types, or a P1 meter reporting 1 phase), 3 otherwise
+ */
+uint8_t meter_mains_phase_count(uint8_t meter_type, uint8_t p1_phases);
+
+/*
+ * Mains apparent power in VA.
+ *
+ * Uses the Linky SINSTS reading when available; otherwise estimates from
+ * the L1 current at nominal 230 V. Always returns a magnitude (>= 0).
+ *
+ * @param irms_da         L1 current in deci-amps (A * 10), may be negative
+ * @param linky_va        Apparent power reported by a Linky meter (VA)
+ * @param linky_available 1 if Linky telemetry is valid
+ * @return                Apparent power in VA
+ */
+int32_t meter_apparent_power_va(int16_t irms_da, float linky_va,
+                                uint8_t linky_available);
+
 #ifdef __cplusplus
 }
 #endif

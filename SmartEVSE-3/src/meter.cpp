@@ -52,6 +52,7 @@ Meter::Meter(uint8_t type, uint8_t address, uint8_t timeout) {
     Type = type;
     Address = address;
     Imeasured = 0;
+    DetectedPhases = 0;
     Import_active_energy = 0;
     Export_active_energy = 0;
     EnergyPhase[0] = 0;

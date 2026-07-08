@@ -660,6 +660,17 @@ function loadData() {
             $id('phase_3').textContent = (data.phase_currents.L3 / 10).toFixed(1) + " A";
             maxMainsAmps = data.settings.current_main || 25;
             updatePhaseBars(data.phase_currents.L1, data.phase_currents.L2, data.phase_currents.L3);
+
+            /* Single-phase installation: hide L2/L3 + Total, show apparent power */
+            var mono = data.mains_meter && data.mains_meter.phases === 1;
+            $id('mains_bar_row_L2').style.display = mono ? 'none' : '';
+            $id('mains_bar_row_L3').style.display = mono ? 'none' : '';
+            $id('mains_l2l3').style.display = mono ? 'none' : '';
+            $id('phase_total_wrap').style.display = mono ? 'none' : '';
+            $id('apparent_power_wrap').style.display = mono ? '' : 'none';
+            if (mono) {
+                $id('apparent_power').textContent = (data.mains_meter.apparent_power_va / 1000).toFixed(1) + " kVA";
+            }
             updatePowerFlow(data.phase_currents.TOTAL, data.ev_meter.import_active_power, data.home_battery.current);
             $id('evmeter_currents_total').textContent = (data.ev_meter.currents.TOTAL / 10).toFixed(1) + " A";
             $id('evmeter_currents_1').textContent = (data.ev_meter.currents.L1 / 10).toFixed(1) + " A";

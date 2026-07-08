@@ -120,3 +120,24 @@ meter_reading_t meter_decode_value(const uint8_t *buf, uint8_t index,
     result.valid = 1;
     return result;
 }
+
+uint8_t meter_mains_phase_count(uint8_t meter_type, uint8_t p1_phases)
+{
+    if (meter_type == METER_TYPE_EASTRON1P || meter_type == METER_TYPE_ORNO1P)
+        return 1;
+    if (meter_type == METER_TYPE_HOMEWIZARD_P1 && p1_phases == 1)
+        return 1;
+    return 3;
+}
+
+int32_t meter_apparent_power_va(int16_t irms_da, float linky_va,
+                                uint8_t linky_available)
+{
+    if (linky_available && !isnan(linky_va) && !isinf(linky_va) &&
+        linky_va > 0.0f && linky_va < 1.0e9f) {
+        return (int32_t)(linky_va + 0.5f);
+    }
+    /* Estimate: |I| * 230 V nominal; irms_da is A*10 */
+    int32_t abs_da = (irms_da >= 0) ? irms_da : -(int32_t)irms_da;
+    return abs_da * 23;
+}

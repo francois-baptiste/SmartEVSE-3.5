@@ -13,6 +13,7 @@
 #include "utils.h"
 #include "glcd.h"
 #include "meter.h"
+#include "meter_decode.h"
 #include "modbus.h"
 #include "mqtt_publish.h"
 #include "OneWire.h"
@@ -601,6 +602,8 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
 
         doc["mains_meter"]["import_active_energy"] = MainsMeter.Import_active_energy; // Wh
         doc["mains_meter"]["export_active_energy"] = MainsMeter.Export_active_energy; // Wh
+        doc["mains_meter"]["phases"] = meter_mains_phase_count(MainsMeter.Type, MainsMeter.DetectedPhases); // 1 or 3
+        doc["mains_meter"]["apparent_power_va"] = meter_apparent_power_va(MainsMeter.Irms[0], MainsMeter.linky.apparent_power, MainsMeter.linky.available); // VA (Linky SINSTS or 230V estimate, single-phase)
         if (MainsMeter.Type == EM_HOMEWIZARD_P1) {
             doc["mains_meter"]["host"] = !homeWizardHost.isEmpty() ? homeWizardHost : "HomeWizard P1 Not Found";
         }

@@ -12,6 +12,7 @@
 
 #include "test_framework.h"
 #include "meter_decode.h"
+#include <math.h>
 
 /* Helper: encode a 32-bit float into big-endian bytes */
 static void float_to_be_bytes(float f, uint8_t *out) {
@@ -670,6 +671,64 @@ void test_decode_int32_negative_multiply_overflow(void) {
     TEST_ASSERT_EQUAL_INT(0, r.valid);
 }
 
+/*
+ * @feature Meter Decoding
+ * @req REQ-MTR-100
+ * @scenario Single-phase meter types report a 1-phase installation
+ * @given A mains meter of an inherently single-phase type (Eastron SDM120, Orno 1P)
+ * @when meter_mains_phase_count is called
+ * @then It returns 1, while 3-phase types (Eastron SDM630=4, Sensorbox=1) return 3
+ */
+void test_mains_phase_count_by_type(void) {
+    TEST_ASSERT_EQUAL_INT(1, meter_mains_phase_count(METER_TYPE_EASTRON1P, 0));
+    TEST_ASSERT_EQUAL_INT(1, meter_mains_phase_count(METER_TYPE_ORNO1P, 0));
+    TEST_ASSERT_EQUAL_INT(3, meter_mains_phase_count(4, 0));  /* EM_EASTRON3P */
+    TEST_ASSERT_EQUAL_INT(3, meter_mains_phase_count(1, 0));  /* EM_SENSORBOX */
+}
+
+/*
+ * @feature Meter Decoding
+ * @req REQ-MTR-101
+ * @scenario HomeWizard P1 phase count follows the meter's own report
+ * @given A HomeWizard P1 mains meter
+ * @when meter_mains_phase_count is called with the P1-reported phase count
+ * @then It returns 1 only when the P1 reports 1 phase; unknown (0) or 3 phases yield 3
+ */
+void test_mains_phase_count_homewizard(void) {
+    TEST_ASSERT_EQUAL_INT(1, meter_mains_phase_count(METER_TYPE_HOMEWIZARD_P1, 1));
+    TEST_ASSERT_EQUAL_INT(3, meter_mains_phase_count(METER_TYPE_HOMEWIZARD_P1, 3));
+    TEST_ASSERT_EQUAL_INT(3, meter_mains_phase_count(METER_TYPE_HOMEWIZARD_P1, 0));
+}
+
+/*
+ * @feature Meter Decoding
+ * @req REQ-MTR-102
+ * @scenario Apparent power uses the Linky SINSTS reading when available
+ * @given Linky telemetry is available with apparent_power = 5236.4 VA
+ * @when meter_apparent_power_va is called
+ * @then It returns the rounded Linky value (5236 VA), ignoring the current argument
+ */
+void test_apparent_power_from_linky(void) {
+    TEST_ASSERT_EQUAL_INT(5236, (int)meter_apparent_power_va(10, 5236.4f, 1));
+    /* Invalid Linky values (negative, NaN) fall back to the 230 V estimate */
+    TEST_ASSERT_EQUAL_INT(230, (int)meter_apparent_power_va(10, -1.0f, 1));
+    TEST_ASSERT_EQUAL_INT(230, (int)meter_apparent_power_va(10, NAN, 1));
+}
+
+/*
+ * @feature Meter Decoding
+ * @req REQ-MTR-103
+ * @scenario Apparent power falls back to a 230 V estimate without Linky data
+ * @given No Linky telemetry and an L1 current of 16.0 A (160 dA), or -16.0 A when exporting
+ * @when meter_apparent_power_va is called
+ * @then It returns |I| * 230 = 3680 VA in both directions
+ */
+void test_apparent_power_estimate(void) {
+    TEST_ASSERT_EQUAL_INT(3680, (int)meter_apparent_power_va(160, 0.0f, 0));
+    TEST_ASSERT_EQUAL_INT(3680, (int)meter_apparent_power_va(-160, 0.0f, 0));
+    TEST_ASSERT_EQUAL_INT(0, (int)meter_apparent_power_va(0, 0.0f, 0));
+}
+
 /* ---- Main ---- */
 int main(void) {
     TEST_SUITE_BEGIN("Meter Decoding");
@@ -712,6 +771,12 @@ int main(void) {
     RUN_TEST(test_decode_int32_multiply_overflow);
     RUN_TEST(test_decode_int32_multiply_max_valid);
     RUN_TEST(test_decode_int32_negative_multiply_overflow);
+
+    // Single-phase installation detection and apparent power
+    RUN_TEST(test_mains_phase_count_by_type);
+    RUN_TEST(test_mains_phase_count_homewizard);
+    RUN_TEST(test_apparent_power_from_linky);
+    RUN_TEST(test_apparent_power_estimate);
 
     TEST_SUITE_RESULTS();
 }

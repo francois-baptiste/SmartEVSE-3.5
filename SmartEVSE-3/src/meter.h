@@ -134,6 +134,7 @@ class Meter {
     uint8_t Address;
     int16_t Irms[3];                                                            // Momentary current per Phase (23 = 2.3A) (resolution 100mA)
     int16_t Imeasured;                                                          // Max of all Phases (Amps *10) of mains power
+    uint8_t DetectedPhases;                                                     // Phase count reported by the meter itself (HomeWizard P1); 0 = unknown
     int16_t Power[3];
     int16_t PowerMeasured;                                                      // Measured Charge power in Watt by kWh meter (sum of all phases)
 #if !defined(SMARTEVSE_VERSION) || SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40 //not on ESP32 v4
