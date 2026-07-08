@@ -490,9 +490,8 @@ void test_tesla_disconnect_then_new_car_rfid_starts_session(void) {
  * @scenario Plugging in while access is PAUSEd presents STATE_B so the car locks the cable
  * @given The EVSE is in STATE_A with AccessStatus PAUSE (e.g. Linky HP/delayed charging wait)
  * @when A 9V pilot signal is received (vehicle connected)
- * @then The state goes to STATE_B with 5% PWM duty (digital-communication signal) so the
- *       vehicle keeps the cable locked but does not attempt to draw current; contactors
- *       stay open and the activation pulse is disabled
+ * @then The state goes to STATE_B (9V + PWM, IEC 61851 B2) with contactors open and the
+ *       activation pulse disabled, so the vehicle keeps the cable locked without energy
  */
 void test_pause_access_locks_cable_from_A(void) {
     setup_basic();
@@ -502,7 +501,7 @@ void test_pause_access_locks_cable_from_A(void) {
     TEST_ASSERT_FALSE(ctx.contactor1_state);
     TEST_ASSERT_FALSE(ctx.contactor2_state);
     TEST_ASSERT_EQUAL_INT(255, ctx.ActivationMode);
-    TEST_ASSERT_EQUAL_INT(51, (int)ctx.last_pwm_duty);   // 5% duty while paused
+    TEST_ASSERT_TRUE(ctx.last_pwm_duty != 51);   // never 5%: non-ISO15118 cars fault on SLAC
 }
 
 /*
@@ -534,8 +533,7 @@ void test_pause_access_does_not_progress_to_charging(void) {
  * @scenario Pausing access while connected keeps STATE_B so the cable stays locked
  * @given The EVSE is in STATE_B (connected, not charging) with AccessStatus ON
  * @when evse_set_access is called with PAUSE (e.g. Linky switches to HP)
- * @then The state remains STATE_B, the PWM drops to 5% duty (digital-communication
- *       signal, no analog current available) and the activation pulse is disabled
+ * @then The state remains STATE_B (PWM stays on) and the activation pulse is disabled
  */
 void test_set_access_pause_from_B_stays_B(void) {
     setup_basic();
@@ -547,7 +545,7 @@ void test_set_access_pause_from_B_stays_B(void) {
     TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
     TEST_ASSERT_EQUAL_INT(255, ctx.ActivationMode);
     TEST_ASSERT_EQUAL_INT(PAUSE, ctx.AccessStatus);
-    TEST_ASSERT_EQUAL_INT(51, (int)ctx.last_pwm_duty);   // 5% duty while paused
+    TEST_ASSERT_TRUE(ctx.last_pwm_duty != 51);   // never 5%: non-ISO15118 cars fault on SLAC
 }
 
 /*
@@ -610,16 +608,16 @@ void test_pause_while_charging_recovers_to_B(void) {
     TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
     TEST_ASSERT_FALSE(ctx.contactor1_state);
     TEST_ASSERT_FALSE(ctx.contactor2_state);
-    TEST_ASSERT_EQUAL_INT(51, (int)ctx.last_pwm_duty);   // 5% duty while paused
 }
 
 /*
  * @feature Authorization & Access Control
  * @req REQ-AUTH-034
- * @scenario Resuming from PAUSE allows the pending charge request to start
- * @given The EVSE is in STATE_B with AccessStatus PAUSE and the car requesting 6V
- * @when Access is set to ON (off-peak begins) and the 6V request passes the debounce
- * @then The state transitions to STATE_C and charging starts
+ * @scenario Resuming from PAUSE re-plugs the pilot and then allows charging
+ * @given The EVSE is in STATE_B with AccessStatus PAUSE (car possibly in a latched fault)
+ * @when Access is set to ON (off-peak begins), the 3s activation pulse completes,
+ *       and the car's 6V request passes the debounce
+ * @then The state goes B -> ACTSTART -> B -> C and charging starts
  */
 void test_resume_from_pause_starts_charging(void) {
     setup_basic();
@@ -628,11 +626,41 @@ void test_resume_from_pause_starts_charging(void) {
     TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
 
     evse_set_access(&ctx, ON);
+    TEST_ASSERT_EQUAL_INT(STATE_ACTSTART, ctx.State);
+
+    for (int i = 0; i < 4; i++) evse_tick_1s(&ctx);  // ActivationTimer (3s) expires
+    evse_tick_10ms(&ctx, PILOT_9V);
+    TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
+
     evse_tick_10ms(&ctx, PILOT_DIODE);           // diode check seen
     for (int i = 0; i < 60; i++) {
         evse_tick_10ms(&ctx, PILOT_6V);
     }
     TEST_ASSERT_EQUAL_INT(STATE_C, ctx.State);
+}
+
+/*
+ * @feature Authorization & Access Control
+ * @req REQ-AUTH-036
+ * @scenario PAUSE->ON resume fires the activation pulse to clear latched car faults
+ * @given The EVSE is in STATE_B with AccessStatus PAUSE (e.g. BMW i3 faulted after
+ *        its charge request was refused during the pause)
+ * @when evse_set_access is called with ON (off-peak begins)
+ * @then The state goes to STATE_ACTSTART with CP duty 0 (simulated re-plug) for 3s,
+ *       so the car resets its charge controller and retries
+ */
+void test_resume_from_pause_fires_activation_pulse(void) {
+    setup_basic();
+    ctx.AccessStatus = PAUSE;
+    evse_tick_10ms(&ctx, PILOT_9V);
+    TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
+
+    evse_set_access(&ctx, ON);
+    TEST_ASSERT_EQUAL_INT(STATE_ACTSTART, ctx.State);
+    TEST_ASSERT_EQUAL_INT(3, ctx.ActivationTimer);
+    TEST_ASSERT_EQUAL_INT(0, (int)ctx.last_pwm_duty);    // CP off = simulated unplug
+    TEST_ASSERT_FALSE(ctx.contactor1_state);
+    TEST_ASSERT_FALSE(ctx.contactor2_state);
 }
 
 // ---- Main ----
@@ -666,6 +694,7 @@ int main(void) {
     RUN_TEST(test_pause_access_does_not_progress_to_charging);
     RUN_TEST(test_set_access_pause_from_B_stays_B);
     RUN_TEST(test_state_b_with_access_on_keeps_normal_duty);
+    RUN_TEST(test_resume_from_pause_fires_activation_pulse);
     RUN_TEST(test_set_access_off_from_B_still_goes_B1);
     RUN_TEST(test_pause_while_charging_recovers_to_B);
     RUN_TEST(test_resume_from_pause_starts_charging);

@@ -310,20 +310,26 @@ uint32_t evse_current_to_duty(uint16_t current) {
 // ---- Authorization ----
 // Faithful to setAccess() in main.cpp:967-989
 void evse_set_access(evse_ctx_t *ctx, AccessStatus_t access) {
+    AccessStatus_t prev = ctx->AccessStatus;
     ctx->AccessStatus = access;
+    if (access == ON && prev == PAUSE && ctx->State == STATE_B) {
+        // Resume from pause: some cars (BMW i3) latch a charging fault after
+        // their charge request was refused during the pause and then ignore
+        // the restored current advertisement. Fire the activation pulse
+        // (CP off for 3s = simulated re-plug) so the car resets and retries.
+        evse_set_state(ctx, STATE_ACTSTART);
+        ctx->ActivationTimer = 3;
+    }
     if (access == OFF || access == PAUSE) {
         if (ctx->State == STATE_C)
             evse_set_state(ctx, STATE_C1);
-        else if (access == PAUSE && ctx->State == STATE_B) {
-            // PAUSE keeps STATE_B: the PWM stays on so the vehicle keeps the
-            // cable locked while waiting for off-peak hours, but at 5% duty
-            // (digital-communication signal, no analog current available) so
-            // the vehicle does not try to draw current and fault on the
-            // refused charge request (seen on BMW i3 with a 6A advertisement).
+        else if (access == PAUSE && ctx->State == STATE_B)
+            // PAUSE keeps STATE_B: the PWM stays on (IEC 61851 state B2) so the
+            // vehicle keeps the cable locked while waiting for off-peak hours.
             // Energy stays blocked because B->C requires AccessStatus == ON.
+            // Do NOT drop to 5% duty here: cars without ISO 15118 (BMW i3)
+            // attempt SLAC on it, fail, and latch a fault.
             ctx->ActivationMode = 255;               // no activation pulse while paused
-            record_cp_duty(ctx, 51);                 // 5% duty
-        }
         else if (ctx->State != STATE_C1 &&
                  (ctx->State == STATE_B ||
                   ctx->State == STATE_MODEM_REQUEST ||
@@ -413,8 +419,14 @@ void evse_set_state(evse_ctx_t *ctx, uint8_t new_state) {
             }
             record_contactor1(ctx, false);
             record_contactor2(ctx, false);
-            if (ctx->AccessStatus == PAUSE)
-                record_cp_duty(ctx, 51);             // 5% duty while paused (cable stays locked)
+            break;
+
+        case STATE_ACTSTART:
+            // CP off (0% duty = -12V): simulated re-plug. The glue layer also
+            // does this, but only for transitions inside the 10ms timer; the
+            // PAUSE->ON resume path enters ACTSTART from evse_set_access, so
+            // the duty must drop here through the HAL as well.
+            record_cp_duty(ctx, 0);
             break;
 
         case STATE_C:
