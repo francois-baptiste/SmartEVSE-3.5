@@ -125,8 +125,8 @@ footer {
 <h1>SmartEVSE-3 Traceability Report</h1>
 <div class="summary">
 <div class="stat"><div class="number">78</div><div class="label">Features</div></div>
-<div class="stat"><div class="number">1209</div><div class="label">Test Scenarios</div></div>
-<div class="stat"><div class="number">1209</div><div class="label">With Requirements</div></div>
+<div class="stat"><div class="number">1202</div><div class="label">Test Scenarios</div></div>
+<div class="stat"><div class="number">1202</div><div class="label">With Requirements</div></div>
 <div class="stat"><div class="number">100%</div><div class="label">Requirement Coverage</div></div>
 </div>
 <div class="feature-section">
@@ -259,7 +259,7 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">Authorization &amp; Access Control (29 scenarios)</div>
+<div class="feature-title">Authorization &amp; Access Control (22 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -421,55 +421,6 @@ footer {
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> EVSE charged Car A in STATE_C, RFIDReader=EnableOne, AccessStatus=ON</li><li class="step-when"><span class="step-keyword">When</span> Car A does Tesla-style disconnect (C→B→A), Car B plugs in, user swipes RFID</li><li class="step-then"><span class="step-keyword">Then</span> Car B is blocked until RFID swipe, then RFID swipe sets AccessStatus ON and charging starts</li></ul></td>
 <td><code>test_tesla_disconnect_then_new_car_rfid_starts_session</code></td>
 <td><span class="file-ref">test_authorization.c:452</span></td>
-</tr>
-<tr>
-<td><span class="req-tag">REQ-AUTH-024</span></td>
-<td>Plugging in while access is PAUSEd presents STATE_B so the car locks the cable</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The EVSE is in STATE_A with AccessStatus PAUSE (e.g. Linky HP/delayed charging wait)</li><li class="step-when"><span class="step-keyword">When</span> A 9V pilot signal is received (vehicle connected)</li><li class="step-then"><span class="step-keyword">Then</span> The state goes to STATE_B (9V + PWM, IEC 61851 B2) with contactors open and the</li></ul></td>
-<td><code>test_pause_access_locks_cable_from_A</code></td>
-<td><span class="file-ref">test_authorization.c:487</span></td>
-</tr>
-<tr>
-<td><span class="req-tag">REQ-AUTH-025</span></td>
-<td>PAUSEd access locks the cable but never allows charging to start</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The EVSE reached STATE_B with AccessStatus PAUSE (car plugged in during off-peak wait)</li><li class="step-when"><span class="step-keyword">When</span> The vehicle requests charging (6V pilot with diode check) past the 500ms debounce</li><li class="step-then"><span class="step-keyword">Then</span> The state stays STATE_B (never advances to STATE_C) and contactors stay open</li></ul></td>
-<td><code>test_pause_access_does_not_progress_to_charging</code></td>
-<td><span class="file-ref">test_authorization.c:507</span></td>
-</tr>
-<tr>
-<td><span class="req-tag">REQ-AUTH-031</span></td>
-<td>Pausing access while connected keeps STATE_B so the cable stays locked</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The EVSE is in STATE_B (connected, not charging) with AccessStatus ON</li><li class="step-when"><span class="step-keyword">When</span> evse_set_access is called with PAUSE (e.g. Linky switches to HP)</li><li class="step-then"><span class="step-keyword">Then</span> The state remains STATE_B (PWM stays on) and the activation pulse is disabled</li></ul></td>
-<td><code>test_set_access_pause_from_B_stays_B</code></td>
-<td><span class="file-ref">test_authorization.c:530</span></td>
-</tr>
-<tr>
-<td><span class="req-tag">REQ-AUTH-035</span></td>
-<td>Normal STATE_B entry with access ON does not force the 5% pause duty</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The EVSE is in STATE_A with AccessStatus ON</li><li class="step-when"><span class="step-keyword">When</span> A 9V pilot signal is received and the state machine enters STATE_B</li><li class="step-then"><span class="step-keyword">Then</span> The CP duty is not forced to the 5% pause value (the 100ms loop drives it)</li></ul></td>
-<td><code>test_state_b_with_access_on_keeps_normal_duty</code></td>
-<td><span class="file-ref">test_authorization.c:551</span></td>
-</tr>
-<tr>
-<td><span class="req-tag">REQ-AUTH-032</span></td>
-<td>Revoking access (OFF) in STATE_B still demotes to STATE_B1</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The EVSE is in STATE_B with AccessStatus ON</li><li class="step-when"><span class="step-keyword">When</span> evse_set_access is called with OFF (session ended / access denied)</li><li class="step-then"><span class="step-keyword">Then</span> The state transitions to STATE_B1 (PWM off) — only PAUSE keeps STATE_B</li></ul></td>
-<td><code>test_set_access_off_from_B_still_goes_B1</code></td>
-<td><span class="file-ref">test_authorization.c:567</span></td>
-</tr>
-<tr>
-<td><span class="req-tag">REQ-AUTH-033</span></td>
-<td>Pause during charging stops current, then re-presents STATE_B after ChargeDelay</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The EVSE is charging in STATE_C when access is set to PAUSE</li><li class="step-when"><span class="step-keyword">When</span> The current stops (C1), the car returns to 9V, and the ChargeDelay expires</li><li class="step-then"><span class="step-keyword">Then</span> The state goes C -&gt; C1 -&gt; B1 and back to STATE_B with contactors open</li></ul></td>
-<td><code>test_pause_while_charging_recovers_to_B</code></td>
-<td><span class="file-ref">test_authorization.c:584</span></td>
-</tr>
-<tr>
-<td><span class="req-tag">REQ-AUTH-034</span></td>
-<td>Resuming from PAUSE allows the pending charge request to start</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The EVSE is in STATE_B with AccessStatus PAUSE and the car requesting 6V</li><li class="step-when"><span class="step-keyword">When</span> Access is set to ON (off-peak begins) and the 6V request passes the debounce</li><li class="step-then"><span class="step-keyword">Then</span> The state stays STATE_B during the pause and transitions to STATE_C after resume</li></ul></td>
-<td><code>test_resume_from_pause_starts_charging</code></td>
-<td><span class="file-ref">test_authorization.c:613</span></td>
 </tr>
 </tbody></table>
 </div>

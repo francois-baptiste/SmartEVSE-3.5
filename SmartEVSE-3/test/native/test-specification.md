@@ -1,6 +1,6 @@
 # SmartEVSE-3 Test Specification
 
-**78 features** | **1209 scenarios** | **1209 with requirement IDs**
+**78 features** | **1202 scenarios** | **1202 with requirement IDs**
 
 ---
 
@@ -467,76 +467,6 @@
 - **Then** Car B is blocked until RFID swipe, then RFID swipe sets AccessStatus ON and charging starts
 
 > Test: `test_tesla_disconnect_then_new_car_rfid_starts_session` in `test_authorization.c:452`
-
-### Plugging in while access is PAUSEd presents STATE_B so the car locks the cable
-
-**Requirement:** `REQ-AUTH-024`
-
-- **Given** The EVSE is in STATE_A with AccessStatus PAUSE (e.g. Linky HP/delayed charging wait)
-- **When** A 9V pilot signal is received (vehicle connected)
-- **Then** The state goes to STATE_B (9V + PWM, IEC 61851 B2) with contactors open and the
-
-> Test: `test_pause_access_locks_cable_from_A` in `test_authorization.c:487`
-
-### PAUSEd access locks the cable but never allows charging to start
-
-**Requirement:** `REQ-AUTH-025`
-
-- **Given** The EVSE reached STATE_B with AccessStatus PAUSE (car plugged in during off-peak wait)
-- **When** The vehicle requests charging (6V pilot with diode check) past the 500ms debounce
-- **Then** The state stays STATE_B (never advances to STATE_C) and contactors stay open
-
-> Test: `test_pause_access_does_not_progress_to_charging` in `test_authorization.c:507`
-
-### Pausing access while connected keeps STATE_B so the cable stays locked
-
-**Requirement:** `REQ-AUTH-031`
-
-- **Given** The EVSE is in STATE_B (connected, not charging) with AccessStatus ON
-- **When** evse_set_access is called with PAUSE (e.g. Linky switches to HP)
-- **Then** The state remains STATE_B (PWM stays on) and the activation pulse is disabled
-
-> Test: `test_set_access_pause_from_B_stays_B` in `test_authorization.c:530`
-
-### Normal STATE_B entry with access ON does not force the 5% pause duty
-
-**Requirement:** `REQ-AUTH-035`
-
-- **Given** The EVSE is in STATE_A with AccessStatus ON
-- **When** A 9V pilot signal is received and the state machine enters STATE_B
-- **Then** The CP duty is not forced to the 5% pause value (the 100ms loop drives it)
-
-> Test: `test_state_b_with_access_on_keeps_normal_duty` in `test_authorization.c:551`
-
-### Revoking access (OFF) in STATE_B still demotes to STATE_B1
-
-**Requirement:** `REQ-AUTH-032`
-
-- **Given** The EVSE is in STATE_B with AccessStatus ON
-- **When** evse_set_access is called with OFF (session ended / access denied)
-- **Then** The state transitions to STATE_B1 (PWM off) — only PAUSE keeps STATE_B
-
-> Test: `test_set_access_off_from_B_still_goes_B1` in `test_authorization.c:567`
-
-### Pause during charging stops current, then re-presents STATE_B after ChargeDelay
-
-**Requirement:** `REQ-AUTH-033`
-
-- **Given** The EVSE is charging in STATE_C when access is set to PAUSE
-- **When** The current stops (C1), the car returns to 9V, and the ChargeDelay expires
-- **Then** The state goes C -> C1 -> B1 and back to STATE_B with contactors open
-
-> Test: `test_pause_while_charging_recovers_to_B` in `test_authorization.c:584`
-
-### Resuming from PAUSE allows the pending charge request to start
-
-**Requirement:** `REQ-AUTH-034`
-
-- **Given** The EVSE is in STATE_B with AccessStatus PAUSE and the car requesting 6V
-- **When** Access is set to ON (off-peak begins) and the 6V request passes the debounce
-- **Then** The state stays STATE_B during the pause and transitions to STATE_C after resume
-
-> Test: `test_resume_from_pause_starts_charging` in `test_authorization.c:613`
 
 ---
 
