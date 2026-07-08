@@ -613,11 +613,10 @@ void test_pause_while_charging_recovers_to_B(void) {
 /*
  * @feature Authorization & Access Control
  * @req REQ-AUTH-034
- * @scenario Resuming from PAUSE re-plugs the pilot and then allows charging
- * @given The EVSE is in STATE_B with AccessStatus PAUSE (car possibly in a latched fault)
- * @when Access is set to ON (off-peak begins), the 5s pilot float completes,
- *       and the car's 6V request passes the debounce
- * @then The state goes B -> B1 (pilot floating) -> B -> C and charging starts
+ * @scenario Resuming from PAUSE allows the pending charge request to start
+ * @given The EVSE is in STATE_B with AccessStatus PAUSE and the car requesting 6V
+ * @when Access is set to ON (off-peak begins) and the 6V request passes the debounce
+ * @then The state stays STATE_B during the pause and transitions to STATE_C after resume
  */
 void test_resume_from_pause_starts_charging(void) {
     setup_basic();
@@ -626,43 +625,13 @@ void test_resume_from_pause_starts_charging(void) {
     TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
 
     evse_set_access(&ctx, ON);
-    TEST_ASSERT_EQUAL_INT(STATE_B1, ctx.State);
-
-    for (int i = 0; i < 6; i++) evse_tick_1s(&ctx); // PilotDisconnectTime (5s) + ChargeDelay (3s) expire
-    evse_tick_10ms(&ctx, PILOT_9V);                 // pilot reconnects this tick
-    evse_tick_10ms(&ctx, PILOT_9V);                 // car re-detected
-    TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
+    TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);   // no state change on resume (v3.13.14 logic)
 
     evse_tick_10ms(&ctx, PILOT_DIODE);           // diode check seen
     for (int i = 0; i < 60; i++) {
         evse_tick_10ms(&ctx, PILOT_6V);
     }
     TEST_ASSERT_EQUAL_INT(STATE_C, ctx.State);
-}
-
-/*
- * @feature Authorization & Access Control
- * @req REQ-AUTH-036
- * @scenario PAUSE->ON resume floats the pilot to clear latched car faults
- * @given The EVSE is in STATE_B with AccessStatus PAUSE (e.g. BMW i3 faulted after
- *        its charge request was refused during the pause)
- * @when evse_set_access is called with ON (off-peak begins)
- * @then The state goes to STATE_B1 with the pilot disconnected (floating CP = simulated
- *       unplug, never the 0%-duty state F pulse) so the car resets and re-detects
- */
-void test_resume_from_pause_fires_activation_pulse(void) {
-    setup_basic();
-    ctx.AccessStatus = PAUSE;
-    evse_tick_10ms(&ctx, PILOT_9V);
-    TEST_ASSERT_EQUAL_INT(STATE_B, ctx.State);
-
-    evse_set_access(&ctx, ON);
-    TEST_ASSERT_EQUAL_INT(STATE_B1, ctx.State);
-    TEST_ASSERT_FALSE(ctx.pilot_connected);              // CP floating = simulated unplug
-    TEST_ASSERT_TRUE(ctx.PilotDisconnected);
-    TEST_ASSERT_EQUAL_INT(5, ctx.PilotDisconnectTime);
-    TEST_ASSERT_FALSE(ctx.contactor1_state);
-    TEST_ASSERT_FALSE(ctx.contactor2_state);
 }
 
 // ---- Main ----
@@ -696,7 +665,6 @@ int main(void) {
     RUN_TEST(test_pause_access_does_not_progress_to_charging);
     RUN_TEST(test_set_access_pause_from_B_stays_B);
     RUN_TEST(test_state_b_with_access_on_keeps_normal_duty);
-    RUN_TEST(test_resume_from_pause_fires_activation_pulse);
     RUN_TEST(test_set_access_off_from_B_still_goes_B1);
     RUN_TEST(test_pause_while_charging_recovers_to_B);
     RUN_TEST(test_resume_from_pause_starts_charging);

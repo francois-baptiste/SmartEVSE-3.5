@@ -2161,7 +2161,7 @@ void ModbusRequestLoop() {
                 if (LoadBl == 1 && !(ErrorFlags & CT_NOCOMM) ) BroadcastCurrent();               // When there is no Comm Error, Master sends current to all connected EVSE's
 
                 if ((State == STATE_B || State == STATE_C) && !CPDutyOverride) // set PWM output for Master //mind you, the !CPDutyOverride was not checked in Smart/Solar mode, but I think this was a bug!
-                    SetCurrent(AccessStatus == PAUSE ? MinCurrent * 10 : Balanced[0]); // while PAUSEd advertise MinCurrent so the car keeps the cable locked; B->C stays blocked so no energy flows (5% duty is NOT usable here: non-ISO15118 cars like the BMW i3 attempt SLAC on it, fail and latch a fault; recovery is the ACTSTART pulse on PAUSE->ON)
+                    SetCurrent(AccessStatus == PAUSE ? MinCurrent * 10 : Balanced[0]); // while PAUSEd advertise MinCurrent so the car keeps the cable locked; B->C stays blocked so no energy flows (5% duty is NOT usable here: non-ISO15118 cars like the BMW i3 attempt SLAC on it, fail and latch a fault)
                 ModbusRequest = 0;
                 //_LOG_A("Timer100ms task free ram: %u\n", uxTaskGetStackHighWaterMark( NULL ));
                 break;

@@ -310,20 +310,7 @@ uint32_t evse_current_to_duty(uint16_t current) {
 // ---- Authorization ----
 // Faithful to setAccess() in main.cpp:967-989
 void evse_set_access(evse_ctx_t *ctx, AccessStatus_t access) {
-    AccessStatus_t prev = ctx->AccessStatus;
     ctx->AccessStatus = access;
-    if (access == ON && prev == PAUSE && ctx->State == STATE_B) {
-        // Resume from pause: some cars (BMW i3) latch a charging fault after
-        // their charge request was refused during the pause and then ignore
-        // the restored current advertisement. Simulate a re-plug so the car
-        // resets and retries: STATE_B1 entry (with access already ON) floats
-        // the CP line for 5s — electrically identical to unplugging — and
-        // the normal B1 -> B -> C detection flow takes over on reconnect.
-        // (Do NOT use STATE_ACTSTART here: its 0% duty is a constant -12V,
-        // IEC 61851 state F "EVSE unavailable", which the i3 latches on and
-        // which stops the CP sampling timer on v3 hardware.)
-        evse_set_state(ctx, STATE_B1);
-    }
     if (access == OFF || access == PAUSE) {
         if (ctx->State == STATE_C)
             evse_set_state(ctx, STATE_C1);
@@ -423,14 +410,6 @@ void evse_set_state(evse_ctx_t *ctx, uint8_t new_state) {
             }
             record_contactor1(ctx, false);
             record_contactor2(ctx, false);
-            break;
-
-        case STATE_ACTSTART:
-            // CP off (0% duty = -12V): simulated re-plug. The glue layer also
-            // does this, but only for transitions inside the 10ms timer; the
-            // PAUSE->ON resume path enters ACTSTART from evse_set_access, so
-            // the duty must drop here through the HAL as well.
-            record_cp_duty(ctx, 0);
             break;
 
         case STATE_C:
