@@ -1,6 +1,6 @@
 # SmartEVSE-3 Test Specification
 
-**78 features** | **1202 scenarios** | **1202 with requirement IDs**
+**78 features** | **1206 scenarios** | **1206 with requirement IDs**
 
 ---
 
@@ -4193,7 +4193,7 @@
 - **When** meter_combine_bytes is called with ENDIANNESS_HBF_HWF, INT32
 - **Then** Output equals 100
 
-> Test: `test_combine_hbf_hwf_int32` in `test_meter_decode.c:41`
+> Test: `test_combine_hbf_hwf_int32` in `test_meter_decode.c:42`
 
 ### HBF_HWF INT16: big-endian 0x00C8 decodes to 200
 
@@ -4203,7 +4203,7 @@
 - **When** meter_combine_bytes is called with ENDIANNESS_HBF_HWF, INT16
 - **Then** Output equals 200
 
-> Test: `test_combine_hbf_hwf_int16` in `test_meter_decode.c:56`
+> Test: `test_combine_hbf_hwf_int16` in `test_meter_decode.c:57`
 
 ### HBF_HWF FLOAT32: big-endian IEEE 754 42.5f decodes correctly
 
@@ -4213,7 +4213,7 @@
 - **When** meter_combine_bytes is called with ENDIANNESS_HBF_HWF, FLOAT32
 - **Then** Output float equals 42.5
 
-> Test: `test_combine_hbf_hwf_float32` in `test_meter_decode.c:71`
+> Test: `test_combine_hbf_hwf_float32` in `test_meter_decode.c:72`
 
 ### LBF_LWF INT32: little-endian 0x64000000 in bytes decodes to 100
 
@@ -4223,7 +4223,7 @@
 - **When** meter_combine_bytes is called with ENDIANNESS_LBF_LWF, INT32
 - **Then** Output equals 100
 
-> Test: `test_combine_lbf_lwf_int32` in `test_meter_decode.c:90`
+> Test: `test_combine_lbf_lwf_int32` in `test_meter_decode.c:91`
 
 ### LBF_LWF INT16: little-endian 0xC800 in bytes decodes to 200
 
@@ -4233,7 +4233,7 @@
 - **When** meter_combine_bytes is called with ENDIANNESS_LBF_LWF, INT16
 - **Then** Output equals 200
 
-> Test: `test_combine_lbf_lwf_int16` in `test_meter_decode.c:105`
+> Test: `test_combine_lbf_lwf_int16` in `test_meter_decode.c:106`
 
 ### HBF_LWF INT32: word-swapped big-endian decodes correctly
 
@@ -4243,7 +4243,7 @@
 - **When** meter_combine_bytes is called with ENDIANNESS_HBF_LWF, INT32
 - **Then** Output equals 1
 
-> Test: `test_combine_hbf_lwf_int32` in `test_meter_decode.c:122`
+> Test: `test_combine_hbf_lwf_int32` in `test_meter_decode.c:123`
 
 ### LBF_HWF INT32: word-swapped little-endian decodes correctly
 
@@ -4253,7 +4253,7 @@
 - **When** meter_combine_bytes is called with ENDIANNESS_LBF_HWF, INT32
 - **Then** Output equals 100
 
-> Test: `test_combine_lbf_hwf_int32` in `test_meter_decode.c:145`
+> Test: `test_combine_lbf_hwf_int32` in `test_meter_decode.c:146`
 
 ### INT32 with zero divisor returns raw value
 
@@ -4263,7 +4263,7 @@
 - **When** meter_decode_value is called with divisor=0
 - **Then** Result value is 12345
 
-> Test: `test_decode_int32_divisor_zero` in `test_meter_decode.c:166`
+> Test: `test_decode_int32_divisor_zero` in `test_meter_decode.c:167`
 
 ### INT32 with positive divisor divides by power of 10
 
@@ -4273,7 +4273,7 @@
 - **When** meter_decode_value is called with divisor=2 (divide by 100)
 - **Then** Result value is 123
 
-> Test: `test_decode_int32_positive_divisor` in `test_meter_decode.c:183`
+> Test: `test_decode_int32_positive_divisor` in `test_meter_decode.c:184`
 
 ### INT32 with negative divisor multiplies by power of 10
 
@@ -4283,7 +4283,7 @@
 - **When** meter_decode_value is called with divisor=-3 (multiply by 1000)
 - **Then** Result value is 42000
 
-> Test: `test_decode_int32_negative_divisor` in `test_meter_decode.c:199`
+> Test: `test_decode_int32_negative_divisor` in `test_meter_decode.c:200`
 
 ### INT16 positive value with divisor
 
@@ -4293,7 +4293,7 @@
 - **When** meter_decode_value is called with divisor=1 (divide by 10)
 - **Then** Result value is 250
 
-> Test: `test_decode_int16_positive` in `test_meter_decode.c:218`
+> Test: `test_decode_int16_positive` in `test_meter_decode.c:219`
 
 ### INT16 sign extension: negative value 0xFFCE = -50
 
@@ -4303,7 +4303,7 @@
 - **When** meter_decode_value is called with divisor=0
 - **Then** Result value is -50 (sign-extended to 32-bit)
 
-> Test: `test_decode_int16_sign_extension` in `test_meter_decode.c:235`
+> Test: `test_decode_int16_sign_extension` in `test_meter_decode.c:236`
 
 ### FLOAT32 with zero divisor returns truncated integer
 
@@ -4313,7 +4313,7 @@
 - **When** meter_decode_value is called with divisor=0
 - **Then** Result value is 230 (truncated from 230.5)
 
-> Test: `test_decode_float32_divisor_zero` in `test_meter_decode.c:254`
+> Test: `test_decode_float32_divisor_zero` in `test_meter_decode.c:255`
 
 ### FLOAT32 with negative divisor: multiply 2.345 by 1000
 
@@ -4323,7 +4323,7 @@
 - **When** meter_decode_value is called with divisor=-3 (multiply by 1000)
 - **Then** Result value is 2345
 
-> Test: `test_decode_float32_negative_divisor` in `test_meter_decode.c:271`
+> Test: `test_decode_float32_negative_divisor` in `test_meter_decode.c:272`
 
 ### FLOAT32 with positive divisor: divide 23450.0 by 10
 
@@ -4333,7 +4333,7 @@
 - **When** meter_decode_value is called with divisor=1 (divide by 10)
 - **Then** Result value is 2345
 
-> Test: `test_decode_float32_positive_divisor` in `test_meter_decode.c:288`
+> Test: `test_decode_float32_positive_divisor` in `test_meter_decode.c:289`
 
 ### Index parameter selects correct register from buffer
 
@@ -4343,7 +4343,7 @@
 - **When** meter_decode_value is called with index=0, 1, and 2
 - **Then** Returns 100, 200, 300 respectively
 
-> Test: `test_decode_index_offset` in `test_meter_decode.c:307`
+> Test: `test_decode_index_offset` in `test_meter_decode.c:308`
 
 ### INT16 index offset uses 2-byte stride
 
@@ -4353,7 +4353,7 @@
 - **When** meter_decode_value is called with index=0, 1, and 2
 - **Then** Returns 10, 20, 30 respectively
 
-> Test: `test_decode_int16_index_offset` in `test_meter_decode.c:333`
+> Test: `test_decode_int16_index_offset` in `test_meter_decode.c:334`
 
 ### Negative INT32 value decodes correctly
 
@@ -4363,7 +4363,7 @@
 - **When** meter_decode_value is called with divisor=0
 - **Then** Result value is -1000
 
-> Test: `test_decode_int32_negative` in `test_meter_decode.c:357`
+> Test: `test_decode_int32_negative` in `test_meter_decode.c:358`
 
 ### Negative FLOAT32 value decodes correctly
 
@@ -4373,7 +4373,7 @@
 - **When** meter_decode_value is called with divisor=0
 - **Then** Result value is -5
 
-> Test: `test_decode_float32_negative` in `test_meter_decode.c:376`
+> Test: `test_decode_float32_negative` in `test_meter_decode.c:377`
 
 ### NULL buffer returns invalid result
 
@@ -4383,7 +4383,7 @@
 - **When** meter_decode_value is called
 - **Then** Result valid is 0
 
-> Test: `test_decode_null_buffer` in `test_meter_decode.c:395`
+> Test: `test_decode_null_buffer` in `test_meter_decode.c:396`
 
 ### Invalid datatype returns invalid result
 
@@ -4393,7 +4393,7 @@
 - **When** meter_decode_value is called
 - **Then** Result valid is 0
 
-> Test: `test_decode_invalid_datatype` in `test_meter_decode.c:409`
+> Test: `test_decode_invalid_datatype` in `test_meter_decode.c:410`
 
 ### Divisor out of pow10 range returns invalid result
 
@@ -4403,7 +4403,7 @@
 - **When** meter_decode_value is called
 - **Then** Result valid is 0
 
-> Test: `test_decode_divisor_out_of_range` in `test_meter_decode.c:424`
+> Test: `test_decode_divisor_out_of_range` in `test_meter_decode.c:425`
 
 ### NULL pointer to meter_combine_bytes does not crash
 
@@ -4413,7 +4413,7 @@
 - **When** meter_combine_bytes is called
 - **Then** No crash occurs
 
-> Test: `test_combine_null_safety` in `test_meter_decode.c:439`
+> Test: `test_combine_null_safety` in `test_meter_decode.c:440`
 
 ### Phoenix Contact meter HBF_LWF INT32 current reading
 
@@ -4423,7 +4423,7 @@
 - **When** meter_decode_value is called with divisor=3 (divide by 1000 to get 0.1A units)
 - **Then** Result value is 23 (23.12A in deciAmpere after /1000 = 23)
 
-> Test: `test_phoenix_contact_current` in `test_meter_decode.c:458`
+> Test: `test_phoenix_contact_current` in `test_meter_decode.c:459`
 
 ### Eastron SDM630 HBF_HWF FLOAT32 current reading
 
@@ -4433,7 +4433,7 @@
 - **When** meter_decode_value is called with divisor=-3 (multiply by 1000 for mA)
 - **Then** Result value is 16500 (mA)
 
-> Test: `test_eastron_float_current` in `test_meter_decode.c:477`
+> Test: `test_eastron_float_current` in `test_meter_decode.c:478`
 
 ### Orno WE-517 3-phase current reading at register 0x0C
 
@@ -4443,7 +4443,7 @@
 - **When** meter_decode_value is called for indices 0, 1, 2 with divisor=0
 - **Then** Returns 8, 12, 6 (truncated integer amps)
 
-> Test: `test_orno3p_current` in `test_meter_decode.c:496`
+> Test: `test_orno3p_current` in `test_meter_decode.c:497`
 
 ### Orno WE-517 total active power reading
 
@@ -4453,7 +4453,7 @@
 - **When** meter_decode_value is called with divisor=0
 - **Then** Returns 3456
 
-> Test: `test_orno3p_power` in `test_meter_decode.c:522`
+> Test: `test_orno3p_power` in `test_meter_decode.c:523`
 
 ### Orno WE-517 import energy reading in kWh
 
@@ -4463,7 +4463,7 @@
 - **When** meter_decode_value is called with divisor=-3 (multiply by 1000 to get Wh)
 - **Then** Returns 1234567 (Wh)
 
-> Test: `test_orno3p_energy` in `test_meter_decode.c:539`
+> Test: `test_orno3p_energy` in `test_meter_decode.c:540`
 
 ### Orno WE-517 negative power during export (solar feed-in)
 
@@ -4473,7 +4473,7 @@
 - **When** meter_decode_value is called with divisor=0
 - **Then** Returns -1500
 
-> Test: `test_orno3p_negative_power` in `test_meter_decode.c:557`
+> Test: `test_orno3p_negative_power` in `test_meter_decode.c:558`
 
 ### INT8_MIN divisor (-128) is rejected to avoid negation UB
 
@@ -4483,7 +4483,7 @@
 - **When** meter_decode_value is called
 - **Then** Result is invalid because -128 is outside pow10 table range
 
-> Test: `test_decode_divisor_int8_min` in `test_meter_decode.c:576`
+> Test: `test_decode_divisor_int8_min` in `test_meter_decode.c:577`
 
 ### FLOAT32 NaN value from corrupt meter data is rejected
 
@@ -4493,7 +4493,7 @@
 - **When** meter_decode_value is called with FLOAT32 datatype
 - **Then** Result is invalid
 
-> Test: `test_decode_float32_nan_rejected` in `test_meter_decode.c:591`
+> Test: `test_decode_float32_nan_rejected` in `test_meter_decode.c:592`
 
 ### FLOAT32 Infinity value from corrupt meter data is rejected
 
@@ -4503,7 +4503,7 @@
 - **When** meter_decode_value is called with FLOAT32 datatype
 - **Then** Result is invalid
 
-> Test: `test_decode_float32_inf_rejected` in `test_meter_decode.c:607`
+> Test: `test_decode_float32_inf_rejected` in `test_meter_decode.c:608`
 
 ### INT32 multiplication overflow is detected and rejected
 
@@ -4513,7 +4513,7 @@
 - **When** meter_decode_value is called
 - **Then** Result is invalid because value * 1000 would overflow int32_t
 
-> Test: `test_decode_int32_multiply_overflow` in `test_meter_decode.c:623`
+> Test: `test_decode_int32_multiply_overflow` in `test_meter_decode.c:624`
 
 ### INT32 multiplication that fits is still accepted
 
@@ -4523,7 +4523,7 @@
 - **When** meter_decode_value is called
 - **Then** Result is valid with value 2147483000
 
-> Test: `test_decode_int32_multiply_max_valid` in `test_meter_decode.c:640`
+> Test: `test_decode_int32_multiply_max_valid` in `test_meter_decode.c:641`
 
 ### Negative INT32 multiplication overflow is detected
 
@@ -4533,7 +4533,47 @@
 - **When** meter_decode_value is called
 - **Then** Result is invalid because value * 1000 would overflow
 
-> Test: `test_decode_int32_negative_multiply_overflow` in `test_meter_decode.c:657`
+> Test: `test_decode_int32_negative_multiply_overflow` in `test_meter_decode.c:658`
+
+### Single-phase meter types report a 1-phase installation
+
+**Requirement:** `REQ-MTR-100`
+
+- **Given** A mains meter of an inherently single-phase type (Eastron SDM120, Orno 1P)
+- **When** meter_mains_phase_count is called
+- **Then** It returns 1, while 3-phase types (Eastron SDM630=4, Sensorbox=1) return 3
+
+> Test: `test_mains_phase_count_by_type` in `test_meter_decode.c:674`
+
+### HomeWizard P1 phase count follows the meter's own report
+
+**Requirement:** `REQ-MTR-101`
+
+- **Given** A HomeWizard P1 mains meter
+- **When** meter_mains_phase_count is called with the P1-reported phase count
+- **Then** It returns 1 only when the P1 reports 1 phase; unknown (0) or 3 phases yield 3
+
+> Test: `test_mains_phase_count_homewizard` in `test_meter_decode.c:689`
+
+### Apparent power uses the Linky SINSTS reading when available
+
+**Requirement:** `REQ-MTR-102`
+
+- **Given** Linky telemetry is available with apparent_power = 5236.4 VA
+- **When** meter_apparent_power_va is called
+- **Then** It returns the rounded Linky value (5236 VA), ignoring the current argument
+
+> Test: `test_apparent_power_from_linky` in `test_meter_decode.c:703`
+
+### Apparent power falls back to a 230 V estimate without Linky data
+
+**Requirement:** `REQ-MTR-103`
+
+- **Given** No Linky telemetry and an L1 current of 16.0 A (160 dA), or -16.0 A when exporting
+- **When** meter_apparent_power_va is called
+- **Then** It returns |I| * 230 = 3680 VA in both directions
+
+> Test: `test_apparent_power_estimate` in `test_meter_decode.c:718`
 
 ---
 

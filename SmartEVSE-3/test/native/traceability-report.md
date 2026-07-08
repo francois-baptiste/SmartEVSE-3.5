@@ -1,6 +1,6 @@
 # SmartEVSE-3 Traceability Report
 
-**78 features** | **1202 scenarios** | **1202 with requirement IDs** | **100% coverage**
+**78 features** | **1206 scenarios** | **1206 with requirement IDs** | **100% coverage**
 
 ---
 
@@ -40,7 +40,7 @@
 | LED Color Configuration | 4 | 4 | 100% |
 | LED Color — Public Scheme | 14 | 14 | 100% |
 | Load Balancing | 18 | 18 | 100% |
-| Meter Decoding | 36 | 36 | 100% |
+| Meter Decoding | 40 | 40 | 100% |
 | Meter Timeout & Recovery | 12 | 12 | 100% |
 | Meter Telemetry | 13 | 13 | 100% |
 | Metering Diagnostics | 7 | 7 | 100% |
@@ -86,7 +86,7 @@
 | IEC 61851-1 State Transitions | 29 | 29 | 100% |
 | 10ms Tick Processing | 20 | 20 | 100% |
 | 1-Second Tick Processing | 23 | 23 | 100% |
-| **TOTAL** | **1202** | **1202** | **100%** |
+| **TOTAL** | **1206** | **1206** | **100%** |
 
 ## API Mains Staleness Detection
 
@@ -3609,44 +3609,48 @@
 | Requirement | Scenario | Test Function | Source |
 |-------------|----------|---------------|--------|
 | `REQ-MTR-040` | Register size returns correct byte count per data type | `test_register_size` | `test_meter_decode.c:1` |
-| `REQ-MTR-041` | HBF_HWF INT32: big-endian 0x00000064 decodes to 100 | `test_combine_hbf_hwf_int32` | `test_meter_decode.c:41` |
-| `REQ-MTR-042` | HBF_HWF INT16: big-endian 0x00C8 decodes to 200 | `test_combine_hbf_hwf_int16` | `test_meter_decode.c:56` |
-| `REQ-MTR-043` | HBF_HWF FLOAT32: big-endian IEEE 754 42.5f decodes correctly | `test_combine_hbf_hwf_float32` | `test_meter_decode.c:71` |
-| `REQ-MTR-044` | LBF_LWF INT32: little-endian 0x64000000 in bytes decodes to 100 | `test_combine_lbf_lwf_int32` | `test_meter_decode.c:90` |
-| `REQ-MTR-045` | LBF_LWF INT16: little-endian 0xC800 in bytes decodes to 200 | `test_combine_lbf_lwf_int16` | `test_meter_decode.c:105` |
-| `REQ-MTR-046` | HBF_LWF INT32: word-swapped big-endian decodes correctly | `test_combine_hbf_lwf_int32` | `test_meter_decode.c:122` |
-| `REQ-MTR-047` | LBF_HWF INT32: word-swapped little-endian decodes correctly | `test_combine_lbf_hwf_int32` | `test_meter_decode.c:145` |
-| `REQ-MTR-048` | INT32 with zero divisor returns raw value | `test_decode_int32_divisor_zero` | `test_meter_decode.c:166` |
-| `REQ-MTR-049` | INT32 with positive divisor divides by power of 10 | `test_decode_int32_positive_divisor` | `test_meter_decode.c:183` |
-| `REQ-MTR-050` | INT32 with negative divisor multiplies by power of 10 | `test_decode_int32_negative_divisor` | `test_meter_decode.c:199` |
-| `REQ-MTR-051` | INT16 positive value with divisor | `test_decode_int16_positive` | `test_meter_decode.c:218` |
-| `REQ-MTR-052` | INT16 sign extension: negative value 0xFFCE = -50 | `test_decode_int16_sign_extension` | `test_meter_decode.c:235` |
-| `REQ-MTR-053` | FLOAT32 with zero divisor returns truncated integer | `test_decode_float32_divisor_zero` | `test_meter_decode.c:254` |
-| `REQ-MTR-054` | FLOAT32 with negative divisor: multiply 2.345 by 1000 | `test_decode_float32_negative_divisor` | `test_meter_decode.c:271` |
-| `REQ-MTR-055` | FLOAT32 with positive divisor: divide 23450.0 by 10 | `test_decode_float32_positive_divisor` | `test_meter_decode.c:288` |
-| `REQ-MTR-056` | Index parameter selects correct register from buffer | `test_decode_index_offset` | `test_meter_decode.c:307` |
-| `REQ-MTR-057` | INT16 index offset uses 2-byte stride | `test_decode_int16_index_offset` | `test_meter_decode.c:333` |
-| `REQ-MTR-058` | Negative INT32 value decodes correctly | `test_decode_int32_negative` | `test_meter_decode.c:357` |
-| `REQ-MTR-059` | Negative FLOAT32 value decodes correctly | `test_decode_float32_negative` | `test_meter_decode.c:376` |
-| `REQ-MTR-060` | NULL buffer returns invalid result | `test_decode_null_buffer` | `test_meter_decode.c:395` |
-| `REQ-MTR-061` | Invalid datatype returns invalid result | `test_decode_invalid_datatype` | `test_meter_decode.c:409` |
-| `REQ-MTR-062` | Divisor out of pow10 range returns invalid result | `test_decode_divisor_out_of_range` | `test_meter_decode.c:424` |
-| `REQ-MTR-063` | NULL pointer to meter_combine_bytes does not crash | `test_combine_null_safety` | `test_meter_decode.c:439` |
-| `REQ-MTR-064` | Phoenix Contact meter HBF_LWF INT32 current reading | `test_phoenix_contact_current` | `test_meter_decode.c:458` |
-| `REQ-MTR-065` | Eastron SDM630 HBF_HWF FLOAT32 current reading | `test_eastron_float_current` | `test_meter_decode.c:477` |
-| `REQ-MTR-066` | Orno WE-517 3-phase current reading at register 0x0C | `test_orno3p_current` | `test_meter_decode.c:496` |
-| `REQ-MTR-067` | Orno WE-517 total active power reading | `test_orno3p_power` | `test_meter_decode.c:522` |
-| `REQ-MTR-068` | Orno WE-517 import energy reading in kWh | `test_orno3p_energy` | `test_meter_decode.c:539` |
-| `REQ-MTR-069` | Orno WE-517 negative power during export (solar feed-in) | `test_orno3p_negative_power` | `test_meter_decode.c:557` |
-| `REQ-MTR-087` | INT8_MIN divisor (-128) is rejected to avoid negation UB | `test_decode_divisor_int8_min` | `test_meter_decode.c:576` |
-| `REQ-MTR-088` | FLOAT32 NaN value from corrupt meter data is rejected | `test_decode_float32_nan_rejected` | `test_meter_decode.c:591` |
-| `REQ-MTR-089` | FLOAT32 Infinity value from corrupt meter data is rejected | `test_decode_float32_inf_rejected` | `test_meter_decode.c:607` |
-| `REQ-MTR-090` | INT32 multiplication overflow is detected and rejected | `test_decode_int32_multiply_overflow` | `test_meter_decode.c:623` |
-| `REQ-MTR-091` | INT32 multiplication that fits is still accepted | `test_decode_int32_multiply_max_valid` | `test_meter_decode.c:640` |
-| `REQ-MTR-092` | Negative INT32 multiplication overflow is detected | `test_decode_int32_negative_multiply_overflow` | `test_meter_decode.c:657` |
+| `REQ-MTR-041` | HBF_HWF INT32: big-endian 0x00000064 decodes to 100 | `test_combine_hbf_hwf_int32` | `test_meter_decode.c:42` |
+| `REQ-MTR-042` | HBF_HWF INT16: big-endian 0x00C8 decodes to 200 | `test_combine_hbf_hwf_int16` | `test_meter_decode.c:57` |
+| `REQ-MTR-043` | HBF_HWF FLOAT32: big-endian IEEE 754 42.5f decodes correctly | `test_combine_hbf_hwf_float32` | `test_meter_decode.c:72` |
+| `REQ-MTR-044` | LBF_LWF INT32: little-endian 0x64000000 in bytes decodes to 100 | `test_combine_lbf_lwf_int32` | `test_meter_decode.c:91` |
+| `REQ-MTR-045` | LBF_LWF INT16: little-endian 0xC800 in bytes decodes to 200 | `test_combine_lbf_lwf_int16` | `test_meter_decode.c:106` |
+| `REQ-MTR-046` | HBF_LWF INT32: word-swapped big-endian decodes correctly | `test_combine_hbf_lwf_int32` | `test_meter_decode.c:123` |
+| `REQ-MTR-047` | LBF_HWF INT32: word-swapped little-endian decodes correctly | `test_combine_lbf_hwf_int32` | `test_meter_decode.c:146` |
+| `REQ-MTR-048` | INT32 with zero divisor returns raw value | `test_decode_int32_divisor_zero` | `test_meter_decode.c:167` |
+| `REQ-MTR-049` | INT32 with positive divisor divides by power of 10 | `test_decode_int32_positive_divisor` | `test_meter_decode.c:184` |
+| `REQ-MTR-050` | INT32 with negative divisor multiplies by power of 10 | `test_decode_int32_negative_divisor` | `test_meter_decode.c:200` |
+| `REQ-MTR-051` | INT16 positive value with divisor | `test_decode_int16_positive` | `test_meter_decode.c:219` |
+| `REQ-MTR-052` | INT16 sign extension: negative value 0xFFCE = -50 | `test_decode_int16_sign_extension` | `test_meter_decode.c:236` |
+| `REQ-MTR-053` | FLOAT32 with zero divisor returns truncated integer | `test_decode_float32_divisor_zero` | `test_meter_decode.c:255` |
+| `REQ-MTR-054` | FLOAT32 with negative divisor: multiply 2.345 by 1000 | `test_decode_float32_negative_divisor` | `test_meter_decode.c:272` |
+| `REQ-MTR-055` | FLOAT32 with positive divisor: divide 23450.0 by 10 | `test_decode_float32_positive_divisor` | `test_meter_decode.c:289` |
+| `REQ-MTR-056` | Index parameter selects correct register from buffer | `test_decode_index_offset` | `test_meter_decode.c:308` |
+| `REQ-MTR-057` | INT16 index offset uses 2-byte stride | `test_decode_int16_index_offset` | `test_meter_decode.c:334` |
+| `REQ-MTR-058` | Negative INT32 value decodes correctly | `test_decode_int32_negative` | `test_meter_decode.c:358` |
+| `REQ-MTR-059` | Negative FLOAT32 value decodes correctly | `test_decode_float32_negative` | `test_meter_decode.c:377` |
+| `REQ-MTR-060` | NULL buffer returns invalid result | `test_decode_null_buffer` | `test_meter_decode.c:396` |
+| `REQ-MTR-061` | Invalid datatype returns invalid result | `test_decode_invalid_datatype` | `test_meter_decode.c:410` |
+| `REQ-MTR-062` | Divisor out of pow10 range returns invalid result | `test_decode_divisor_out_of_range` | `test_meter_decode.c:425` |
+| `REQ-MTR-063` | NULL pointer to meter_combine_bytes does not crash | `test_combine_null_safety` | `test_meter_decode.c:440` |
+| `REQ-MTR-064` | Phoenix Contact meter HBF_LWF INT32 current reading | `test_phoenix_contact_current` | `test_meter_decode.c:459` |
+| `REQ-MTR-065` | Eastron SDM630 HBF_HWF FLOAT32 current reading | `test_eastron_float_current` | `test_meter_decode.c:478` |
+| `REQ-MTR-066` | Orno WE-517 3-phase current reading at register 0x0C | `test_orno3p_current` | `test_meter_decode.c:497` |
+| `REQ-MTR-067` | Orno WE-517 total active power reading | `test_orno3p_power` | `test_meter_decode.c:523` |
+| `REQ-MTR-068` | Orno WE-517 import energy reading in kWh | `test_orno3p_energy` | `test_meter_decode.c:540` |
+| `REQ-MTR-069` | Orno WE-517 negative power during export (solar feed-in) | `test_orno3p_negative_power` | `test_meter_decode.c:558` |
+| `REQ-MTR-087` | INT8_MIN divisor (-128) is rejected to avoid negation UB | `test_decode_divisor_int8_min` | `test_meter_decode.c:577` |
+| `REQ-MTR-088` | FLOAT32 NaN value from corrupt meter data is rejected | `test_decode_float32_nan_rejected` | `test_meter_decode.c:592` |
+| `REQ-MTR-089` | FLOAT32 Infinity value from corrupt meter data is rejected | `test_decode_float32_inf_rejected` | `test_meter_decode.c:608` |
+| `REQ-MTR-090` | INT32 multiplication overflow is detected and rejected | `test_decode_int32_multiply_overflow` | `test_meter_decode.c:624` |
+| `REQ-MTR-091` | INT32 multiplication that fits is still accepted | `test_decode_int32_multiply_max_valid` | `test_meter_decode.c:641` |
+| `REQ-MTR-092` | Negative INT32 multiplication overflow is detected | `test_decode_int32_negative_multiply_overflow` | `test_meter_decode.c:658` |
+| `REQ-MTR-100` | Single-phase meter types report a 1-phase installation | `test_mains_phase_count_by_type` | `test_meter_decode.c:674` |
+| `REQ-MTR-101` | HomeWizard P1 phase count follows the meter's own report | `test_mains_phase_count_homewizard` | `test_meter_decode.c:689` |
+| `REQ-MTR-102` | Apparent power uses the Linky SINSTS reading when available | `test_apparent_power_from_linky` | `test_meter_decode.c:703` |
+| `REQ-MTR-103` | Apparent power falls back to a 230 V estimate without Linky data | `test_apparent_power_estimate` | `test_meter_decode.c:718` |
 
 <details>
-<summary>Detailed steps (36 scenarios)</summary>
+<summary>Detailed steps (40 scenarios)</summary>
 
 ### Register size returns correct byte count per data type
 **Requirement:** `REQ-MTR-040`
@@ -3899,6 +3903,34 @@
 - **Given** Buffer with large negative INT32 value and divisor=-3
 - **When** meter_decode_value is called
 - **Then** Result is invalid because value * 1000 would overflow
+
+### Single-phase meter types report a 1-phase installation
+**Requirement:** `REQ-MTR-100`
+
+- **Given** A mains meter of an inherently single-phase type (Eastron SDM120, Orno 1P)
+- **When** meter_mains_phase_count is called
+- **Then** It returns 1, while 3-phase types (Eastron SDM630=4, Sensorbox=1) return 3
+
+### HomeWizard P1 phase count follows the meter's own report
+**Requirement:** `REQ-MTR-101`
+
+- **Given** A HomeWizard P1 mains meter
+- **When** meter_mains_phase_count is called with the P1-reported phase count
+- **Then** It returns 1 only when the P1 reports 1 phase; unknown (0) or 3 phases yield 3
+
+### Apparent power uses the Linky SINSTS reading when available
+**Requirement:** `REQ-MTR-102`
+
+- **Given** Linky telemetry is available with apparent_power = 5236.4 VA
+- **When** meter_apparent_power_va is called
+- **Then** It returns the rounded Linky value (5236 VA), ignoring the current argument
+
+### Apparent power falls back to a 230 V estimate without Linky data
+**Requirement:** `REQ-MTR-103`
+
+- **Given** No Linky telemetry and an L1 current of 16.0 A (160 dA), or -16.0 A when exporting
+- **When** meter_apparent_power_va is called
+- **Then** It returns |I| * 230 = 3680 VA in both directions
 
 </details>
 

@@ -125,8 +125,8 @@ footer {
 <h1>SmartEVSE-3 Traceability Report</h1>
 <div class="summary">
 <div class="stat"><div class="number">78</div><div class="label">Features</div></div>
-<div class="stat"><div class="number">1202</div><div class="label">Test Scenarios</div></div>
-<div class="stat"><div class="number">1202</div><div class="label">With Requirements</div></div>
+<div class="stat"><div class="number">1206</div><div class="label">Test Scenarios</div></div>
+<div class="stat"><div class="number">1206</div><div class="label">With Requirements</div></div>
 <div class="stat"><div class="number">100%</div><div class="label">Requirement Coverage</div></div>
 </div>
 <div class="feature-section">
@@ -3412,7 +3412,7 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">Meter Decoding (36 scenarios)</div>
+<div class="feature-title">Meter Decoding (40 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -3433,245 +3433,273 @@ footer {
 <td>HBF_HWF INT32: big-endian 0x00000064 decodes to 100</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> 4 bytes in big-endian order representing value 100</li><li class="step-when"><span class="step-keyword">When</span> meter_combine_bytes is called with ENDIANNESS_HBF_HWF, INT32</li><li class="step-then"><span class="step-keyword">Then</span> Output equals 100</li></ul></td>
 <td><code>test_combine_hbf_hwf_int32</code></td>
-<td><span class="file-ref">test_meter_decode.c:41</span></td>
+<td><span class="file-ref">test_meter_decode.c:42</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-042</span></td>
 <td>HBF_HWF INT16: big-endian 0x00C8 decodes to 200</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> 2 bytes in big-endian order representing value 200</li><li class="step-when"><span class="step-keyword">When</span> meter_combine_bytes is called with ENDIANNESS_HBF_HWF, INT16</li><li class="step-then"><span class="step-keyword">Then</span> Output equals 200</li></ul></td>
 <td><code>test_combine_hbf_hwf_int16</code></td>
-<td><span class="file-ref">test_meter_decode.c:56</span></td>
+<td><span class="file-ref">test_meter_decode.c:57</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-043</span></td>
 <td>HBF_HWF FLOAT32: big-endian IEEE 754 42.5f decodes correctly</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> 4 bytes representing float 42.5 in big-endian</li><li class="step-when"><span class="step-keyword">When</span> meter_combine_bytes is called with ENDIANNESS_HBF_HWF, FLOAT32</li><li class="step-then"><span class="step-keyword">Then</span> Output float equals 42.5</li></ul></td>
 <td><code>test_combine_hbf_hwf_float32</code></td>
-<td><span class="file-ref">test_meter_decode.c:71</span></td>
+<td><span class="file-ref">test_meter_decode.c:72</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-044</span></td>
 <td>LBF_LWF INT32: little-endian 0x64000000 in bytes decodes to 100</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> 4 bytes in little-endian order representing value 100</li><li class="step-when"><span class="step-keyword">When</span> meter_combine_bytes is called with ENDIANNESS_LBF_LWF, INT32</li><li class="step-then"><span class="step-keyword">Then</span> Output equals 100</li></ul></td>
 <td><code>test_combine_lbf_lwf_int32</code></td>
-<td><span class="file-ref">test_meter_decode.c:90</span></td>
+<td><span class="file-ref">test_meter_decode.c:91</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-045</span></td>
 <td>LBF_LWF INT16: little-endian 0xC800 in bytes decodes to 200</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> 2 bytes in little-endian order representing value 200</li><li class="step-when"><span class="step-keyword">When</span> meter_combine_bytes is called with ENDIANNESS_LBF_LWF, INT16</li><li class="step-then"><span class="step-keyword">Then</span> Output equals 200</li></ul></td>
 <td><code>test_combine_lbf_lwf_int16</code></td>
-<td><span class="file-ref">test_meter_decode.c:105</span></td>
+<td><span class="file-ref">test_meter_decode.c:106</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-046</span></td>
 <td>HBF_LWF INT32: word-swapped big-endian decodes correctly</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> 4 bytes: low word [0x00, 0x01] then high word [0x00, 0x00] = value 1</li><li class="step-when"><span class="step-keyword">When</span> meter_combine_bytes is called with ENDIANNESS_HBF_LWF, INT32</li><li class="step-then"><span class="step-keyword">Then</span> Output equals 1</li></ul></td>
 <td><code>test_combine_hbf_lwf_int32</code></td>
-<td><span class="file-ref">test_meter_decode.c:122</span></td>
+<td><span class="file-ref">test_meter_decode.c:123</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-047</span></td>
 <td>LBF_HWF INT32: word-swapped little-endian decodes correctly</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> 4 bytes: high word [0x00, 0x00] then low word [0x64, 0x00] = value 100</li><li class="step-when"><span class="step-keyword">When</span> meter_combine_bytes is called with ENDIANNESS_LBF_HWF, INT32</li><li class="step-then"><span class="step-keyword">Then</span> Output equals 100</li></ul></td>
 <td><code>test_combine_lbf_hwf_int32</code></td>
-<td><span class="file-ref">test_meter_decode.c:145</span></td>
+<td><span class="file-ref">test_meter_decode.c:146</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-048</span></td>
 <td>INT32 with zero divisor returns raw value</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Big-endian INT32 buffer with value 12345</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with divisor=0</li><li class="step-then"><span class="step-keyword">Then</span> Result value is 12345</li></ul></td>
 <td><code>test_decode_int32_divisor_zero</code></td>
-<td><span class="file-ref">test_meter_decode.c:166</span></td>
+<td><span class="file-ref">test_meter_decode.c:167</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-049</span></td>
 <td>INT32 with positive divisor divides by power of 10</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Big-endian INT32 buffer with value 12345</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with divisor=2 (divide by 100)</li><li class="step-then"><span class="step-keyword">Then</span> Result value is 123</li></ul></td>
 <td><code>test_decode_int32_positive_divisor</code></td>
-<td><span class="file-ref">test_meter_decode.c:183</span></td>
+<td><span class="file-ref">test_meter_decode.c:184</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-050</span></td>
 <td>INT32 with negative divisor multiplies by power of 10</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Big-endian INT32 buffer with value 42</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with divisor=-3 (multiply by 1000)</li><li class="step-then"><span class="step-keyword">Then</span> Result value is 42000</li></ul></td>
 <td><code>test_decode_int32_negative_divisor</code></td>
-<td><span class="file-ref">test_meter_decode.c:199</span></td>
+<td><span class="file-ref">test_meter_decode.c:200</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-051</span></td>
 <td>INT16 positive value with divisor</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Big-endian INT16 buffer with value 2500</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with divisor=1 (divide by 10)</li><li class="step-then"><span class="step-keyword">Then</span> Result value is 250</li></ul></td>
 <td><code>test_decode_int16_positive</code></td>
-<td><span class="file-ref">test_meter_decode.c:218</span></td>
+<td><span class="file-ref">test_meter_decode.c:219</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-052</span></td>
 <td>INT16 sign extension: negative value 0xFFCE = -50</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Big-endian INT16 buffer with value -50 (0xFFCE)</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with divisor=0</li><li class="step-then"><span class="step-keyword">Then</span> Result value is -50 (sign-extended to 32-bit)</li></ul></td>
 <td><code>test_decode_int16_sign_extension</code></td>
-<td><span class="file-ref">test_meter_decode.c:235</span></td>
+<td><span class="file-ref">test_meter_decode.c:236</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-053</span></td>
 <td>FLOAT32 with zero divisor returns truncated integer</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Big-endian FLOAT32 buffer with value 230.5</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with divisor=0</li><li class="step-then"><span class="step-keyword">Then</span> Result value is 230 (truncated from 230.5)</li></ul></td>
 <td><code>test_decode_float32_divisor_zero</code></td>
-<td><span class="file-ref">test_meter_decode.c:254</span></td>
+<td><span class="file-ref">test_meter_decode.c:255</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-054</span></td>
 <td>FLOAT32 with negative divisor: multiply 2.345 by 1000</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Big-endian FLOAT32 buffer with value 2.345</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with divisor=-3 (multiply by 1000)</li><li class="step-then"><span class="step-keyword">Then</span> Result value is 2345</li></ul></td>
 <td><code>test_decode_float32_negative_divisor</code></td>
-<td><span class="file-ref">test_meter_decode.c:271</span></td>
+<td><span class="file-ref">test_meter_decode.c:272</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-055</span></td>
 <td>FLOAT32 with positive divisor: divide 23450.0 by 10</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Big-endian FLOAT32 buffer with value 23450.0</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with divisor=1 (divide by 10)</li><li class="step-then"><span class="step-keyword">Then</span> Result value is 2345</li></ul></td>
 <td><code>test_decode_float32_positive_divisor</code></td>
-<td><span class="file-ref">test_meter_decode.c:288</span></td>
+<td><span class="file-ref">test_meter_decode.c:289</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-056</span></td>
 <td>Index parameter selects correct register from buffer</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A buffer with 3 INT32 values in big-endian: [100, 200, 300]</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with index=0, 1, and 2</li><li class="step-then"><span class="step-keyword">Then</span> Returns 100, 200, 300 respectively</li></ul></td>
 <td><code>test_decode_index_offset</code></td>
-<td><span class="file-ref">test_meter_decode.c:307</span></td>
+<td><span class="file-ref">test_meter_decode.c:308</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-057</span></td>
 <td>INT16 index offset uses 2-byte stride</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A buffer with 3 INT16 values in big-endian: [10, 20, 30]</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with index=0, 1, and 2</li><li class="step-then"><span class="step-keyword">Then</span> Returns 10, 20, 30 respectively</li></ul></td>
 <td><code>test_decode_int16_index_offset</code></td>
-<td><span class="file-ref">test_meter_decode.c:333</span></td>
+<td><span class="file-ref">test_meter_decode.c:334</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-058</span></td>
 <td>Negative INT32 value decodes correctly</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Big-endian INT32 buffer with value -1000 (0xFFFFFC18)</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with divisor=0</li><li class="step-then"><span class="step-keyword">Then</span> Result value is -1000</li></ul></td>
 <td><code>test_decode_int32_negative</code></td>
-<td><span class="file-ref">test_meter_decode.c:357</span></td>
+<td><span class="file-ref">test_meter_decode.c:358</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-059</span></td>
 <td>Negative FLOAT32 value decodes correctly</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Big-endian FLOAT32 buffer with value -5.0</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with divisor=0</li><li class="step-then"><span class="step-keyword">Then</span> Result value is -5</li></ul></td>
 <td><code>test_decode_float32_negative</code></td>
-<td><span class="file-ref">test_meter_decode.c:376</span></td>
+<td><span class="file-ref">test_meter_decode.c:377</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-060</span></td>
 <td>NULL buffer returns invalid result</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A NULL buffer pointer</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called</li><li class="step-then"><span class="step-keyword">Then</span> Result valid is 0</li></ul></td>
 <td><code>test_decode_null_buffer</code></td>
-<td><span class="file-ref">test_meter_decode.c:395</span></td>
+<td><span class="file-ref">test_meter_decode.c:396</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-061</span></td>
 <td>Invalid datatype returns invalid result</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid buffer but datatype=METER_DATATYPE_MAX (out of range)</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called</li><li class="step-then"><span class="step-keyword">Then</span> Result valid is 0</li></ul></td>
 <td><code>test_decode_invalid_datatype</code></td>
-<td><span class="file-ref">test_meter_decode.c:409</span></td>
+<td><span class="file-ref">test_meter_decode.c:410</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-062</span></td>
 <td>Divisor out of pow10 range returns invalid result</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid buffer with divisor=10 (exceeds pow10_table size)</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called</li><li class="step-then"><span class="step-keyword">Then</span> Result valid is 0</li></ul></td>
 <td><code>test_decode_divisor_out_of_range</code></td>
-<td><span class="file-ref">test_meter_decode.c:424</span></td>
+<td><span class="file-ref">test_meter_decode.c:425</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-063</span></td>
 <td>NULL pointer to meter_combine_bytes does not crash</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> NULL out and buf pointers</li><li class="step-when"><span class="step-keyword">When</span> meter_combine_bytes is called</li><li class="step-then"><span class="step-keyword">Then</span> No crash occurs</li></ul></td>
 <td><code>test_combine_null_safety</code></td>
-<td><span class="file-ref">test_meter_decode.c:439</span></td>
+<td><span class="file-ref">test_meter_decode.c:440</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-064</span></td>
 <td>Phoenix Contact meter HBF_LWF INT32 current reading</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Phoenix Contact response with current 23.12A encoded as 23120 mA in HBF_LWF INT32</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with divisor=3 (divide by 1000 to get 0.1A units)</li><li class="step-then"><span class="step-keyword">Then</span> Result value is 23 (23.12A in deciAmpere after /1000 = 23)</li></ul></td>
 <td><code>test_phoenix_contact_current</code></td>
-<td><span class="file-ref">test_meter_decode.c:458</span></td>
+<td><span class="file-ref">test_meter_decode.c:459</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-065</span></td>
 <td>Eastron SDM630 HBF_HWF FLOAT32 current reading</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Eastron response with 16.5A encoded as IEEE 754 float in HBF_HWF</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with divisor=-3 (multiply by 1000 for mA)</li><li class="step-then"><span class="step-keyword">Then</span> Result value is 16500 (mA)</li></ul></td>
 <td><code>test_eastron_float_current</code></td>
-<td><span class="file-ref">test_meter_decode.c:477</span></td>
+<td><span class="file-ref">test_meter_decode.c:478</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-066</span></td>
 <td>Orno WE-517 3-phase current reading at register 0x0C</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Orno response with 3 phase currents [8.5A, 12.3A, 6.7A] as FLOAT32 HBF_HWF</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called for indices 0, 1, 2 with divisor=0</li><li class="step-then"><span class="step-keyword">Then</span> Returns 8, 12, 6 (truncated integer amps)</li></ul></td>
 <td><code>test_orno3p_current</code></td>
-<td><span class="file-ref">test_meter_decode.c:496</span></td>
+<td><span class="file-ref">test_meter_decode.c:497</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-067</span></td>
 <td>Orno WE-517 total active power reading</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Orno response with total power 3456.7W as FLOAT32 HBF_HWF at register 0x1C</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with divisor=0</li><li class="step-then"><span class="step-keyword">Then</span> Returns 3456</li></ul></td>
 <td><code>test_orno3p_power</code></td>
-<td><span class="file-ref">test_meter_decode.c:522</span></td>
+<td><span class="file-ref">test_meter_decode.c:523</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-068</span></td>
 <td>Orno WE-517 import energy reading in kWh</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Orno response with 1234.567 kWh as FLOAT32 HBF_HWF at register 0x0100</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with divisor=-3 (multiply by 1000 to get Wh)</li><li class="step-then"><span class="step-keyword">Then</span> Returns 1234567 (Wh)</li></ul></td>
 <td><code>test_orno3p_energy</code></td>
-<td><span class="file-ref">test_meter_decode.c:539</span></td>
+<td><span class="file-ref">test_meter_decode.c:540</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-069</span></td>
 <td>Orno WE-517 negative power during export (solar feed-in)</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Orno response with -1500.0W as FLOAT32 HBF_HWF</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with divisor=0</li><li class="step-then"><span class="step-keyword">Then</span> Returns -1500</li></ul></td>
 <td><code>test_orno3p_negative_power</code></td>
-<td><span class="file-ref">test_meter_decode.c:557</span></td>
+<td><span class="file-ref">test_meter_decode.c:558</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-087</span></td>
 <td>INT8_MIN divisor (-128) is rejected to avoid negation UB</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid buffer and divisor=-128 (INT8_MIN)</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called</li><li class="step-then"><span class="step-keyword">Then</span> Result is invalid because -128 is outside pow10 table range</li></ul></td>
 <td><code>test_decode_divisor_int8_min</code></td>
-<td><span class="file-ref">test_meter_decode.c:576</span></td>
+<td><span class="file-ref">test_meter_decode.c:577</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-088</span></td>
 <td>FLOAT32 NaN value from corrupt meter data is rejected</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Buffer containing IEEE 754 NaN bit pattern (0x7FC00000)</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with FLOAT32 datatype</li><li class="step-then"><span class="step-keyword">Then</span> Result is invalid</li></ul></td>
 <td><code>test_decode_float32_nan_rejected</code></td>
-<td><span class="file-ref">test_meter_decode.c:591</span></td>
+<td><span class="file-ref">test_meter_decode.c:592</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-089</span></td>
 <td>FLOAT32 Infinity value from corrupt meter data is rejected</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Buffer containing IEEE 754 +Infinity bit pattern (0x7F800000)</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with FLOAT32 datatype</li><li class="step-then"><span class="step-keyword">Then</span> Result is invalid</li></ul></td>
 <td><code>test_decode_float32_inf_rejected</code></td>
-<td><span class="file-ref">test_meter_decode.c:607</span></td>
+<td><span class="file-ref">test_meter_decode.c:608</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-090</span></td>
 <td>INT32 multiplication overflow is detected and rejected</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Buffer with INT32 value near INT32_MAX/1000 and divisor=-3</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called</li><li class="step-then"><span class="step-keyword">Then</span> Result is invalid because value * 1000 would overflow int32_t</li></ul></td>
 <td><code>test_decode_int32_multiply_overflow</code></td>
-<td><span class="file-ref">test_meter_decode.c:623</span></td>
+<td><span class="file-ref">test_meter_decode.c:624</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-091</span></td>
 <td>INT32 multiplication that fits is still accepted</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Buffer with INT32 value 2147483 and divisor=-3</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called</li><li class="step-then"><span class="step-keyword">Then</span> Result is valid with value 2147483000</li></ul></td>
 <td><code>test_decode_int32_multiply_max_valid</code></td>
-<td><span class="file-ref">test_meter_decode.c:640</span></td>
+<td><span class="file-ref">test_meter_decode.c:641</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MTR-092</span></td>
 <td>Negative INT32 multiplication overflow is detected</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Buffer with large negative INT32 value and divisor=-3</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called</li><li class="step-then"><span class="step-keyword">Then</span> Result is invalid because value * 1000 would overflow</li></ul></td>
 <td><code>test_decode_int32_negative_multiply_overflow</code></td>
-<td><span class="file-ref">test_meter_decode.c:657</span></td>
+<td><span class="file-ref">test_meter_decode.c:658</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MTR-100</span></td>
+<td>Single-phase meter types report a 1-phase installation</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A mains meter of an inherently single-phase type (Eastron SDM120, Orno 1P)</li><li class="step-when"><span class="step-keyword">When</span> meter_mains_phase_count is called</li><li class="step-then"><span class="step-keyword">Then</span> It returns 1, while 3-phase types (Eastron SDM630=4, Sensorbox=1) return 3</li></ul></td>
+<td><code>test_mains_phase_count_by_type</code></td>
+<td><span class="file-ref">test_meter_decode.c:674</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MTR-101</span></td>
+<td>HomeWizard P1 phase count follows the meter&#x27;s own report</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A HomeWizard P1 mains meter</li><li class="step-when"><span class="step-keyword">When</span> meter_mains_phase_count is called with the P1-reported phase count</li><li class="step-then"><span class="step-keyword">Then</span> It returns 1 only when the P1 reports 1 phase; unknown (0) or 3 phases yield 3</li></ul></td>
+<td><code>test_mains_phase_count_homewizard</code></td>
+<td><span class="file-ref">test_meter_decode.c:689</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MTR-102</span></td>
+<td>Apparent power uses the Linky SINSTS reading when available</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Linky telemetry is available with apparent_power = 5236.4 VA</li><li class="step-when"><span class="step-keyword">When</span> meter_apparent_power_va is called</li><li class="step-then"><span class="step-keyword">Then</span> It returns the rounded Linky value (5236 VA), ignoring the current argument</li></ul></td>
+<td><code>test_apparent_power_from_linky</code></td>
+<td><span class="file-ref">test_meter_decode.c:703</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MTR-103</span></td>
+<td>Apparent power falls back to a 230 V estimate without Linky data</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> No Linky telemetry and an L1 current of 16.0 A (160 dA), or -16.0 A when exporting</li><li class="step-when"><span class="step-keyword">When</span> meter_apparent_power_va is called</li><li class="step-then"><span class="step-keyword">Then</span> It returns |I| * 230 = 3680 VA in both directions</li></ul></td>
+<td><code>test_apparent_power_estimate</code></td>
+<td><span class="file-ref">test_meter_decode.c:718</span></td>
 </tr>
 </tbody></table>
 </div>
