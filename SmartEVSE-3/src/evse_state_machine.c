@@ -314,13 +314,6 @@ void evse_set_access(evse_ctx_t *ctx, AccessStatus_t access) {
     if (access == OFF || access == PAUSE) {
         if (ctx->State == STATE_C)
             evse_set_state(ctx, STATE_C1);
-        else if (access == PAUSE && ctx->State == STATE_B)
-            // PAUSE keeps STATE_B: the PWM stays on (IEC 61851 state B2) so the
-            // vehicle keeps the cable locked while waiting for off-peak hours.
-            // Energy stays blocked because B->C requires AccessStatus == ON.
-            // Do NOT drop to 5% duty here: cars without ISO 15118 (BMW i3)
-            // attempt SLAC on it, fail, and latch a fault.
-            ctx->ActivationMode = 255;               // no activation pulse while paused
         else if (ctx->State != STATE_C1 &&
                  (ctx->State == STATE_B ||
                   ctx->State == STATE_MODEM_REQUEST ||
@@ -1397,20 +1390,6 @@ void evse_tick_10ms(evse_ctx_t *ctx, uint8_t pilot) {
             } else {
                 evse_set_error_flags(ctx, LESS_6A);
             }
-        } else if (pilot == PILOT_9V && ctx->AccessStatus == PAUSE &&
-                   ctx->State != STATE_COMM_B && ctx->ChargeDelay == 0 &&
-                   ctx->ErrorFlags == NO_ERROR) {
-            // PAUSE (Linky HP wait / delayed charging): present STATE_B so the PWM
-            // stays on (IEC 61851 state B2) and the vehicle keeps the cable locked.
-            // Contactors stay open and B->C is blocked because it requires
-            // AccessStatus == ON, so no energy flows until access returns to ON.
-            ctx->DiodeCheck = 0;
-            if (ctx->MaxCurrent > ctx->MaxCapacity && ctx->MaxCapacity)
-                ctx->ChargeCurrent = ctx->MaxCapacity * 10;   // mirror A->B init above
-            else
-                ctx->ChargeCurrent = ctx->MinCurrent * 10;
-            evse_set_state(ctx, STATE_B);
-            ctx->ActivationMode = 255;               // no activation pulse while paused
         } else if (pilot == PILOT_9V && ctx->State != STATE_B1 &&
                    ctx->State != STATE_COMM_B && ctx->AccessStatus == ON) {
             // Errors or ChargeDelay prevent full transition, go to B1 (line 3127-3128)

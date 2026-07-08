@@ -624,7 +624,7 @@ void setMode(uint8_t NewMode) {
         return;
 
     // Take care of extra conditionals/checks for custom features
-    setAccess(DelayedStartTime.epoch2 ? PAUSE : ON); //if DelayedStartTime not zero then we are Delayed Charging (PAUSE keeps the cable locked)
+    setAccess(DelayedStartTime.epoch2 ? OFF : ON); //if DelayedStartTime not zero then we are Delayed Charging
     if (NewMode == MODE_SOLAR) {
         // Reset OverrideCurrent if mode is SOLAR
         setOverrideCurrent(0);
@@ -2160,8 +2160,7 @@ void ModbusRequestLoop() {
                 }
                 if (LoadBl == 1 && !(ErrorFlags & CT_NOCOMM) ) BroadcastCurrent();               // When there is no Comm Error, Master sends current to all connected EVSE's
 
-                if ((State == STATE_B || State == STATE_C) && !CPDutyOverride) // set PWM output for Master //mind you, the !CPDutyOverride was not checked in Smart/Solar mode, but I think this was a bug!
-                    SetCurrent(AccessStatus == PAUSE ? MinCurrent * 10 : Balanced[0]); // while PAUSEd advertise MinCurrent so the car keeps the cable locked; B->C stays blocked so no energy flows (5% duty is NOT usable here: non-ISO15118 cars like the BMW i3 attempt SLAC on it, fail and latch a fault)
+                if ((State == STATE_B || State == STATE_C) && !CPDutyOverride) SetCurrent(Balanced[0]); // set PWM output for Master //mind you, the !CPDutyOverride was not checked in Smart/Solar mode, but I think this was a bug!
                 ModbusRequest = 0;
                 //_LOG_A("Timer100ms task free ram: %u\n", uxTaskGetStackHighWaterMark( NULL ));
                 break;

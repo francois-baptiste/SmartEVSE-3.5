@@ -3088,15 +3088,13 @@ void loop() {
             }
         }
 
-        // Delayed charging (web UI starttime/stoptime). Uses PAUSE, not OFF, so the
-        // state machine presents STATE_B (9V + PWM) and the vehicle keeps the cable
-        // locked while waiting for the start time (restored from pre-8b2fdb3, was OFF).
+        // Delayed charging (web UI starttime/stoptime), upstream logic.
         if (DelayedStartTime.epoch2 && LocalTimeSet) {
             time_t now = time(nullptr);             //get current local time
             DelayedStartTime.diff = DelayedStartTime.epoch2 - (mktime(localtime(&now)) - EPOCH2_OFFSET);
             if (DelayedStartTime.diff > 0) {
-                if (AccessStatus != PAUSE && (DelayedStopTime.epoch2 == 0 || DelayedStopTime.epoch2 > DelayedStartTime.epoch2))
-                    setAccess(PAUSE);               //waiting for start time: cable locked, no energy
+                if (AccessStatus != OFF && (DelayedStopTime.epoch2 == 0 || DelayedStopTime.epoch2 > DelayedStartTime.epoch2))
+                    setAccess(OFF);                 //switch to OFF, we are Delayed Charging
             }
             else {
                 //starttime has passed: start charging
@@ -3117,7 +3115,7 @@ void loop() {
                     DelayedStopTime.epoch2 += 24 * 3600;                        //add 24 hours so we now have a new stoptime
                 else
                     DelayedStopTime.epoch2 = DELAYEDSTOPTIME;
-                setAccess(PAUSE);                   //stop energy but keep the cable locked
+                setAccess(OFF);                     //switch to OFF, stoptime reached
             }
         }
 
