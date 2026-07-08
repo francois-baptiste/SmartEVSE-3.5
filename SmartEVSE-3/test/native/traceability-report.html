@@ -125,8 +125,8 @@ footer {
 <h1>SmartEVSE-3 Traceability Report</h1>
 <div class="summary">
 <div class="stat"><div class="number">78</div><div class="label">Features</div></div>
-<div class="stat"><div class="number">1208</div><div class="label">Test Scenarios</div></div>
-<div class="stat"><div class="number">1208</div><div class="label">With Requirements</div></div>
+<div class="stat"><div class="number">1210</div><div class="label">Test Scenarios</div></div>
+<div class="stat"><div class="number">1210</div><div class="label">With Requirements</div></div>
 <div class="stat"><div class="number">100%</div><div class="label">Requirement Coverage</div></div>
 </div>
 <div class="feature-section">
@@ -467,16 +467,16 @@ footer {
 <tr>
 <td><span class="req-tag">REQ-AUTH-034</span></td>
 <td>Resuming from PAUSE re-plugs the pilot and then allows charging</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The EVSE is in STATE_B with AccessStatus PAUSE (car possibly in a latched fault)</li><li class="step-when"><span class="step-keyword">When</span> Access is set to ON (off-peak begins), the 3s activation pulse completes,</li><li class="step-then"><span class="step-keyword">Then</span> The state goes B -&gt; ACTSTART -&gt; B -&gt; C and charging starts</li></ul></td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The EVSE is in STATE_B with AccessStatus PAUSE (car possibly in a latched fault)</li><li class="step-when"><span class="step-keyword">When</span> Access is set to ON (off-peak begins), the 5s pilot float completes,</li><li class="step-then"><span class="step-keyword">Then</span> The state goes B -&gt; B1 (pilot floating) -&gt; B -&gt; C and charging starts</li></ul></td>
 <td><code>test_resume_from_pause_starts_charging</code></td>
 <td><span class="file-ref">test_authorization.c:613</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-AUTH-036</span></td>
-<td>PAUSE-&gt;ON resume fires the activation pulse to clear latched car faults</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The EVSE is in STATE_B with AccessStatus PAUSE (e.g. BMW i3 faulted after</li><li class="step-when"><span class="step-keyword">When</span> evse_set_access is called with ON (off-peak begins)</li><li class="step-then"><span class="step-keyword">Then</span> The state goes to STATE_ACTSTART with CP duty 0 (simulated re-plug) for 3s,</li></ul></td>
+<td>PAUSE-&gt;ON resume floats the pilot to clear latched car faults</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The EVSE is in STATE_B with AccessStatus PAUSE (e.g. BMW i3 faulted after</li><li class="step-when"><span class="step-keyword">When</span> evse_set_access is called with ON (off-peak begins)</li><li class="step-then"><span class="step-keyword">Then</span> The state goes to STATE_B1 with the pilot disconnected (floating CP = simulated</li></ul></td>
 <td><code>test_resume_from_pause_fires_activation_pulse</code></td>
-<td><span class="file-ref">test_authorization.c:642</span></td>
+<td><span class="file-ref">test_authorization.c:643</span></td>
 </tr>
 </tbody></table>
 </div>
@@ -2326,7 +2326,7 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">EVCC IEC 61851 State Mapping (11 scenarios)</div>
+<div class="feature-title">EVCC IEC 61851 State Mapping (13 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -2411,6 +2411,20 @@ footer {
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The EVSE is in NOSTATE or an unrecognized state value</li><li class="step-when"><span class="step-keyword">When</span> evse_state_to_iec61851 is called</li><li class="step-then"><span class="step-keyword">Then</span> It returns &#x27;F&#x27; indicating EVSE not available</li></ul></td>
 <td><code>test_iec61851_nostate_and_unknown</code></td>
 <td><span class="file-ref">test_http_api.c:777</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-API-026</span></td>
+<td>B/C substates are refined with the PWM digit for display</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The EVSE is in STATE_B1 (no PWM), STATE_B (PWM on), STATE_C1 (PWM off,</li><li class="step-when"><span class="step-keyword">When</span> evse_state_to_iec61851_substate is called</li><li class="step-then"><span class="step-keyword">Then</span> It returns &quot;B1&quot;, &quot;B2&quot;, &quot;C1&quot;, &quot;C2&quot; respectively</li></ul></td>
+<td><code>test_iec61851_substate_b_c</code></td>
+<td><span class="file-ref">test_http_api.c:934</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-API-026</span></td>
+<td>Non-substate states fall back to the plain IEC 61851 letter</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The EVSE is in STATE_A (no errors) or has a hard error flag set</li><li class="step-when"><span class="step-keyword">When</span> evse_state_to_iec61851_substate is called</li><li class="step-then"><span class="step-keyword">Then</span> It returns the same letter evse_state_to_iec61851 would (&quot;A&quot;, &quot;E&quot;)</li></ul></td>
+<td><code>test_iec61851_substate_fallback</code></td>
+<td><span class="file-ref">test_http_api.c:950</span></td>
 </tr>
 </tbody></table>
 </div>
@@ -2523,7 +2537,7 @@ footer {
 <td>Unsigned upload gate always allows regardless of build type or PIN</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Any combination of build type, PIN, and PIN-verified state</li><li class="step-when"><span class="step-keyword">When</span> /update receives an unsigned firmware.bin</li><li class="step-then"><span class="step-keyword">Then</span> http_api_allow_unsigned_upload returns true unconditionally</li></ul></td>
 <td><code>test_unsigned_upload_always_allowed</code></td>
-<td><span class="file-ref">test_http_api.c:938</span></td>
+<td><span class="file-ref">test_http_api.c:971</span></td>
 </tr>
 </tbody></table>
 </div>

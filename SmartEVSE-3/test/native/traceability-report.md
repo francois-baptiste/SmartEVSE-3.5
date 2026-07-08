@@ -1,6 +1,6 @@
 # SmartEVSE-3 Traceability Report
 
-**78 features** | **1208 scenarios** | **1208 with requirement IDs** | **100% coverage**
+**78 features** | **1210 scenarios** | **1210 with requirement IDs** | **100% coverage**
 
 ---
 
@@ -30,7 +30,7 @@
 | HTTP API Input Validation | 24 | 24 | 100% |
 | HTTP API Validation | 23 | 23 | 100% |
 | HTTP API Settings Validation | 7 | 7 | 100% |
-| EVCC IEC 61851 State Mapping | 11 | 11 | 100% |
+| EVCC IEC 61851 State Mapping | 13 | 13 | 100% |
 | EVCC Charging Enabled | 3 | 3 | 100% |
 | EVCC Phase Switch Validation | 7 | 7 | 100% |
 | Unsigned firmware upload | 1 | 1 | 100% |
@@ -86,7 +86,7 @@
 | IEC 61851-1 State Transitions | 29 | 29 | 100% |
 | 10ms Tick Processing | 20 | 20 | 100% |
 | 1-Second Tick Processing | 23 | 23 | 100% |
-| **TOTAL** | **1208** | **1208** | **100%** |
+| **TOTAL** | **1210** | **1210** | **100%** |
 
 ## API Mains Staleness Detection
 
@@ -265,7 +265,7 @@
 | `REQ-AUTH-032` | Revoking access (OFF) in STATE_B still demotes to STATE_B1 | `test_set_access_off_from_B_still_goes_B1` | `test_authorization.c:567` |
 | `REQ-AUTH-033` | Pause during charging stops current, then re-presents STATE_B after ChargeDelay | `test_pause_while_charging_recovers_to_B` | `test_authorization.c:584` |
 | `REQ-AUTH-034` | Resuming from PAUSE re-plugs the pilot and then allows charging | `test_resume_from_pause_starts_charging` | `test_authorization.c:613` |
-| `REQ-AUTH-036` | PAUSE->ON resume fires the activation pulse to clear latched car faults | `test_resume_from_pause_fires_activation_pulse` | `test_authorization.c:642` |
+| `REQ-AUTH-036` | PAUSE->ON resume floats the pilot to clear latched car faults | `test_resume_from_pause_fires_activation_pulse` | `test_authorization.c:643` |
 
 <details>
 <summary>Detailed steps (30 scenarios)</summary>
@@ -473,15 +473,15 @@
 **Requirement:** `REQ-AUTH-034`
 
 - **Given** The EVSE is in STATE_B with AccessStatus PAUSE (car possibly in a latched fault)
-- **When** Access is set to ON (off-peak begins), the 3s activation pulse completes,
-- **Then** The state goes B -> ACTSTART -> B -> C and charging starts
+- **When** Access is set to ON (off-peak begins), the 5s pilot float completes,
+- **Then** The state goes B -> B1 (pilot floating) -> B -> C and charging starts
 
-### PAUSE->ON resume fires the activation pulse to clear latched car faults
+### PAUSE->ON resume floats the pilot to clear latched car faults
 **Requirement:** `REQ-AUTH-036`
 
 - **Given** The EVSE is in STATE_B with AccessStatus PAUSE (e.g. BMW i3 faulted after
 - **When** evse_set_access is called with ON (off-peak begins)
-- **Then** The state goes to STATE_ACTSTART with CP duty 0 (simulated re-plug) for 3s,
+- **Then** The state goes to STATE_B1 with the pilot disconnected (floating CP = simulated
 
 </details>
 
@@ -2434,9 +2434,11 @@
 | `REQ-API-022` | Hard error flags override state to E (error) | `test_iec61851_hard_error_overrides_state` | `test_http_api.c:748` |
 | `REQ-API-022` | Soft errors (LESS_6A, NO_SUN) do NOT override state | `test_iec61851_soft_errors_no_override` | `test_http_api.c:763` |
 | `REQ-API-023` | NOSTATE and unknown values map to F (not available) | `test_iec61851_nostate_and_unknown` | `test_http_api.c:777` |
+| `REQ-API-026` | B/C substates are refined with the PWM digit for display | `test_iec61851_substate_b_c` | `test_http_api.c:934` |
+| `REQ-API-026` | Non-substate states fall back to the plain IEC 61851 letter | `test_iec61851_substate_fallback` | `test_http_api.c:950` |
 
 <details>
-<summary>Detailed steps (11 scenarios)</summary>
+<summary>Detailed steps (13 scenarios)</summary>
 
 ### STATE_A maps to IEC 61851 state A (standby)
 **Requirement:** `REQ-API-020`
@@ -2514,6 +2516,20 @@
 - **Given** The EVSE is in NOSTATE or an unrecognized state value
 - **When** evse_state_to_iec61851 is called
 - **Then** It returns 'F' indicating EVSE not available
+
+### B/C substates are refined with the PWM digit for display
+**Requirement:** `REQ-API-026`
+
+- **Given** The EVSE is in STATE_B1 (no PWM), STATE_B (PWM on), STATE_C1 (PWM off,
+- **When** evse_state_to_iec61851_substate is called
+- **Then** It returns "B1", "B2", "C1", "C2" respectively
+
+### Non-substate states fall back to the plain IEC 61851 letter
+**Requirement:** `REQ-API-026`
+
+- **Given** The EVSE is in STATE_A (no errors) or has a hard error flag set
+- **When** evse_state_to_iec61851_substate is called
+- **Then** It returns the same letter evse_state_to_iec61851 would ("A", "E")
 
 </details>
 
@@ -2627,7 +2643,7 @@
 
 | Requirement | Scenario | Test Function | Source |
 |-------------|----------|---------------|--------|
-| `REQ-API-020` | Unsigned upload gate always allows regardless of build type or PIN | `test_unsigned_upload_always_allowed` | `test_http_api.c:938` |
+| `REQ-API-020` | Unsigned upload gate always allows regardless of build type or PIN | `test_unsigned_upload_always_allowed` | `test_http_api.c:971` |
 
 <details>
 <summary>Detailed steps (1 scenarios)</summary>

@@ -1,6 +1,6 @@
 # SmartEVSE-3 Test Specification
 
-**78 features** | **1208 scenarios** | **1208 with requirement IDs**
+**78 features** | **1210 scenarios** | **1210 with requirement IDs**
 
 ---
 
@@ -533,20 +533,20 @@
 **Requirement:** `REQ-AUTH-034`
 
 - **Given** The EVSE is in STATE_B with AccessStatus PAUSE (car possibly in a latched fault)
-- **When** Access is set to ON (off-peak begins), the 3s activation pulse completes,
-- **Then** The state goes B -> ACTSTART -> B -> C and charging starts
+- **When** Access is set to ON (off-peak begins), the 5s pilot float completes,
+- **Then** The state goes B -> B1 (pilot floating) -> B -> C and charging starts
 
 > Test: `test_resume_from_pause_starts_charging` in `test_authorization.c:613`
 
-### PAUSE->ON resume fires the activation pulse to clear latched car faults
+### PAUSE->ON resume floats the pilot to clear latched car faults
 
 **Requirement:** `REQ-AUTH-036`
 
 - **Given** The EVSE is in STATE_B with AccessStatus PAUSE (e.g. BMW i3 faulted after
 - **When** evse_set_access is called with ON (off-peak begins)
-- **Then** The state goes to STATE_ACTSTART with CP duty 0 (simulated re-plug) for 3s,
+- **Then** The state goes to STATE_B1 with the pilot disconnected (floating CP = simulated
 
-> Test: `test_resume_from_pause_fires_activation_pulse` in `test_authorization.c:642`
+> Test: `test_resume_from_pause_fires_activation_pulse` in `test_authorization.c:643`
 
 ---
 
@@ -2904,6 +2904,26 @@
 
 > Test: `test_iec61851_nostate_and_unknown` in `test_http_api.c:777`
 
+### B/C substates are refined with the PWM digit for display
+
+**Requirement:** `REQ-API-026`
+
+- **Given** The EVSE is in STATE_B1 (no PWM), STATE_B (PWM on), STATE_C1 (PWM off,
+- **When** evse_state_to_iec61851_substate is called
+- **Then** It returns "B1", "B2", "C1", "C2" respectively
+
+> Test: `test_iec61851_substate_b_c` in `test_http_api.c:934`
+
+### Non-substate states fall back to the plain IEC 61851 letter
+
+**Requirement:** `REQ-API-026`
+
+- **Given** The EVSE is in STATE_A (no errors) or has a hard error flag set
+- **When** evse_state_to_iec61851_substate is called
+- **Then** It returns the same letter evse_state_to_iec61851 would ("A", "E")
+
+> Test: `test_iec61851_substate_fallback` in `test_http_api.c:950`
+
 ---
 
 ## EVCC Charging Enabled
@@ -3024,7 +3044,7 @@
 - **When** /update receives an unsigned firmware.bin
 - **Then** http_api_allow_unsigned_upload returns true unconditionally
 
-> Test: `test_unsigned_upload_always_allowed` in `test_http_api.c:938`
+> Test: `test_unsigned_upload_always_allowed` in `test_http_api.c:971`
 
 ---
 
