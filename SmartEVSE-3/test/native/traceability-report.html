@@ -125,8 +125,8 @@ footer {
 <h1>SmartEVSE-3 Traceability Report</h1>
 <div class="summary">
 <div class="stat"><div class="number">78</div><div class="label">Features</div></div>
-<div class="stat"><div class="number">1210</div><div class="label">Test Scenarios</div></div>
-<div class="stat"><div class="number">1210</div><div class="label">With Requirements</div></div>
+<div class="stat"><div class="number">1209</div><div class="label">Test Scenarios</div></div>
+<div class="stat"><div class="number">1209</div><div class="label">With Requirements</div></div>
 <div class="stat"><div class="number">100%</div><div class="label">Requirement Coverage</div></div>
 </div>
 <div class="feature-section">
@@ -259,7 +259,7 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">Authorization &amp; Access Control (30 scenarios)</div>
+<div class="feature-title">Authorization &amp; Access Control (29 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -466,17 +466,10 @@ footer {
 </tr>
 <tr>
 <td><span class="req-tag">REQ-AUTH-034</span></td>
-<td>Resuming from PAUSE re-plugs the pilot and then allows charging</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The EVSE is in STATE_B with AccessStatus PAUSE (car possibly in a latched fault)</li><li class="step-when"><span class="step-keyword">When</span> Access is set to ON (off-peak begins), the 5s pilot float completes,</li><li class="step-then"><span class="step-keyword">Then</span> The state goes B -&gt; B1 (pilot floating) -&gt; B -&gt; C and charging starts</li></ul></td>
+<td>Resuming from PAUSE allows the pending charge request to start</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The EVSE is in STATE_B with AccessStatus PAUSE and the car requesting 6V</li><li class="step-when"><span class="step-keyword">When</span> Access is set to ON (off-peak begins) and the 6V request passes the debounce</li><li class="step-then"><span class="step-keyword">Then</span> The state stays STATE_B during the pause and transitions to STATE_C after resume</li></ul></td>
 <td><code>test_resume_from_pause_starts_charging</code></td>
 <td><span class="file-ref">test_authorization.c:613</span></td>
-</tr>
-<tr>
-<td><span class="req-tag">REQ-AUTH-036</span></td>
-<td>PAUSE-&gt;ON resume floats the pilot to clear latched car faults</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The EVSE is in STATE_B with AccessStatus PAUSE (e.g. BMW i3 faulted after</li><li class="step-when"><span class="step-keyword">When</span> evse_set_access is called with ON (off-peak begins)</li><li class="step-then"><span class="step-keyword">Then</span> The state goes to STATE_B1 with the pilot disconnected (floating CP = simulated</li></ul></td>
-<td><code>test_resume_from_pause_fires_activation_pulse</code></td>
-<td><span class="file-ref">test_authorization.c:643</span></td>
 </tr>
 </tbody></table>
 </div>

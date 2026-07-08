@@ -1,6 +1,6 @@
 # SmartEVSE-3 Test Specification
 
-**78 features** | **1210 scenarios** | **1210 with requirement IDs**
+**78 features** | **1209 scenarios** | **1209 with requirement IDs**
 
 ---
 
@@ -528,25 +528,15 @@
 
 > Test: `test_pause_while_charging_recovers_to_B` in `test_authorization.c:584`
 
-### Resuming from PAUSE re-plugs the pilot and then allows charging
+### Resuming from PAUSE allows the pending charge request to start
 
 **Requirement:** `REQ-AUTH-034`
 
-- **Given** The EVSE is in STATE_B with AccessStatus PAUSE (car possibly in a latched fault)
-- **When** Access is set to ON (off-peak begins), the 5s pilot float completes,
-- **Then** The state goes B -> B1 (pilot floating) -> B -> C and charging starts
+- **Given** The EVSE is in STATE_B with AccessStatus PAUSE and the car requesting 6V
+- **When** Access is set to ON (off-peak begins) and the 6V request passes the debounce
+- **Then** The state stays STATE_B during the pause and transitions to STATE_C after resume
 
 > Test: `test_resume_from_pause_starts_charging` in `test_authorization.c:613`
-
-### PAUSE->ON resume floats the pilot to clear latched car faults
-
-**Requirement:** `REQ-AUTH-036`
-
-- **Given** The EVSE is in STATE_B with AccessStatus PAUSE (e.g. BMW i3 faulted after
-- **When** evse_set_access is called with ON (off-peak begins)
-- **Then** The state goes to STATE_B1 with the pilot disconnected (floating CP = simulated
-
-> Test: `test_resume_from_pause_fires_activation_pulse` in `test_authorization.c:643`
 
 ---
 

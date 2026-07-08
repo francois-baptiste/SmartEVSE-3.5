@@ -1,6 +1,6 @@
 # SmartEVSE-3 Traceability Report
 
-**78 features** | **1210 scenarios** | **1210 with requirement IDs** | **100% coverage**
+**78 features** | **1209 scenarios** | **1209 with requirement IDs** | **100% coverage**
 
 ---
 
@@ -10,7 +10,7 @@
 |---------|-----------|-------------|----------|
 | API Mains Staleness Detection | 12 | 12 | 100% |
 | HomeWizard P1 Manual IP Fallback | 3 | 3 | 100% |
-| Authorization & Access Control | 30 | 30 | 100% |
+| Authorization & Access Control | 29 | 29 | 100% |
 | Bridge Transaction Integrity | 8 | 8 | 100% |
 | Capacity Tariff Peak Tracking | 26 | 26 | 100% |
 | Load Balancing — CAPACITY integration | 3 | 3 | 100% |
@@ -86,7 +86,7 @@
 | IEC 61851-1 State Transitions | 29 | 29 | 100% |
 | 10ms Tick Processing | 20 | 20 | 100% |
 | 1-Second Tick Processing | 23 | 23 | 100% |
-| **TOTAL** | **1210** | **1210** | **100%** |
+| **TOTAL** | **1209** | **1209** | **100%** |
 
 ## API Mains Staleness Detection
 
@@ -264,11 +264,10 @@
 | `REQ-AUTH-035` | Normal STATE_B entry with access ON does not force the 5% pause duty | `test_state_b_with_access_on_keeps_normal_duty` | `test_authorization.c:551` |
 | `REQ-AUTH-032` | Revoking access (OFF) in STATE_B still demotes to STATE_B1 | `test_set_access_off_from_B_still_goes_B1` | `test_authorization.c:567` |
 | `REQ-AUTH-033` | Pause during charging stops current, then re-presents STATE_B after ChargeDelay | `test_pause_while_charging_recovers_to_B` | `test_authorization.c:584` |
-| `REQ-AUTH-034` | Resuming from PAUSE re-plugs the pilot and then allows charging | `test_resume_from_pause_starts_charging` | `test_authorization.c:613` |
-| `REQ-AUTH-036` | PAUSE->ON resume floats the pilot to clear latched car faults | `test_resume_from_pause_fires_activation_pulse` | `test_authorization.c:643` |
+| `REQ-AUTH-034` | Resuming from PAUSE allows the pending charge request to start | `test_resume_from_pause_starts_charging` | `test_authorization.c:613` |
 
 <details>
-<summary>Detailed steps (30 scenarios)</summary>
+<summary>Detailed steps (29 scenarios)</summary>
 
 ### Setting access to ON stores the authorization status
 **Requirement:** `REQ-AUTH-001`
@@ -469,19 +468,12 @@
 - **When** The current stops (C1), the car returns to 9V, and the ChargeDelay expires
 - **Then** The state goes C -> C1 -> B1 and back to STATE_B with contactors open
 
-### Resuming from PAUSE re-plugs the pilot and then allows charging
+### Resuming from PAUSE allows the pending charge request to start
 **Requirement:** `REQ-AUTH-034`
 
-- **Given** The EVSE is in STATE_B with AccessStatus PAUSE (car possibly in a latched fault)
-- **When** Access is set to ON (off-peak begins), the 5s pilot float completes,
-- **Then** The state goes B -> B1 (pilot floating) -> B -> C and charging starts
-
-### PAUSE->ON resume floats the pilot to clear latched car faults
-**Requirement:** `REQ-AUTH-036`
-
-- **Given** The EVSE is in STATE_B with AccessStatus PAUSE (e.g. BMW i3 faulted after
-- **When** evse_set_access is called with ON (off-peak begins)
-- **Then** The state goes to STATE_B1 with the pilot disconnected (floating CP = simulated
+- **Given** The EVSE is in STATE_B with AccessStatus PAUSE and the car requesting 6V
+- **When** Access is set to ON (off-peak begins) and the 6V request passes the debounce
+- **Then** The state stays STATE_B during the pause and transitions to STATE_C after resume
 
 </details>
 
