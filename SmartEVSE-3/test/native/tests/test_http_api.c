@@ -929,6 +929,39 @@ void test_phase_switch_all_c2_configs(void) {
     TEST_ASSERT_TRUE(http_api_validate_phase_switch(&req, AUTO, 0) == NULL);
 }
 
+// ---- IEC 61851 substate mapping (letter + digit for LCD/web UI) ----
+
+/*
+ * @feature EVCC IEC 61851 State Mapping
+ * @req REQ-API-026
+ * @scenario B/C substates are refined with the PWM digit for display
+ * @given The EVSE is in STATE_B1 (no PWM), STATE_B (PWM on), STATE_C1 (PWM off,
+ *        stopping) or STATE_C (energized) with no errors
+ * @when evse_state_to_iec61851_substate is called
+ * @then It returns "B1", "B2", "C1", "C2" respectively
+ */
+void test_iec61851_substate_b_c(void) {
+    TEST_ASSERT_EQUAL_STRING("B1", evse_state_to_iec61851_substate(STATE_B1, NO_ERROR));
+    TEST_ASSERT_EQUAL_STRING("B2", evse_state_to_iec61851_substate(STATE_B, NO_ERROR));
+    TEST_ASSERT_EQUAL_STRING("C1", evse_state_to_iec61851_substate(STATE_C1, NO_ERROR));
+    TEST_ASSERT_EQUAL_STRING("C2", evse_state_to_iec61851_substate(STATE_C, NO_ERROR));
+}
+
+/*
+ * @feature EVCC IEC 61851 State Mapping
+ * @req REQ-API-026
+ * @scenario Non-substate states fall back to the plain IEC 61851 letter
+ * @given The EVSE is in STATE_A (no errors) or has a hard error flag set
+ * @when evse_state_to_iec61851_substate is called
+ * @then It returns the same letter evse_state_to_iec61851 would ("A", "E")
+ */
+void test_iec61851_substate_fallback(void) {
+    TEST_ASSERT_EQUAL_STRING("A", evse_state_to_iec61851_substate(STATE_A, NO_ERROR));
+    TEST_ASSERT_EQUAL_STRING("D", evse_state_to_iec61851_substate(STATE_D, NO_ERROR));
+    TEST_ASSERT_EQUAL_STRING("E", evse_state_to_iec61851_substate(STATE_B, RCM_TRIPPED));
+    TEST_ASSERT_EQUAL_STRING("B", evse_state_to_iec61851_substate(STATE_COMM_B, NO_ERROR));
+}
+
 // ---- Unsigned firmware upload gate (debug build + LCD PIN) ----
 //
 // Policy: /update accepts unsigned firmware.bin only on debug builds when the
@@ -1059,6 +1092,10 @@ int main(void) {
     RUN_TEST(test_phase_switch_slave_rejected);
     RUN_TEST(test_phase_switch_zero_phases);
     RUN_TEST(test_phase_switch_all_c2_configs);
+
+    // IEC 61851 substate mapping
+    RUN_TEST(test_iec61851_substate_b_c);
+    RUN_TEST(test_iec61851_substate_fallback);
 
     // Unsigned-upload gate (unrestricted)
     RUN_TEST(test_unsigned_upload_always_allowed);

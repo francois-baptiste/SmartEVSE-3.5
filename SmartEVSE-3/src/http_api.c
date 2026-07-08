@@ -53,6 +53,28 @@ char evse_state_to_iec61851(int state, int error_flags) {
     }
 }
 
+const char *evse_state_to_iec61851_substate(int state, int error_flags) {
+    /* Refine B/C with the IEC 61851 substate digit (1 = PWM off, 2 = PWM on /
+     * energized); every other state keeps the plain letter mapping. */
+    if (!(error_flags & ~SOFT_ERROR_MASK)) {
+        switch (state) {
+        case STATE_B1: return "B1";
+        case STATE_B:  return "B2";
+        case STATE_C1: return "C1";
+        case STATE_C:  return "C2";
+        default: break;
+        }
+    }
+    switch (evse_state_to_iec61851(state, error_flags)) {
+    case 'A': return "A";
+    case 'B': return "B";
+    case 'C': return "C";
+    case 'D': return "D";
+    case 'E': return "E";
+    default:  return "F";
+    }
+}
+
 bool evse_charging_enabled(int state) {
     return (state == STATE_C || state == STATE_C1);
 }

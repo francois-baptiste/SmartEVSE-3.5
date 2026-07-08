@@ -315,10 +315,14 @@ void evse_set_access(evse_ctx_t *ctx, AccessStatus_t access) {
     if (access == ON && prev == PAUSE && ctx->State == STATE_B) {
         // Resume from pause: some cars (BMW i3) latch a charging fault after
         // their charge request was refused during the pause and then ignore
-        // the restored current advertisement. Fire the activation pulse
-        // (CP off for 3s = simulated re-plug) so the car resets and retries.
-        evse_set_state(ctx, STATE_ACTSTART);
-        ctx->ActivationTimer = 3;
+        // the restored current advertisement. Simulate a re-plug so the car
+        // resets and retries: STATE_B1 entry (with access already ON) floats
+        // the CP line for 5s — electrically identical to unplugging — and
+        // the normal B1 -> B -> C detection flow takes over on reconnect.
+        // (Do NOT use STATE_ACTSTART here: its 0% duty is a constant -12V,
+        // IEC 61851 state F "EVSE unavailable", which the i3 latches on and
+        // which stops the CP sampling timer on v3 hardware.)
+        evse_set_state(ctx, STATE_B1);
     }
     if (access == OFF || access == PAUSE) {
         if (ctx->State == STATE_C)

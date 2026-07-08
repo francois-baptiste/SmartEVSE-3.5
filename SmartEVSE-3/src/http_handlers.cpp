@@ -390,6 +390,9 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
             case 2: backlight = "DIMMED"; break;
         }
         String evstate = StrStateNameWeb[State];
+        evstate += " (";                                             // exact CP state with substate digit, e.g. "Charging Stopped (B1)"
+        evstate += evse_state_to_iec61851_substate(State, ErrorFlags);
+        evstate += ")";
         String error = getErrorNameWeb(ErrorFlags);
         int errorId = getErrorId(ErrorFlags);
 
@@ -444,6 +447,7 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
         doc["evse"]["rfid"] = !RFIDReader ? "Not Installed" : RFIDstatus >= 8 ? "NOSTATUS" : StrRFIDStatusWeb[RFIDstatus];
         char iec_buf[2] = {evse_state_to_iec61851(State, ErrorFlags), '\0'};
         doc["evse"]["iec61851_state"] = iec_buf;
+        doc["evse"]["iec61851_substate"] = evse_state_to_iec61851_substate(State, ErrorFlags);
         doc["evse"]["charging_enabled"] = evse_charging_enabled(State);
         if (RFIDReader) {
             char buf[15];

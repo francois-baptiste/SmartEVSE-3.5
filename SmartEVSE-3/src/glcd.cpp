@@ -454,7 +454,6 @@ void GLCD(void) {
     static unsigned char energy_mains = 20; // X position
     static unsigned char energy_ev = 74; // X position
     char Str[26];
-    char StateLetter[2];
     LCDTimer++;
     
     if (LCDNav) {
@@ -620,10 +619,8 @@ void GLCD(void) {
                                                                                 // MODE NORMAL
     if (Mode == MODE_NORMAL || AccessStatus == OFF) {
 
-        GLCD_buffer_clr();                                                      // row 0: show IEC 61851 CP state letter (A-F), top-left
-        StateLetter[0] = evse_state_to_iec61851(State, ErrorFlags);
-        StateLetter[1] = '\0';
-        GLCD_write_buf_str(20, 0, StateLetter, GLCD_ALIGN_LEFT);
+        GLCD_buffer_clr();                                                      // row 0: show IEC 61851 CP state with substate digit (A, B1, B2, C1, C2...), top-left
+        GLCD_write_buf_str(20, 0, evse_state_to_iec61851_substate(State, ErrorFlags), GLCD_ALIGN_LEFT);
         mode_policy_status_text(Mode, AccessStatus, Str, sizeof(Str));          // explicit mode + OFF/PAUSED indicator, top-right
         GLCD_write_buf_str(127, 0, Str, GLCD_ALIGN_RIGHT);
         GLCD_sendbuf(0, 1);
@@ -919,9 +916,7 @@ void GLCD(void) {
             }
         }
 
-        StateLetter[0] = evse_state_to_iec61851(State, ErrorFlags);            // IEC 61851 CP state letter (A-F), top-left gap in flow bitmap
-        StateLetter[1] = '\0';
-        GLCD_write_buf_str(20, 0, StateLetter, GLCD_ALIGN_LEFT);
+        GLCD_write_buf_str(20, 0, evse_state_to_iec61851_substate(State, ErrorFlags), GLCD_ALIGN_LEFT); // IEC 61851 CP state with substate digit (A, B1, B2, C1, C2...), top-left gap in flow bitmap
 
         GLCD_sendbuf(0, 4);                                                     // Copy LCD buffer to GLCD
 
