@@ -61,6 +61,30 @@ void ModbusException(uint8_t address, uint8_t function, uint8_t exception);
 #ifdef SMARTEVSE_VERSION
 void ModbusUserWriteSingle(uint8_t address, uint16_t reg, uint16_t value);
 void ModbusUserWriteMultiple(uint8_t address, uint16_t reg, uint16_t *values, uint8_t count);
+
+// User-initiated read (FC=3/4) for the web UI's Modbus test tool. Result is
+// delivered asynchronously into g_modbusUserTest, matched via the eModbus
+// request token so it's never confused with the periodic meter polling even
+// if it targets the same slave address.
+#define MODBUS_USER_TEST_MAX_REGS 32   // Modbus spec allows up to 125; this is a manual diagnostic tool, not a bulk reader
+
+struct ModbusUserTestResult {
+    bool     pending;
+    bool     done;
+    bool     ok;
+    uint8_t  address;
+    uint8_t  function;
+    uint16_t reg;
+    uint16_t quantity;
+    uint32_t token;
+    uint16_t data[MODBUS_USER_TEST_MAX_REGS];
+    uint8_t  dataCount;
+    uint8_t  exceptionCode;
+    uint32_t timestamp_ms;
+};
+extern ModbusUserTestResult g_modbusUserTest;
+
+void ModbusUserReadRequest(uint8_t address, uint8_t function, uint16_t reg, uint16_t quantity);
 #endif
 
 void requestMeasurement(uint8_t Meter, uint8_t Address, uint16_t Register, uint8_t Count);

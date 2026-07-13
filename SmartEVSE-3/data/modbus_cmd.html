@@ -23,7 +23,23 @@
 <body>
   <a class="back" href="/">Home</a>
   <h2>Modbus Command</h2>
-  <p>Send a Modbus write command to a device on the RS485 bus. The command is queued immediately and executed as soon as the bus is free.</p>
+  <p>Send a Modbus command to a device on the RS485 bus. The command is queued immediately and executed as soon as the bus is free.</p>
+
+  <h3>Read Registers — FC=3 / FC=4</h3>
+  <p class="note">Example: Acrel ADL400 sub-meter — read voltage/current block: address&nbsp;12, register&nbsp;97, count&nbsp;10, function&nbsp;4 (or 3 — the ADL400 only implements 03H, so use function 3)</p>
+  <label>Device address (1–247)</label>
+  <input type="number" id="addrR" min="1" max="247" value="12"/>
+  <label>Function</label>
+  <select id="funcR">
+    <option value="3">3 — Read Holding Registers</option>
+    <option value="4">4 — Read Input Registers</option>
+  </select>
+  <label>Starting register (0–65535)</label>
+  <input type="number" id="regR" min="0" max="65535" value="97"/>
+  <label>Count (1–32)</label>
+  <input type="number" id="countR" min="1" max="32" value="10"/>
+  <button onclick="sendRead()">Read</button>
+  <div id="resultR"></div>
 
   <h3>Write Single Register — FC=6</h3>
   <p class="note">Example: Lixee TIC DIN — activate WiFi: address&nbsp;1, register&nbsp;666, value&nbsp;1</p>
@@ -53,6 +69,45 @@
       el.className = ok ? 'ok' : 'error';
       el.textContent = JSON.stringify(data, null, 2);
       el.style.display = 'block';
+    }
+
+    function sendRead() {
+      var body = {
+        address:  parseInt(document.getElementById('addrR').value, 10),
+        function: parseInt(document.getElementById('funcR').value, 10),
+        register: parseInt(document.getElementById('regR').value, 10),
+        count:    parseInt(document.getElementById('countR').value, 10)
+      };
+      var btn = document.querySelector('button[onclick="sendRead()"]');
+      btn.disabled = true;
+      fetch('/api/modbus/cmd', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})
+        .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, data:d}; }); })
+        .then(function(r){
+          if (!r.ok) { showResult('resultR', r.data, false); btn.disabled = false; return; }
+          pollReadResult(btn, 0);
+        })
+        .catch(function(e){ showResult('resultR', {error:e.message}, false); btn.disabled = false; });
+    }
+
+    function pollReadResult(btn, attempt) {
+      if (attempt > 25) {  // ~5s at 200ms — the Modbus timeout itself is 150ms, this is a generous margin
+        showResult('resultR', {error:'No result after 5s — device unreachable or backend stuck'}, false);
+        btn.disabled = false;
+        return;
+      }
+      fetch('/api/modbus/result')
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (!d.done) { setTimeout(function(){ pollReadResult(btn, attempt + 1); }, 200); return; }
+          if (d.ok) {
+            var hex = d.data.map(function(v){ return '0x' + v.toString(16).padStart(4, '0'); });
+            showResult('resultR', {address: d.address, register: d.register, count: d.count, decimal: d.data, hex: hex}, true);
+          } else {
+            showResult('resultR', {address: d.address, register: d.register, error: d.error || 'no response (timeout)'}, false);
+          }
+          btn.disabled = false;
+        })
+        .catch(function(e){ showResult('resultR', {error:e.message}, false); btn.disabled = false; });
     }
 
     function send6() {

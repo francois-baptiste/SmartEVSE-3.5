@@ -1882,10 +1882,51 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
           mg_http_reply(c, 202, "Content-Type: application/json\r\n",
                         "{\"ok\":true,\"queued\":true,\"address\":%u,\"register\":%u,\"count\":%u}\n",
                         mb_addr, mb_reg, count);
+      } else if (raw_func == 3 || raw_func == 4) {
+          int raw_count = doc["count"] | 1;
+          if (raw_count < 1 || raw_count > MODBUS_USER_TEST_MAX_REGS) {
+              mg_http_reply(c, 400, "Content-Type: application/json\r\n",
+                            "{\"ok\":false,\"error\":\"count must be 1-%u\"}\n", MODBUS_USER_TEST_MAX_REGS);
+              return true;
+          }
+          if (g_modbusUserTest.pending) {
+              mg_http_reply(c, 409, "Content-Type: application/json\r\n",
+                            "{\"ok\":false,\"error\":\"a test read is already in progress, poll /api/modbus/result first\"}\n");
+              return true;
+          }
+          ModbusUserReadRequest(mb_addr, (uint8_t)raw_func, mb_reg, (uint16_t)raw_count);
+          mg_http_reply(c, 202, "Content-Type: application/json\r\n",
+                        "{\"ok\":true,\"queued\":true,\"address\":%u,\"function\":%u,\"register\":%u,\"count\":%u}\n",
+                        mb_addr, (unsigned)raw_func, mb_reg, (unsigned)raw_count);
       } else {
           mg_http_reply(c, 400, "Content-Type: application/json\r\n",
-                        "{\"ok\":false,\"error\":\"function must be 6 (write single) or 16 (write multiple)\"}\n");
+                        "{\"ok\":false,\"error\":\"function must be 3 (read holding), 4 (read input), 6 (write single) or 16 (write multiple)\"}\n");
       }
+      return true;
+
+  } else if (mg_http_match_uri(hm, "/api/modbus/result") && !memcmp("GET", hm->method.buf, hm->method.len)) {
+      if (!require_auth(c, hm)) return true;
+      DynamicJsonDocument doc(512);
+      doc["pending"]  = g_modbusUserTest.pending;
+      doc["done"]     = g_modbusUserTest.done;
+      doc["ok"]       = g_modbusUserTest.ok;
+      doc["address"]  = g_modbusUserTest.address;
+      doc["function"] = g_modbusUserTest.function;
+      doc["register"] = g_modbusUserTest.reg;
+      doc["count"]    = g_modbusUserTest.quantity;
+      if (g_modbusUserTest.done) {
+          doc["age_ms"] = millis() - g_modbusUserTest.timestamp_ms;
+          if (g_modbusUserTest.ok) {
+              JsonArray data = doc.createNestedArray("data");
+              for (uint8_t i = 0; i < g_modbusUserTest.dataCount; i++) data.add(g_modbusUserTest.data[i]);
+          } else {
+              ModbusError me((Error)g_modbusUserTest.exceptionCode);
+              doc["error"] = (const char *)me;
+          }
+      }
+      String json;
+      serializeJson(doc, json);
+      mg_http_reply(c, 200, "Content-Type: application/json\r\n", "%s\n", json.c_str());
       return true;
 
 #if MQTT

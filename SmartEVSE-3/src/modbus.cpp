@@ -253,6 +253,46 @@ void ModbusUserWriteMultiple(uint8_t address, uint16_t reg, uint16_t *values, ui
     diag_mb_record(&g_diag_mb_ring, millis(), address, 0x10u, DIAG_MB_EVENT_SENT, 0);
 }
 
+ModbusUserTestResult g_modbusUserTest = {};
+
+/**
+ * User-initiated read holding (FC=03) or input (FC=04) registers — callable
+ * from any FreeRTOS task, for the web UI's Modbus test tool. The result (or
+ * timeout/exception) is delivered asynchronously into g_modbusUserTest by
+ * MBhandleData()/MBhandleError(), matched via the eModbus request token —
+ * this can never be confused with the periodic Mains/EV/Circuit meter
+ * polling, even when probing the same slave address they use, because the
+ * token is unique per addRequest() call regardless of queue ordering.
+ */
+void ModbusUserReadRequest(uint8_t address, uint8_t function, uint16_t reg, uint16_t quantity) {
+    if (quantity == 0) quantity = 1;
+    if (quantity > MODBUS_USER_TEST_MAX_REGS) quantity = MODBUS_USER_TEST_MAX_REGS;
+
+    uint32_t token = ((uint32_t)address << 24) | ((uint32_t)function << 16) | reg;
+    g_modbusUserTest.pending   = true;
+    g_modbusUserTest.done      = false;
+    g_modbusUserTest.ok        = false;
+    g_modbusUserTest.address   = address;
+    g_modbusUserTest.function  = function;
+    g_modbusUserTest.reg       = reg;
+    g_modbusUserTest.quantity  = quantity;
+    g_modbusUserTest.token     = token;
+    g_modbusUserTest.dataCount = 0;
+
+    Error err = MBclient.addRequest(token, address, function, reg, quantity);
+    if (err != SUCCESS) {
+        ModbusError e(err);
+        _LOG_A("ModbusUserReadRequest error: 0x%02x - %s\n", (int)e, (const char *)e);
+        g_modbusUserTest.pending      = false;
+        g_modbusUserTest.done         = true;
+        g_modbusUserTest.ok           = false;
+        g_modbusUserTest.exceptionCode = (uint8_t)err;
+        g_modbusUserTest.timestamp_ms = millis();
+        return;
+    }
+    diag_mb_record(&g_diag_mb_ring, millis(), address, function, DIAG_MB_EVENT_SENT, 0);
+}
+
 /**
  * Response an exception
  *
@@ -848,6 +888,30 @@ void MBhandleData(ModbusMessage msg, uint32_t token)
     diag_mb_record(&g_diag_mb_ring, millis(), addr, func,
                    DIAG_MB_EVENT_RECEIVED, 0);
     // END PLAN-06
+
+    // Modbus test tool (web UI): intercept purely by token match, before
+    // touching the shared MB struct, so it can never steal or corrupt a
+    // concurrently in-flight Mains/EV/Circuit meter poll.
+    if (g_modbusUserTest.pending && token == g_modbusUserTest.token) {
+        const uint8_t *raw = (const uint8_t *)msg.data();
+        uint8_t len = (uint8_t)msg.size();
+        g_modbusUserTest.pending = false;
+        g_modbusUserTest.done = true;
+        if (len >= 3 && (g_modbusUserTest.function == 0x03 || g_modbusUserTest.function == 0x04)) {
+            uint8_t byteCount = raw[2];
+            uint8_t n = byteCount / 2;
+            if (n > MODBUS_USER_TEST_MAX_REGS) n = MODBUS_USER_TEST_MAX_REGS;
+            for (uint8_t i = 0; i < n; i++) {
+                g_modbusUserTest.data[i] = ((uint16_t)raw[3 + i * 2] << 8) | raw[3 + i * 2 + 1];
+            }
+            g_modbusUserTest.dataCount = n;
+            g_modbusUserTest.ok = true;
+        }
+        g_modbusUserTest.timestamp_ms = millis();
+        ModbusRequestLoop();
+        return;
+    }
+
     ModbusDecode( (uint8_t*)msg.data(), msg.size());
     HandleModbusResponse();
 }
@@ -867,6 +931,15 @@ void MBhandleError(Error error, uint32_t token)
   diag_mb_record(&g_diag_mb_ring, millis(), address, function,
                  DIAG_MB_EVENT_ERROR, (uint8_t)error);
   // END PLAN-06
+
+  // Modbus test tool (web UI): record timeout/exception, matched by token.
+  if (g_modbusUserTest.pending && token == g_modbusUserTest.token) {
+      g_modbusUserTest.pending       = false;
+      g_modbusUserTest.done          = true;
+      g_modbusUserTest.ok            = false;
+      g_modbusUserTest.exceptionCode = (uint8_t)error;
+      g_modbusUserTest.timestamp_ms  = millis();
+  }
 
   if (LoadBl == 1 && ((address>=2 && address <=8 && function == 4 && reg == 0) || address == 9)) {  //master sends out messages to nodes 2-8, if no EVSE is connected with that address
                                                                                 //a timeout will be generated. This is legit!
