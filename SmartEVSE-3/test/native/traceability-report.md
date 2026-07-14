@@ -1,6 +1,6 @@
 # SmartEVSE-3 Traceability Report
 
-**78 features** | **1206 scenarios** | **1206 with requirement IDs** | **100% coverage**
+**79 features** | **1212 scenarios** | **1212 with requirement IDs** | **100% coverage**
 
 ---
 
@@ -34,6 +34,7 @@
 | EVCC Charging Enabled | 3 | 3 | 100% |
 | EVCC Phase Switch Validation | 7 | 7 | 100% |
 | Unsigned firmware upload | 1 | 1 | 100% |
+| HTTP API Phase Key Building | 6 | 6 | 100% |
 | HTTP Auth | 24 | 24 | 100% |
 | LB Convergence | 47 | 47 | 100% |
 | LED Status Indication | 15 | 15 | 100% |
@@ -86,7 +87,7 @@
 | IEC 61851-1 State Transitions | 29 | 29 | 100% |
 | 10ms Tick Processing | 20 | 20 | 100% |
 | 1-Second Tick Processing | 23 | 23 | 100% |
-| **TOTAL** | **1206** | **1206** | **100%** |
+| **TOTAL** | **1212** | **1212** | **100%** |
 
 ## API Mains Staleness Detection
 
@@ -2590,6 +2591,66 @@
 - **Given** Any combination of build type, PIN, and PIN-verified state
 - **When** /update receives an unsigned firmware.bin
 - **Then** http_api_allow_unsigned_upload returns true unconditionally
+
+</details>
+
+---
+
+## HTTP API Phase Key Building
+
+| Requirement | Scenario | Test Function | Source |
+|-------------|----------|---------------|--------|
+| `REQ-API-027` | Phase index 0 with prefix "L" builds "L1" | `test_phase_key_l1` | `test_http_api.c:997` |
+| `REQ-API-027` | Phase index 1 with prefix "L" builds "L2" | `test_phase_key_l2` | `test_http_api.c:1011` |
+| `REQ-API-027` | Phase index 2 with prefix "L" builds "L3" | `test_phase_key_l3` | `test_http_api.c:1025` |
+| `REQ-API-028` | A custom prefix is concatenated correctly | `test_phase_key_custom_prefix` | `test_http_api.c:1039` |
+| `REQ-API-028` | A buffer too small to hold the full key is truncated, not overrun | `test_phase_key_truncates_safely` | `test_http_api.c:1053` |
+| `REQ-API-028` | A zero-length buffer is a no-op, not a write | `test_phase_key_zero_buflen_noop` | `test_http_api.c:1067` |
+
+<details>
+<summary>Detailed steps (6 scenarios)</summary>
+
+### Phase index 0 with prefix "L" builds "L1"
+**Requirement:** `REQ-API-027`
+
+- **Given** phase_index = 0, prefix = "L"
+- **When** http_api_phase_key is called
+- **Then** buf contains "L1"
+
+### Phase index 1 with prefix "L" builds "L2"
+**Requirement:** `REQ-API-027`
+
+- **Given** phase_index = 1, prefix = "L"
+- **When** http_api_phase_key is called
+- **Then** buf contains "L2" (not "" as the old "L" + x pointer arithmetic produced)
+
+### Phase index 2 with prefix "L" builds "L3"
+**Requirement:** `REQ-API-027`
+
+- **Given** phase_index = 2, prefix = "L"
+- **When** http_api_phase_key is called
+- **Then** buf contains "L3" (not an out-of-bounds read like "LINKY")
+
+### A custom prefix is concatenated correctly
+**Requirement:** `REQ-API-028`
+
+- **Given** phase_index = 0, prefix = "circuit_L"
+- **When** http_api_phase_key is called
+- **Then** buf contains "circuit_L1"
+
+### A buffer too small to hold the full key is truncated, not overrun
+**Requirement:** `REQ-API-028`
+
+- **Given** phase_index = 2, prefix = "circuit_L" (full result needs 11 bytes), buflen = 4
+- **When** http_api_phase_key is called
+- **Then** buf is truncated to 3 chars + NUL and stays within bounds
+
+### A zero-length buffer is a no-op, not a write
+**Requirement:** `REQ-API-028`
+
+- **Given** buflen = 0
+- **When** http_api_phase_key is called
+- **Then** No write occurs (guarded before touching buf[0])
 
 </details>
 

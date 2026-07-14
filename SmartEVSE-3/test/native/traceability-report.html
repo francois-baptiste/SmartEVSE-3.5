@@ -124,9 +124,9 @@ footer {
 <body>
 <h1>SmartEVSE-3 Traceability Report</h1>
 <div class="summary">
-<div class="stat"><div class="number">78</div><div class="label">Features</div></div>
-<div class="stat"><div class="number">1206</div><div class="label">Test Scenarios</div></div>
-<div class="stat"><div class="number">1206</div><div class="label">With Requirements</div></div>
+<div class="stat"><div class="number">79</div><div class="label">Features</div></div>
+<div class="stat"><div class="number">1212</div><div class="label">Test Scenarios</div></div>
+<div class="stat"><div class="number">1212</div><div class="label">With Requirements</div></div>
 <div class="stat"><div class="number">100%</div><div class="label">Requirement Coverage</div></div>
 </div>
 <div class="feature-section">
@@ -2482,6 +2482,60 @@ footer {
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Any combination of build type, PIN, and PIN-verified state</li><li class="step-when"><span class="step-keyword">When</span> /update receives an unsigned firmware.bin</li><li class="step-then"><span class="step-keyword">Then</span> http_api_allow_unsigned_upload returns true unconditionally</li></ul></td>
 <td><code>test_unsigned_upload_always_allowed</code></td>
 <td><span class="file-ref">test_http_api.c:971</span></td>
+</tr>
+</tbody></table>
+</div>
+<div class="feature-section">
+<div class="feature-title">HTTP API Phase Key Building (6 scenarios)</div>
+<div class="coverage-bar">
+<div class="coverage-fill" style="width:100.0%"></div>
+</div>
+<table>
+<thead><tr>
+<th>Requirement</th><th>Scenario</th><th>Steps</th><th>Test Function</th><th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="req-tag">REQ-API-027</span></td>
+<td>Phase index 0 with prefix &quot;L&quot; builds &quot;L1&quot;</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> phase_index = 0, prefix = &quot;L&quot;</li><li class="step-when"><span class="step-keyword">When</span> http_api_phase_key is called</li><li class="step-then"><span class="step-keyword">Then</span> buf contains &quot;L1&quot;</li></ul></td>
+<td><code>test_phase_key_l1</code></td>
+<td><span class="file-ref">test_http_api.c:997</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-API-027</span></td>
+<td>Phase index 1 with prefix &quot;L&quot; builds &quot;L2&quot;</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> phase_index = 1, prefix = &quot;L&quot;</li><li class="step-when"><span class="step-keyword">When</span> http_api_phase_key is called</li><li class="step-then"><span class="step-keyword">Then</span> buf contains &quot;L2&quot; (not &quot;&quot; as the old &quot;L&quot; + x pointer arithmetic produced)</li></ul></td>
+<td><code>test_phase_key_l2</code></td>
+<td><span class="file-ref">test_http_api.c:1011</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-API-027</span></td>
+<td>Phase index 2 with prefix &quot;L&quot; builds &quot;L3&quot;</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> phase_index = 2, prefix = &quot;L&quot;</li><li class="step-when"><span class="step-keyword">When</span> http_api_phase_key is called</li><li class="step-then"><span class="step-keyword">Then</span> buf contains &quot;L3&quot; (not an out-of-bounds read like &quot;LINKY&quot;)</li></ul></td>
+<td><code>test_phase_key_l3</code></td>
+<td><span class="file-ref">test_http_api.c:1025</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-API-028</span></td>
+<td>A custom prefix is concatenated correctly</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> phase_index = 0, prefix = &quot;circuit_L&quot;</li><li class="step-when"><span class="step-keyword">When</span> http_api_phase_key is called</li><li class="step-then"><span class="step-keyword">Then</span> buf contains &quot;circuit_L1&quot;</li></ul></td>
+<td><code>test_phase_key_custom_prefix</code></td>
+<td><span class="file-ref">test_http_api.c:1039</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-API-028</span></td>
+<td>A buffer too small to hold the full key is truncated, not overrun</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> phase_index = 2, prefix = &quot;circuit_L&quot; (full result needs 11 bytes), buflen = 4</li><li class="step-when"><span class="step-keyword">When</span> http_api_phase_key is called</li><li class="step-then"><span class="step-keyword">Then</span> buf is truncated to 3 chars + NUL and stays within bounds</li></ul></td>
+<td><code>test_phase_key_truncates_safely</code></td>
+<td><span class="file-ref">test_http_api.c:1053</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-API-028</span></td>
+<td>A zero-length buffer is a no-op, not a write</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> buflen = 0</li><li class="step-when"><span class="step-keyword">When</span> http_api_phase_key is called</li><li class="step-then"><span class="step-keyword">Then</span> No write occurs (guarded before touching buf[0])</li></ul></td>
+<td><code>test_phase_key_zero_buflen_noop</code></td>
+<td><span class="file-ref">test_http_api.c:1067</span></td>
 </tr>
 </tbody></table>
 </div>

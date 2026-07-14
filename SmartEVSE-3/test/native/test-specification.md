@@ -1,6 +1,6 @@
 # SmartEVSE-3 Test Specification
 
-**78 features** | **1206 scenarios** | **1206 with requirement IDs**
+**79 features** | **1212 scenarios** | **1212 with requirement IDs**
 
 ---
 
@@ -32,58 +32,59 @@
 24. [EVCC Charging Enabled](#evcc-charging-enabled)
 25. [EVCC Phase Switch Validation](#evcc-phase-switch-validation)
 26. [Unsigned firmware upload](#unsigned-firmware-upload)
-27. [HTTP Auth](#http-auth)
-28. [LB Convergence](#lb-convergence)
-29. [LED Status Indication](#led-status-indication)
-30. [LED Color Configuration](#led-color-configuration)
-31. [LED Color — Public Scheme](#led-color-—-public-scheme)
-32. [Load Balancing](#load-balancing)
-33. [Meter Decoding](#meter-decoding)
-34. [Meter Timeout & Recovery](#meter-timeout-&-recovery)
-35. [Meter Telemetry](#meter-telemetry)
-36. [Metering Diagnostics](#metering-diagnostics)
-37. [Modbus Frame Decoding](#modbus-frame-decoding)
-38. [Modbus Frame Logging](#modbus-frame-logging)
-39. [Operating Modes](#operating-modes)
-40. [Mode Synchronization](#mode-synchronization)
-41. [Modem / ISO15118 Negotiation](#modem--iso15118-negotiation)
-42. [MQTT Command Parsing](#mqtt-command-parsing)
-43. [MQTT Input Validation](#mqtt-input-validation)
-44. [MQTT Meter Parsing](#mqtt-meter-parsing)
-45. [MQTT Color Parsing](#mqtt-color-parsing)
-46. [Solar Debug Telemetry](#solar-debug-telemetry)
-47. [Capacity Tariff MQTT](#capacity-tariff-mqtt)
-48. [MQTT Change-Only Publishing](#mqtt-change-only-publishing)
-49. [MQTT SoC Parsing](#mqtt-soc-parsing)
-50. [MQTT SoC Input Validation](#mqtt-soc-input-validation)
-51. [Multi-Node Load Balancing](#multi-node-load-balancing)
-52. [Multi-Node Solar Charging](#multi-node-solar-charging)
-53. [OCPP Current Limiting](#ocpp-current-limiting)
-54. [OCPP Authorization](#ocpp-authorization)
-55. [OCPP Connector State](#ocpp-connector-state)
-56. [OCPP Connector Lock](#ocpp-connector-lock)
-57. [OCPP IEC 61851 Status Mapping](#ocpp-iec-61851-status-mapping)
-58. [OCPP Load Balancing Exclusivity](#ocpp-load-balancing-exclusivity)
-59. [OCPP Silence Detection](#ocpp-silence-detection)
-60. [OCPP RFID Formatting](#ocpp-rfid-formatting)
-61. [OCPP Settings Validation](#ocpp-settings-validation)
-62. [OCPP Telemetry](#ocpp-telemetry)
-63. [P1 Meter Parsing](#p1-meter-parsing)
-64. [Phase Switching](#phase-switching)
-65. [PIN Rate Limit](#pin-rate-limit)
-66. [Power Availability](#power-availability)
-67. [Reconnect backoff](#reconnect-backoff)
-68. [Priority-Based Power Scheduling](#priority-based-power-scheduling)
-69. [Serial Message Parsing](#serial-message-parsing)
-70. [Serial Input Validation](#serial-input-validation)
-71. [Battery Current Calculation](#battery-current-calculation)
-72. [Current Sum Calculation](#current-sum-calculation)
-73. [Charge Session Logging](#charge-session-logging)
-74. [Charge Session JSON Export](#charge-session-json-export)
-75. [Solar Balancing](#solar-balancing)
-76. [IEC 61851-1 State Transitions](#iec-61851-1-state-transitions)
-77. [10ms Tick Processing](#10ms-tick-processing)
-78. [1-Second Tick Processing](#1-second-tick-processing)
+27. [HTTP API Phase Key Building](#http-api-phase-key-building)
+28. [HTTP Auth](#http-auth)
+29. [LB Convergence](#lb-convergence)
+30. [LED Status Indication](#led-status-indication)
+31. [LED Color Configuration](#led-color-configuration)
+32. [LED Color — Public Scheme](#led-color-—-public-scheme)
+33. [Load Balancing](#load-balancing)
+34. [Meter Decoding](#meter-decoding)
+35. [Meter Timeout & Recovery](#meter-timeout-&-recovery)
+36. [Meter Telemetry](#meter-telemetry)
+37. [Metering Diagnostics](#metering-diagnostics)
+38. [Modbus Frame Decoding](#modbus-frame-decoding)
+39. [Modbus Frame Logging](#modbus-frame-logging)
+40. [Operating Modes](#operating-modes)
+41. [Mode Synchronization](#mode-synchronization)
+42. [Modem / ISO15118 Negotiation](#modem--iso15118-negotiation)
+43. [MQTT Command Parsing](#mqtt-command-parsing)
+44. [MQTT Input Validation](#mqtt-input-validation)
+45. [MQTT Meter Parsing](#mqtt-meter-parsing)
+46. [MQTT Color Parsing](#mqtt-color-parsing)
+47. [Solar Debug Telemetry](#solar-debug-telemetry)
+48. [Capacity Tariff MQTT](#capacity-tariff-mqtt)
+49. [MQTT Change-Only Publishing](#mqtt-change-only-publishing)
+50. [MQTT SoC Parsing](#mqtt-soc-parsing)
+51. [MQTT SoC Input Validation](#mqtt-soc-input-validation)
+52. [Multi-Node Load Balancing](#multi-node-load-balancing)
+53. [Multi-Node Solar Charging](#multi-node-solar-charging)
+54. [OCPP Current Limiting](#ocpp-current-limiting)
+55. [OCPP Authorization](#ocpp-authorization)
+56. [OCPP Connector State](#ocpp-connector-state)
+57. [OCPP Connector Lock](#ocpp-connector-lock)
+58. [OCPP IEC 61851 Status Mapping](#ocpp-iec-61851-status-mapping)
+59. [OCPP Load Balancing Exclusivity](#ocpp-load-balancing-exclusivity)
+60. [OCPP Silence Detection](#ocpp-silence-detection)
+61. [OCPP RFID Formatting](#ocpp-rfid-formatting)
+62. [OCPP Settings Validation](#ocpp-settings-validation)
+63. [OCPP Telemetry](#ocpp-telemetry)
+64. [P1 Meter Parsing](#p1-meter-parsing)
+65. [Phase Switching](#phase-switching)
+66. [PIN Rate Limit](#pin-rate-limit)
+67. [Power Availability](#power-availability)
+68. [Reconnect backoff](#reconnect-backoff)
+69. [Priority-Based Power Scheduling](#priority-based-power-scheduling)
+70. [Serial Message Parsing](#serial-message-parsing)
+71. [Serial Input Validation](#serial-input-validation)
+72. [Battery Current Calculation](#battery-current-calculation)
+73. [Current Sum Calculation](#current-sum-calculation)
+74. [Charge Session Logging](#charge-session-logging)
+75. [Charge Session JSON Export](#charge-session-json-export)
+76. [Solar Balancing](#solar-balancing)
+77. [IEC 61851-1 State Transitions](#iec-61851-1-state-transitions)
+78. [10ms Tick Processing](#10ms-tick-processing)
+79. [1-Second Tick Processing](#1-second-tick-processing)
 
 ## API Mains Staleness Detection
 
@@ -2965,6 +2966,70 @@
 - **Then** http_api_allow_unsigned_upload returns true unconditionally
 
 > Test: `test_unsigned_upload_always_allowed` in `test_http_api.c:971`
+
+---
+
+## HTTP API Phase Key Building
+
+### Phase index 0 with prefix "L" builds "L1"
+
+**Requirement:** `REQ-API-027`
+
+- **Given** phase_index = 0, prefix = "L"
+- **When** http_api_phase_key is called
+- **Then** buf contains "L1"
+
+> Test: `test_phase_key_l1` in `test_http_api.c:997`
+
+### Phase index 1 with prefix "L" builds "L2"
+
+**Requirement:** `REQ-API-027`
+
+- **Given** phase_index = 1, prefix = "L"
+- **When** http_api_phase_key is called
+- **Then** buf contains "L2" (not "" as the old "L" + x pointer arithmetic produced)
+
+> Test: `test_phase_key_l2` in `test_http_api.c:1011`
+
+### Phase index 2 with prefix "L" builds "L3"
+
+**Requirement:** `REQ-API-027`
+
+- **Given** phase_index = 2, prefix = "L"
+- **When** http_api_phase_key is called
+- **Then** buf contains "L3" (not an out-of-bounds read like "LINKY")
+
+> Test: `test_phase_key_l3` in `test_http_api.c:1025`
+
+### A custom prefix is concatenated correctly
+
+**Requirement:** `REQ-API-028`
+
+- **Given** phase_index = 0, prefix = "circuit_L"
+- **When** http_api_phase_key is called
+- **Then** buf contains "circuit_L1"
+
+> Test: `test_phase_key_custom_prefix` in `test_http_api.c:1039`
+
+### A buffer too small to hold the full key is truncated, not overrun
+
+**Requirement:** `REQ-API-028`
+
+- **Given** phase_index = 2, prefix = "circuit_L" (full result needs 11 bytes), buflen = 4
+- **When** http_api_phase_key is called
+- **Then** buf is truncated to 3 chars + NUL and stays within bounds
+
+> Test: `test_phase_key_truncates_safely` in `test_http_api.c:1053`
+
+### A zero-length buffer is a no-op, not a write
+
+**Requirement:** `REQ-API-028`
+
+- **Given** buflen = 0
+- **When** http_api_phase_key is called
+- **Then** No write occurs (guarded before touching buf[0])
+
+> Test: `test_phase_key_zero_buflen_noop` in `test_http_api.c:1067`
 
 ---
 
