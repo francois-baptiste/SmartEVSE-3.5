@@ -986,6 +986,98 @@ void test_unsigned_upload_always_allowed(void) {
     TEST_ASSERT_TRUE(http_api_allow_unsigned_upload(true,  1234, true));
 }
 
+// ---- Phase key building (POST /currents, /ev_meter response JSON) ----
+//
+// Regression coverage for a bug where handle_URI() built response keys with
+// "L" + x (raw pointer arithmetic on a 2-byte string literal, not string
+// concatenation): x=0 gave "L", x=1 gave "" (pointed at the literal's NUL),
+// and x=2 read past the end of the literal into whatever the linker placed
+// next in flash, observed in production as a bogus "LINKY" key.
+
+/*
+ * @feature HTTP API Phase Key Building
+ * @req REQ-API-027
+ * @scenario Phase index 0 with prefix "L" builds "L1"
+ * @given phase_index = 0, prefix = "L"
+ * @when http_api_phase_key is called
+ * @then buf contains "L1"
+ */
+void test_phase_key_l1(void) {
+    char buf[8];
+    http_api_phase_key(buf, sizeof(buf), "L", 0);
+    TEST_ASSERT_EQUAL_STRING("L1", buf);
+}
+
+/*
+ * @feature HTTP API Phase Key Building
+ * @req REQ-API-027
+ * @scenario Phase index 1 with prefix "L" builds "L2"
+ * @given phase_index = 1, prefix = "L"
+ * @when http_api_phase_key is called
+ * @then buf contains "L2" (not "" as the old "L" + x pointer arithmetic produced)
+ */
+void test_phase_key_l2(void) {
+    char buf[8];
+    http_api_phase_key(buf, sizeof(buf), "L", 1);
+    TEST_ASSERT_EQUAL_STRING("L2", buf);
+}
+
+/*
+ * @feature HTTP API Phase Key Building
+ * @req REQ-API-027
+ * @scenario Phase index 2 with prefix "L" builds "L3"
+ * @given phase_index = 2, prefix = "L"
+ * @when http_api_phase_key is called
+ * @then buf contains "L3" (not an out-of-bounds read like "LINKY")
+ */
+void test_phase_key_l3(void) {
+    char buf[8];
+    http_api_phase_key(buf, sizeof(buf), "L", 2);
+    TEST_ASSERT_EQUAL_STRING("L3", buf);
+}
+
+/*
+ * @feature HTTP API Phase Key Building
+ * @req REQ-API-028
+ * @scenario A custom prefix is concatenated correctly
+ * @given phase_index = 0, prefix = "circuit_L"
+ * @when http_api_phase_key is called
+ * @then buf contains "circuit_L1"
+ */
+void test_phase_key_custom_prefix(void) {
+    char buf[16];
+    http_api_phase_key(buf, sizeof(buf), "circuit_L", 0);
+    TEST_ASSERT_EQUAL_STRING("circuit_L1", buf);
+}
+
+/*
+ * @feature HTTP API Phase Key Building
+ * @req REQ-API-028
+ * @scenario A buffer too small to hold the full key is truncated, not overrun
+ * @given phase_index = 2, prefix = "circuit_L" (full result needs 11 bytes), buflen = 4
+ * @when http_api_phase_key is called
+ * @then buf is truncated to 3 chars + NUL and stays within bounds
+ */
+void test_phase_key_truncates_safely(void) {
+    char buf[4];
+    http_api_phase_key(buf, sizeof(buf), "circuit_L", 2);
+    TEST_ASSERT_EQUAL_STRING("cir", buf);
+}
+
+/*
+ * @feature HTTP API Phase Key Building
+ * @req REQ-API-028
+ * @scenario A zero-length buffer is a no-op, not a write
+ * @given buflen = 0
+ * @when http_api_phase_key is called
+ * @then No write occurs (guarded before touching buf[0])
+ */
+void test_phase_key_zero_buflen_noop(void) {
+    char buf[4] = {'X', 'X', 'X', 'X'};
+    http_api_phase_key(buf, 0, "L", 0);
+    TEST_ASSERT_EQUAL_INT('X', buf[0]);
+}
+
 int main(void) {
     TEST_SUITE_BEGIN("HTTP API");
 
@@ -1099,6 +1191,14 @@ int main(void) {
 
     // Unsigned-upload gate (unrestricted)
     RUN_TEST(test_unsigned_upload_always_allowed);
+
+    // Phase key building (POST /currents, /ev_meter response JSON)
+    RUN_TEST(test_phase_key_l1);
+    RUN_TEST(test_phase_key_l2);
+    RUN_TEST(test_phase_key_l3);
+    RUN_TEST(test_phase_key_custom_prefix);
+    RUN_TEST(test_phase_key_truncates_safely);
+    RUN_TEST(test_phase_key_zero_buflen_noop);
 
     TEST_SUITE_RESULTS();
 }

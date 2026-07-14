@@ -1211,8 +1211,10 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
                     Serial1.printf("@Irms:%03u,%d,%d,%d\n", MainsMeter.Address, (int16_t) request->getParam("L1")->value().toInt(), (int16_t) request->getParam("L2")->value().toInt(), (int16_t) request->getParam("L3")->value().toInt()); //Irms:011,312,123,124 means: the meter on address 11(dec) has Irms[0] 312 dA, Irms[1] of 123 dA, Irms[2] of 124 dA
 #endif
                     for (int x = 0; x < 3; x++) {
-                        doc["original"]["L" + x] = IrmsOriginal[x];
-                        doc["L" + x] = MainsMeter.Irms[x];
+                        char key[8];
+                        http_api_phase_key(key, sizeof(key), "L", x);
+                        doc["original"][key] = IrmsOriginal[x];
+                        doc[key] = MainsMeter.Irms[x];
                     }
                     doc["TOTAL"] = Isum;
 
@@ -1234,8 +1236,11 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
 #else //v4
                     Serial1.printf("@Irms:%03u,%d,%d,%d\n", CircuitMeter.Address, (int16_t) request->getParam("circuit_L1")->value().toInt(), (int16_t) request->getParam("circuit_L2")->value().toInt(), (int16_t) request->getParam("circuit_L3")->value().toInt());
 #endif
-                    for (int x = 0; x < 3; x++)
-                        doc["circuit"]["L" + x] = CircuitMeter.Irms[x];
+                    for (int x = 0; x < 3; x++) {
+                        char key[8];
+                        http_api_phase_key(key, sizeof(key), "L", x);
+                        doc["circuit"][key] = CircuitMeter.Irms[x];
+                    }
                     doc["circuit"]["TOTAL"] = CircuitMeter.Irms[0] + CircuitMeter.Irms[1] + CircuitMeter.Irms[2];
                 } else
                     doc["circuit"]["TOTAL"] = "not allowed on slave";
@@ -1262,8 +1267,11 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
 #else //v4
                 Serial1.printf("@Irms:%03u,%d,%d,%d\n", EVMeter.Address, (int16_t) request->getParam("L1")->value().toInt(), (int16_t) request->getParam("L2")->value().toInt(), (int16_t) request->getParam("L3")->value().toInt()); //Irms:011,312,123,124 means: the meter on address 11(dec) has Irms[0] 312 dA, Irms[1] of 123 dA, Irms[2] of 124 dA
 #endif
-                for (int x = 0; x < 3; x++)
-                    doc["ev_meter"]["currents"]["L" + x] = EVMeter.Irms[x];
+                for (int x = 0; x < 3; x++) {
+                    char key[8];
+                    http_api_phase_key(key, sizeof(key), "L", x);
+                    doc["ev_meter"]["currents"][key] = EVMeter.Irms[x];
+                }
                 doc["ev_meter"]["currents"]["TOTAL"] = EVMeter.Irms[0] + EVMeter.Irms[1] + EVMeter.Irms[2];
             }
 

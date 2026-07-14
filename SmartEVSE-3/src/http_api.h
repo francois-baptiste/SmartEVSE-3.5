@@ -114,6 +114,12 @@ const char *evse_state_to_iec61851_substate(int state, int error_flags);
 // Returns true when the EVSE is delivering energy (STATE_C or STATE_C1).
 bool evse_charging_enabled(int state);
 
+// Build a 1-indexed phase JSON key ("L1".."L3", or e.g. "circuit_L1" for a
+// custom prefix) into buf. Always NUL-terminates. Used by the /currents,
+// /ev_meter response builders instead of raw pointer arithmetic on string
+// literals (e.g. "L" + x), which reads past the literal for x >= 1.
+void http_api_phase_key(char *buf, size_t buflen, const char *prefix, int phase_index);
+
 // Decide whether an unsigned firmware.bin upload may be accepted on /update.
 //
 // Policy: unsigned firmware uploads (firmware.bin / firmware.debug.bin) are

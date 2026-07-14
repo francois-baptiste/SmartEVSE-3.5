@@ -7,6 +7,7 @@
 
 #include "http_api.h"
 #include "evse_ctx.h"
+#include <stdio.h>
 
 #ifndef MIN_CURRENT
 #define MIN_CURRENT 6
@@ -349,6 +350,12 @@ int http_api_validate_settings(const http_settings_request_t *req,
     }
 
     return count;
+}
+
+void http_api_phase_key(char *buf, size_t buflen, const char *prefix, int phase_index) {
+    if (buflen == 0)
+        return;
+    snprintf(buf, buflen, "%s%d", prefix, phase_index + 1);
 }
 
 bool http_api_allow_unsigned_upload(bool is_debug_build,
