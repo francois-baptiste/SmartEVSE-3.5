@@ -36,7 +36,9 @@ struct EMstruct EMConfig[] = {
     {"C.Gavazzi", ENDIANESS_HBF_LWF, 4, MB_DATATYPE_INT32,      0x0, 1,    0xC, 3,   0x28, 1,   0x34, 1,  0x4E, 1}, // Carlo Gavazzi EM340 (0.1V / mA / 0.1W / 0.1kWh) 
     {"Orno 3P",   ENDIANESS_HBF_HWF, 4, MB_DATATYPE_FLOAT32,    0x0, 0,  0x0C, 0,   0x1C, 0, 0x0100, 0,0x0110, 0}, // Orno OR-WE-517 (V / A / W / kWh) 3-phase bidirectional
     {"Orno 1P",   ENDIANESS_HBF_HWF, 4, MB_DATATYPE_FLOAT32,    0x0, 0,  0x06, 0,   0x0C, 0, 0x0100, 0,0x0110, 0}, // Orno OR-WE-516 (V / A / W / kWh) 1-phase bidirectional
-    {"Custom",    ENDIANESS_LBF_LWF, 4, MB_DATATYPE_INT32,        0, 0,      0, 0,      0, 0,      0, 0,     0, 0}  // Last entry!
+    {"Custom",    ENDIANESS_LBF_LWF, 4, MB_DATATYPE_INT32,        0, 0,      0, 0,      0, 0,      0, 0,     0, 0}, // Custom
+    {"AcrelEVL2",  ENDIANESS_HBF_HWF, 3, MB_DATATYPE_INT16,   0x62, 1,   0x65, 2,  0x166, 0,   0x89, 2,     0, 0}, // Acrel ADL400-D Phase B (L2) only EV meter; Power/Energy are 32-bit (see receivePowerMeasurement/receiveEnergyMeasurement overrides)
+    {"AcrelMain", ENDIANESS_HBF_HWF, 3, MB_DATATYPE_INT16,      0, 0,   0x64, 2,  0x16A, 0,    0x0, 2,     0, 0}  // Acrel ADL400-D 3-phase mains meter (Total P/E + L1-L3 current); Power/Energy are 32-bit; sign recovered from a separate per-phase power poll (registers 356-362) // Last entry!
 };
 // WARNING: ONLY ADD new meters to the END of this ARRAY. The row number is stored in the config of the user, if you change the order YOU WILL RUIN THE CONFIGS OF USERS !!!!!!!
 
@@ -270,6 +272,12 @@ uint8_t Meter::receiveCurrentMeasurement(ModBus MB) {
             }
             break;
         }
+        case EM_ACREL_EV_L2:
+            // Single Phase B (L2) current only -- var[1]/var[2] stay 0 (no L1/L3 reading)
+            var[0] = decodeMeasurement(buf, 0, EMConfig[Type].IDivisor - 3);
+            var[1] = 0;
+            var[2] = 0;
+            break;
         default:
             for (x = 0; x < 3; x++) {
                 var[x] = decodeMeasurement(buf, x, EMConfig[Type].IDivisor - 3);
@@ -316,6 +324,18 @@ uint8_t Meter::receiveCurrentMeasurement(ModBus MB) {
 #endif
     }
 
+    // Acrel ADL400-D: current is unsigned magnitude, but its power register(s) are too far
+    // from the current register(s) to read in the same Modbus transaction (see
+    // requestCurrentMeasurement / ModbusRequestLoop case 30 / requestPowerMeasurement).
+    // Sign is instead recovered from Power[]/PowerMeasured cached by a separate, earlier poll.
+    if (Type == EM_ACREL_EV_L2) {
+        if (PowerMeasured < 0) var[0] = -var[0];
+    } else if (Type == EM_ACREL_MAINS) {
+        for (x = 0; x < 3; x++) {
+            if (Power[x] < 0) var[x] = -var[x];
+        }
+    }
+
     // Convert Irms from mA to deciAmpère (A * 10)
     for (x = 0; x < 3; x++) {
         Irms[x] = (var[x] / 100);            // Convert to AMPERE * 10
@@ -349,6 +369,11 @@ signed int Meter::receiveEnergyMeasurement(uint8_t *buf) {
         case EM_SINOTIMER:
             // Note:
             // - Sinotimer uses 16-bit values, except for this measurement it uses 32bit int format
+            return decodeMeasurement(buf, 0, EMConfig[Type].Endianness, MB_DATATYPE_INT32, EMConfig[Type].EDivisor - 3);
+        case EM_ACREL_EV_L2:
+        case EM_ACREL_MAINS:
+            // Note:
+            // - Acrel ADL400-D profiles use 16-bit values, except Energy uses 32-bit int format
             return decodeMeasurement(buf, 0, EMConfig[Type].Endianness, MB_DATATYPE_INT32, EMConfig[Type].EDivisor - 3);
         default:
             return decodeMeasurement(buf, 0, EMConfig[Type].Endianness, EMConfig[Type].DataType, EMConfig[Type].EDivisor - 3);
@@ -384,6 +409,11 @@ signed int Meter::receivePowerMeasurement(uint8_t *buf) {
             _LOG_V("Received power EVmeter L1=(%dW), L2=(%dW), L3=(%dW)\n", Power[0], Power[1], Power[2]);
             return (Power[0] + Power[1] + Power[2]);
         }
+        case EM_ACREL_EV_L2:
+        case EM_ACREL_MAINS:
+            // Note:
+            // - Acrel ADL400-D profiles use 16-bit values, except Power uses 32-bit int format
+            return decodeMeasurement(buf, 0, EMConfig[Type].Endianness, MB_DATATYPE_INT32, EMConfig[Type].PDivisor);
         default:
             return decodeMeasurement(buf, 0, EMConfig[Type].PDivisor);
     }
@@ -454,6 +484,18 @@ void Meter::ResponseToMeasurement(ModBus MB) {
             else
                 Export_active_energy = receiveEnergyMeasurement(MB.Data);
             UpdateEnergies();
+        } else if (MB.Register == 356 && Type == EM_ACREL_MAINS) {
+            // Per-phase active power (Pa/Pb/Pc) + Total Power, registers 356-363 (32-bit each).
+            // Polled separately from current (registers 100-102 are too far away to combine into
+            // one Modbus transaction); Power[] is cached here and consumed by the next
+            // receiveCurrentMeasurement() call to recover the sign of the unsigned current readings.
+            for (int x = 0; x < 3; x++) {
+                Power[x] = decodeMeasurement(MB.Data, x, EMConfig[Type].Endianness, MB_DATATYPE_INT32, EMConfig[Type].PDivisor);
+            }
+            PowerMeasured = decodeMeasurement(MB.Data, 3, EMConfig[Type].Endianness, MB_DATATYPE_INT32, EMConfig[Type].PDivisor);
+#ifndef SMARTEVSE_VERSION //CH32
+            printf("@PowerMeasured:%03u,%d\n", Address, PowerMeasured);
+#endif
         } else if (MB.Register == 0x015A && (Type == EM_EASTRON3P || Type == EM_EASTRON3P_INV)) {
             // Per-phase total active energy (Eastron SDM630: registers 0x015A-0x015F)
             // 3 × FLOAT32 values in kWh, convert to Wh

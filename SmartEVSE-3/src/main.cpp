@@ -1487,6 +1487,16 @@ void requestEnergyMeasurement(uint8_t Meter, uint8_t Address, bool Export) {
             else
                 Register = EMConfig[Meter].ERegister_Exp;
             break;
+        case EM_ACREL_EV_L2:
+        case EM_ACREL_MAINS:
+            // Note:
+            // - Acrel ADL400-D profiles use 16-bit values, except Energy uses 32-bit int format
+            // - Neither profile has an export-energy register
+            if (Export)
+                Count = 0;
+            else
+                Count = 2;
+            break;
         default:
             if (Export)
                 Count = 0; //refuse to do a request on exported energy if the meter doesnt support it
@@ -1529,6 +1539,12 @@ void requestPowerMeasurement(uint8_t Meter, uint8_t Address, uint16_t PRegister)
             // Note:
             // - Sinotimer does not output total power but only individual power of the 3 phases
             Count = 3;
+            break;
+        case EM_ACREL_EV_L2:
+        case EM_ACREL_MAINS:
+            // Note:
+            // - Acrel ADL400-D profiles use 16-bit values, except Power uses 32-bit int format
+            Count = 2;
             break;
     }
     requestMeasurement(Meter, Address, PRegister, Count);
@@ -2142,6 +2158,18 @@ void ModbusRequestLoop() {
                         ModbusReadInputRequest(MainsMeter.Address, 4, 62, 2);
                         break;
                     }
+                }
+                ModbusRequest++;
+                // fall through
+            case 30:
+                // Acrel ADL400-D Mains: per-phase active power (Pa/Pb/Pc) + Total Power,
+                // registers 356-363. Polled every cycle (not gated by energytimer) since this
+                // is used to recover the current registers' sign, not just for telemetry --
+                // freshness matters for real-time load balancing under solar export.
+                if (MainsMeter.Type == EM_ACREL_MAINS) {
+                    _LOG_D("ModbusRequest %u: Request MainsMeter Acrel per-phase Power (sign correction)\n", ModbusRequest);
+                    ModbusReadInputRequest(MainsMeter.Address, EMConfig[MainsMeter.Type].Function, 356, 8);
+                    break;
                 }
                 ModbusRequest++;
                 // fall through

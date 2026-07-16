@@ -729,6 +729,137 @@ void test_apparent_power_estimate(void) {
     TEST_ASSERT_EQUAL_INT(0, (int)meter_apparent_power_va(0, 0.0f, 0));
 }
 
+/* ---- Real-world meter scenario: Acrel ADL400-D (mixed 16-bit/32-bit registers) ---- */
+
+/*
+ * @feature Meter Decoding
+ * @req REQ-MTR-174
+ * @scenario Acrel ADL400-D Phase B (L2) current decodes correctly from a single INT16 register
+ * @given Register 101 (Ib) holds raw value 1650 (0.01A units = 16.50A), big-endian INT16
+ * @when meter_decode_value is called with divisor=-1 (IDivisor=2 minus the firmware's -3 mA shift)
+ * @then Result value is 16500 (mA), matching the firmware's Irms pipeline (mA / 100 = deciAmps)
+ */
+void test_acrel_ev_l2_current_decode(void) {
+    /* 1650 = 0x0672 */
+    uint8_t buf[] = {0x06, 0x72};
+    meter_reading_t r = meter_decode_value(buf, 0, ENDIANNESS_HBF_HWF,
+                                           METER_DATATYPE_INT16, -1);
+    TEST_ASSERT_EQUAL_INT(1, r.valid);
+    TEST_ASSERT_EQUAL_INT(16500, r.value);
+}
+
+/*
+ * @feature Meter Decoding
+ * @req REQ-MTR-175
+ * @scenario Acrel Phase B power register is 32-bit despite the profile's base INT16 datatype
+ * @given Register 358 (Pb) holds raw value 3680 (W), encoded as a 4-byte big-endian INT32
+ * @when the same raw bytes are decoded once as INT16 (the profile's declared base DataType,
+ *       i.e. the bug this profile must avoid) and once as INT32 (the explicit override used by
+ *       receivePowerMeasurement/receiveEnergyMeasurement for EM_ACREL_EV_L2/EM_ACREL_MAINS)
+ * @then The INT16 decode silently truncates to the high half (0, garbage relative to the real
+ *       reading) while the INT32 override correctly returns 3680 -- proving the explicit
+ *       datatype override is required and correct, not merely cosmetic
+ */
+void test_acrel_power_mixed_width_override(void) {
+    /* 3680 = 0x00000E60, big-endian */
+    uint8_t buf[] = {0x00, 0x00, 0x0E, 0x60};
+
+    meter_reading_t wrong = meter_decode_value(buf, 0, ENDIANNESS_HBF_HWF,
+                                               METER_DATATYPE_INT16, 0);
+    TEST_ASSERT_EQUAL_INT(1, wrong.valid);
+    TEST_ASSERT_EQUAL_INT(0, wrong.value); /* high 2 bytes only: 0x0000 -> 0, not 3680 */
+
+    meter_reading_t correct = meter_decode_value(buf, 0, ENDIANNESS_HBF_HWF,
+                                                 METER_DATATYPE_INT32, 0);
+    TEST_ASSERT_EQUAL_INT(1, correct.valid);
+    TEST_ASSERT_EQUAL_INT(3680, correct.value);
+}
+
+/*
+ * @feature Meter Decoding
+ * @req REQ-MTR-176
+ * @scenario Acrel Phase B energy register decodes as 32-bit kWh converted to Wh
+ * @given Register 137 (Eb) holds raw value 56789 (0.01kWh units = 567.89 kWh), big-endian INT32
+ * @when meter_decode_value is called with divisor=-1 (EDivisor=2 minus the firmware's -3 Wh shift)
+ * @then Result value is 567890 (Wh)
+ */
+void test_acrel_ev_l2_energy_decode(void) {
+    /* 56789 = 0x0000DDD5 */
+    uint8_t buf[] = {0x00, 0x00, 0xDD, 0xD5};
+    meter_reading_t r = meter_decode_value(buf, 0, ENDIANNESS_HBF_HWF,
+                                           METER_DATATYPE_INT32, -1);
+    TEST_ASSERT_EQUAL_INT(1, r.valid);
+    TEST_ASSERT_EQUAL_INT(567890, r.value);
+}
+
+/*
+ * @feature Meter Decoding
+ * @req REQ-MTR-177
+ * @scenario Acrel Mains 3-phase current registers (100/101/102) decode independently
+ * @given Registers Ia/Ib/Ic hold [1600, 800, 400] (0.01A units = 16.0A, 8.0A, 4.0A), INT16
+ * @when meter_decode_value is called for indices 0, 1, 2 with divisor=-1
+ * @then Returns 16000, 8000, 4000 (mA) respectively, matching the L1/L2/L3 offset convention
+ *       already used by the generic 3-phase INT16 meters (offset +1/+2 registers)
+ */
+void test_acrel_mains_current_decode(void) {
+    /* 1600=0x0640, 800=0x0320, 400=0x0190 */
+    uint8_t buf[] = {0x06, 0x40, 0x03, 0x20, 0x01, 0x90};
+    meter_reading_t r0 = meter_decode_value(buf, 0, ENDIANNESS_HBF_HWF,
+                                            METER_DATATYPE_INT16, -1);
+    meter_reading_t r1 = meter_decode_value(buf, 1, ENDIANNESS_HBF_HWF,
+                                            METER_DATATYPE_INT16, -1);
+    meter_reading_t r2 = meter_decode_value(buf, 2, ENDIANNESS_HBF_HWF,
+                                            METER_DATATYPE_INT16, -1);
+    TEST_ASSERT_EQUAL_INT(16000, r0.value);
+    TEST_ASSERT_EQUAL_INT(8000, r1.value);
+    TEST_ASSERT_EQUAL_INT(4000, r2.value);
+}
+
+/*
+ * @feature Meter Decoding
+ * @req REQ-MTR-178
+ * @scenario Acrel Mains per-phase power block (Pa/Pb/Pc/Total) decodes as 4 independent INT32s
+ * @given One response block covering registers 356-363: Pa=1000W, Pb=1200W, Pc=900W, Total=3100W,
+ *        each a big-endian INT32, used only to recover current-direction sign since the current
+ *        registers (100-102) are too far away to read in the same Modbus transaction
+ * @when meter_decode_value is called for indices 0-3 with divisor=0
+ * @then Returns 1000, 1200, 900, 3100 respectively, with no overlap between phases
+ */
+void test_acrel_mains_power_block_decode(void) {
+    uint8_t buf[16] = {
+        0x00, 0x00, 0x03, 0xE8,  /* Pa = 1000 */
+        0x00, 0x00, 0x04, 0xB0,  /* Pb = 1200 */
+        0x00, 0x00, 0x03, 0x84,  /* Pc = 900 */
+        0x00, 0x00, 0x0C, 0x1C,  /* Total = 3100 */
+    };
+    meter_reading_t pa = meter_decode_value(buf, 0, ENDIANNESS_HBF_HWF, METER_DATATYPE_INT32, 0);
+    meter_reading_t pb = meter_decode_value(buf, 1, ENDIANNESS_HBF_HWF, METER_DATATYPE_INT32, 0);
+    meter_reading_t pc = meter_decode_value(buf, 2, ENDIANNESS_HBF_HWF, METER_DATATYPE_INT32, 0);
+    meter_reading_t pt = meter_decode_value(buf, 3, ENDIANNESS_HBF_HWF, METER_DATATYPE_INT32, 0);
+    TEST_ASSERT_EQUAL_INT(1000, pa.value);
+    TEST_ASSERT_EQUAL_INT(1200, pb.value);
+    TEST_ASSERT_EQUAL_INT(900, pc.value);
+    TEST_ASSERT_EQUAL_INT(3100, pt.value);
+}
+
+/*
+ * @feature Meter Decoding
+ * @req REQ-MTR-179
+ * @scenario Negative (export) power on the Acrel per-phase power block preserves sign
+ * @given Phase B power of -450W (export/reverse flow), encoded as big-endian INT32
+ * @when meter_decode_value is called with the INT32 override and divisor=0
+ * @then Result value is -450, so the firmware's cached-sign correction
+ *       (if (Power[x] < 0) var[x] = -var[x]) can flip the corresponding current reading
+ */
+void test_acrel_negative_power_sign(void) {
+    /* -450 = 0xFFFFFE3E */
+    uint8_t buf[] = {0xFF, 0xFF, 0xFE, 0x3E};
+    meter_reading_t r = meter_decode_value(buf, 0, ENDIANNESS_HBF_HWF,
+                                           METER_DATATYPE_INT32, 0);
+    TEST_ASSERT_EQUAL_INT(1, r.valid);
+    TEST_ASSERT_EQUAL_INT(-450, r.value);
+}
+
 /* ---- Main ---- */
 int main(void) {
     TEST_SUITE_BEGIN("Meter Decoding");
@@ -777,6 +908,14 @@ int main(void) {
     RUN_TEST(test_mains_phase_count_homewizard);
     RUN_TEST(test_apparent_power_from_linky);
     RUN_TEST(test_apparent_power_estimate);
+
+    // Acrel ADL400-D: mixed 16-bit/32-bit register profiles
+    RUN_TEST(test_acrel_ev_l2_current_decode);
+    RUN_TEST(test_acrel_power_mixed_width_override);
+    RUN_TEST(test_acrel_ev_l2_energy_decode);
+    RUN_TEST(test_acrel_mains_current_decode);
+    RUN_TEST(test_acrel_mains_power_block_decode);
+    RUN_TEST(test_acrel_negative_power_sign);
 
     TEST_SUITE_RESULTS();
 }

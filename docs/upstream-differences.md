@@ -114,6 +114,7 @@ Background — community reports:
 | API/MQTT staleness detection | Stale API data causes incorrect charging | [Features: Metering](features.md#metering--modbus) |
 | HomeWizard P1 energy data | HA energy dashboard incomplete | [Features: Metering](features.md#metering--modbus) |
 | HomeWizard P1 manual IP fallback | mDNS unreliable on some networks | [Features: Metering](features.md#metering--modbus) |
+| Acrel ADL400-D EV L2 / Mains profiles | Community-requested meter; phase-B-only EV tracking + mixed 16/32-bit register widths within one profile | [Features: Metering](features.md#metering--modbus) |
 
 ### EVCC Integration
 

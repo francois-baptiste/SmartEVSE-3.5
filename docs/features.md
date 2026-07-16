@@ -174,9 +174,9 @@ Configuration: [MQTT & Home Assistant](mqtt-home-assistant.md)
 
 ### Base Features
 
-- **18 supported meter types** via Modbus RTU — Eastron SDM630/SDM120, ABB B23,
+- **20 supported meter types** via Modbus RTU — Eastron SDM630/SDM120, ABB B23,
   Finder 7E/7M, Phoenix Contact, Schneider, Chint, Carlo Gavazzi, SolarEdge,
-  WAGO, Sinotimer, Orno WE-517/516, and Custom
+  WAGO, Sinotimer, Orno WE-517/516, Acrel ADL400-D (EV L2 / Mains), and Custom
 - **HomeWizard P1** — WiFi/HTTP smart meter support
 - **Sensorbox v1/v2** — CT or P1 input
 - **API/MQTT external feed** — external current data via REST or MQTT
@@ -203,6 +203,18 @@ Configuration: [MQTT & Home Assistant](mqtt-home-assistant.md)
   `total_power_export_kwh` for the HA energy dashboard.
 - **HomeWizard P1 manual IP fallback** — `Set/HomeWizardIP` MQTT command
   bypasses mDNS discovery for unreliable networks.
+- **Acrel ADL400-D: two independent profiles** — `AcrelEVL2` reads only the
+  Phase B (L2) voltage/current/power/energy registers, for tracking a
+  single-phase EV charger's draw off a 3-phase meter without picking up
+  L1/L3. `AcrelMain` reads Total Power/Energy plus all three phase currents
+  for mains load balancing. Both establish two new patterns: per-quantity
+  mixed 16-bit/32-bit register widths within one meter profile (forced via
+  explicit datatype overrides in `receivePowerMeasurement`/
+  `receiveEnergyMeasurement`, extending the precedent already set by
+  SolarEdge/Sinotimer), and current-direction sign recovery from a power
+  reading polled in a *separate* Modbus transaction (cached in `Power[]`)
+  when the meter's current and power registers are too far apart to read
+  together, unlike the single-transaction Eastron/ABB/Chint approach.
 
 Configuration: [Power Input Methods](power-input-methods.md)
 

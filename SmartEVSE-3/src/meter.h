@@ -51,6 +51,8 @@
 #define EM_ORNO3P 17
 #define EM_ORNO1P 18
 #define EM_CUSTOM 19
+#define EM_ACREL_EV_L2 20
+#define EM_ACREL_MAINS 21
 
 typedef enum mb_datatype {
     MB_DATATYPE_INT32 = 0,

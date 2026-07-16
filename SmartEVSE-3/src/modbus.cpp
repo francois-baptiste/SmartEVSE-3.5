@@ -603,6 +603,10 @@ void requestCurrentMeasurement(uint8_t Meter, uint8_t Address) {
             // Phase 1-3 power:   Register 0x2014 - 0x2019 (signed)
             ModbusReadInputRequest(Address, 3, 0x200C, 14);
             break;
+        case EM_ACREL_EV_L2:
+            // Single Phase B (L2) current only -- do not read L1/L3
+            requestMeasurement(Meter, Address, EMConfig[Meter].IRegister, 1);
+            break;
         default:
             // Read 3 Current values
             requestMeasurement(Meter, Address, EMConfig[Meter].IRegister, 3);

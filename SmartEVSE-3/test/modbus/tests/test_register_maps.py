@@ -17,6 +17,7 @@ from meter_profiles import (
     abb_b23, finder_7e, phoenix_contact, sinotimer,
     solaredge, wago, schneider, finder_7m,
     chint, carlo_gavazzi, orno_3p, orno_1p, custom,
+    acrel_ev_l2, acrel_mains,
 )
 
 
@@ -76,6 +77,7 @@ class TestABBB23RegisterMap:
 THREE_PHASE_PROFILES = [
     eastron_sdm630, abb_b23, finder_7e, phoenix_contact,
     wago, schneider, finder_7m, chint, carlo_gavazzi, orno_3p,
+    acrel_mains,
 ]
 
 PROFILE_IDS_3P = [p.METER_NAME for p in THREE_PHASE_PROFILES]
@@ -119,6 +121,7 @@ class TestAllProfilesHaveTestVectors:
         abb_b23, finder_7e, phoenix_contact, sinotimer,
         solaredge, wago, schneider, finder_7m,
         chint, carlo_gavazzi, orno_3p, orno_1p, custom,
+        acrel_ev_l2, acrel_mains,
     ]
 
     @pytest.mark.parametrize("profile",
