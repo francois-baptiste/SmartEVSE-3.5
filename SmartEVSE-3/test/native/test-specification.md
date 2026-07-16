@@ -1,6 +1,6 @@
 # SmartEVSE-3 Test Specification
 
-**79 features** | **1212 scenarios** | **1212 with requirement IDs**
+**79 features** | **1218 scenarios** | **1218 with requirement IDs**
 
 ---
 
@@ -4639,6 +4639,66 @@
 - **Then** It returns |I| * 230 = 3680 VA in both directions
 
 > Test: `test_apparent_power_estimate` in `test_meter_decode.c:718`
+
+### Acrel ADL400-D Phase B (L2) current decodes correctly from a single INT16 register
+
+**Requirement:** `REQ-MTR-174`
+
+- **Given** Register 101 (Ib) holds raw value 1650 (0.01A units = 16.50A), big-endian INT16
+- **When** meter_decode_value is called with divisor=-1 (IDivisor=2 minus the firmware's -3 mA shift)
+- **Then** Result value is 16500 (mA), matching the firmware's Irms pipeline (mA / 100 = deciAmps)
+
+> Test: `test_acrel_ev_l2_current_decode` in `test_meter_decode.c:734`
+
+### Acrel Phase B power register is 32-bit despite the profile's base INT16 datatype
+
+**Requirement:** `REQ-MTR-175`
+
+- **Given** Register 358 (Pb) holds raw value 3680 (W), encoded as a 4-byte big-endian INT32
+- **When** the same raw bytes are decoded once as INT16 (the profile's declared base DataType,
+- **Then** The INT16 decode silently truncates to the high half (0, garbage relative to the real
+
+> Test: `test_acrel_power_mixed_width_override` in `test_meter_decode.c:751`
+
+### Acrel Phase B energy register decodes as 32-bit kWh converted to Wh
+
+**Requirement:** `REQ-MTR-176`
+
+- **Given** Register 137 (Eb) holds raw value 56789 (0.01kWh units = 567.89 kWh), big-endian INT32
+- **When** meter_decode_value is called with divisor=-1 (EDivisor=2 minus the firmware's -3 Wh shift)
+- **Then** Result value is 567890 (Wh)
+
+> Test: `test_acrel_ev_l2_energy_decode` in `test_meter_decode.c:778`
+
+### Acrel Mains 3-phase current registers (100/101/102) decode independently
+
+**Requirement:** `REQ-MTR-177`
+
+- **Given** Registers Ia/Ib/Ic hold [1600, 800, 400] (0.01A units = 16.0A, 8.0A, 4.0A), INT16
+- **When** meter_decode_value is called for indices 0, 1, 2 with divisor=-1
+- **Then** Returns 16000, 8000, 4000 (mA) respectively, matching the L1/L2/L3 offset convention
+
+> Test: `test_acrel_mains_current_decode` in `test_meter_decode.c:795`
+
+### Acrel Mains per-phase power block (Pa/Pb/Pc/Total) decodes as 4 independent INT32s
+
+**Requirement:** `REQ-MTR-178`
+
+- **Given** One response block covering registers 356-363: Pa=1000W, Pb=1200W, Pc=900W, Total=3100W,
+- **When** meter_decode_value is called for indices 0-3 with divisor=0
+- **Then** Returns 1000, 1200, 900, 3100 respectively, with no overlap between phases
+
+> Test: `test_acrel_mains_power_block_decode` in `test_meter_decode.c:818`
+
+### Negative (export) power on the Acrel per-phase power block preserves sign
+
+**Requirement:** `REQ-MTR-179`
+
+- **Given** Phase B power of -450W (export/reverse flow), encoded as big-endian INT32
+- **When** meter_decode_value is called with the INT32 override and divisor=0
+- **Then** Result value is -450, so the firmware's cached-sign correction
+
+> Test: `test_acrel_negative_power_sign` in `test_meter_decode.c:845`
 
 ---
 

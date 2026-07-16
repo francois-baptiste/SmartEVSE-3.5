@@ -125,8 +125,8 @@ footer {
 <h1>SmartEVSE-3 Traceability Report</h1>
 <div class="summary">
 <div class="stat"><div class="number">79</div><div class="label">Features</div></div>
-<div class="stat"><div class="number">1212</div><div class="label">Test Scenarios</div></div>
-<div class="stat"><div class="number">1212</div><div class="label">With Requirements</div></div>
+<div class="stat"><div class="number">1218</div><div class="label">Test Scenarios</div></div>
+<div class="stat"><div class="number">1218</div><div class="label">With Requirements</div></div>
 <div class="stat"><div class="number">100%</div><div class="label">Requirement Coverage</div></div>
 </div>
 <div class="feature-section">
@@ -3466,7 +3466,7 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">Meter Decoding (40 scenarios)</div>
+<div class="feature-title">Meter Decoding (46 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -3754,6 +3754,48 @@ footer {
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> No Linky telemetry and an L1 current of 16.0 A (160 dA), or -16.0 A when exporting</li><li class="step-when"><span class="step-keyword">When</span> meter_apparent_power_va is called</li><li class="step-then"><span class="step-keyword">Then</span> It returns |I| * 230 = 3680 VA in both directions</li></ul></td>
 <td><code>test_apparent_power_estimate</code></td>
 <td><span class="file-ref">test_meter_decode.c:718</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MTR-174</span></td>
+<td>Acrel ADL400-D Phase B (L2) current decodes correctly from a single INT16 register</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Register 101 (Ib) holds raw value 1650 (0.01A units = 16.50A), big-endian INT16</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with divisor=-1 (IDivisor=2 minus the firmware&#x27;s -3 mA shift)</li><li class="step-then"><span class="step-keyword">Then</span> Result value is 16500 (mA), matching the firmware&#x27;s Irms pipeline (mA / 100 = deciAmps)</li></ul></td>
+<td><code>test_acrel_ev_l2_current_decode</code></td>
+<td><span class="file-ref">test_meter_decode.c:734</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MTR-175</span></td>
+<td>Acrel Phase B power register is 32-bit despite the profile&#x27;s base INT16 datatype</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Register 358 (Pb) holds raw value 3680 (W), encoded as a 4-byte big-endian INT32</li><li class="step-when"><span class="step-keyword">When</span> the same raw bytes are decoded once as INT16 (the profile&#x27;s declared base DataType,</li><li class="step-then"><span class="step-keyword">Then</span> The INT16 decode silently truncates to the high half (0, garbage relative to the real</li></ul></td>
+<td><code>test_acrel_power_mixed_width_override</code></td>
+<td><span class="file-ref">test_meter_decode.c:751</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MTR-176</span></td>
+<td>Acrel Phase B energy register decodes as 32-bit kWh converted to Wh</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Register 137 (Eb) holds raw value 56789 (0.01kWh units = 567.89 kWh), big-endian INT32</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with divisor=-1 (EDivisor=2 minus the firmware&#x27;s -3 Wh shift)</li><li class="step-then"><span class="step-keyword">Then</span> Result value is 567890 (Wh)</li></ul></td>
+<td><code>test_acrel_ev_l2_energy_decode</code></td>
+<td><span class="file-ref">test_meter_decode.c:778</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MTR-177</span></td>
+<td>Acrel Mains 3-phase current registers (100/101/102) decode independently</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Registers Ia/Ib/Ic hold [1600, 800, 400] (0.01A units = 16.0A, 8.0A, 4.0A), INT16</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called for indices 0, 1, 2 with divisor=-1</li><li class="step-then"><span class="step-keyword">Then</span> Returns 16000, 8000, 4000 (mA) respectively, matching the L1/L2/L3 offset convention</li></ul></td>
+<td><code>test_acrel_mains_current_decode</code></td>
+<td><span class="file-ref">test_meter_decode.c:795</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MTR-178</span></td>
+<td>Acrel Mains per-phase power block (Pa/Pb/Pc/Total) decodes as 4 independent INT32s</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> One response block covering registers 356-363: Pa=1000W, Pb=1200W, Pc=900W, Total=3100W,</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called for indices 0-3 with divisor=0</li><li class="step-then"><span class="step-keyword">Then</span> Returns 1000, 1200, 900, 3100 respectively, with no overlap between phases</li></ul></td>
+<td><code>test_acrel_mains_power_block_decode</code></td>
+<td><span class="file-ref">test_meter_decode.c:818</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MTR-179</span></td>
+<td>Negative (export) power on the Acrel per-phase power block preserves sign</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Phase B power of -450W (export/reverse flow), encoded as big-endian INT32</li><li class="step-when"><span class="step-keyword">When</span> meter_decode_value is called with the INT32 override and divisor=0</li><li class="step-then"><span class="step-keyword">Then</span> Result value is -450, so the firmware&#x27;s cached-sign correction</li></ul></td>
+<td><code>test_acrel_negative_power_sign</code></td>
+<td><span class="file-ref">test_meter_decode.c:845</span></td>
 </tr>
 </tbody></table>
 </div>
