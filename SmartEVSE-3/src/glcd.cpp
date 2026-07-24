@@ -42,41 +42,6 @@
 #include <MicroOcpp.h>
 #endif
 
-const unsigned char LCD_Flow [] = {
-0x00, 0x00, 0x98, 0xCC, 0x66, 0x22, 0x22, 0x22, 0xF2, 0xAA, 0x26, 0x2A, 0xF2, 0x22, 0x22, 0x22,
-0x66, 0xCC, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0xC0, 0x60, 0x30, 0x60, 0xC0,
-0x90, 0x20, 0x40, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x42, 0x04, 0xE0, 0x10, 0x08,
-0x0B, 0x08, 0x10, 0xE0, 0x04, 0x42, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1C, 0x22, 0x41, 0x4F,
-0x49, 0x22, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x40, 0x61, 0x31, 0x18, 0x08, 0x08, 0x08, 0x08, 0xFF, 0x08, 0x8D, 0x4A, 0xFF, 0x08, 0x08, 0x08,
-0x08, 0x18, 0x31, 0x61, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0xC0, 0x60, 0x30, 0x18, 0x0C, 0x06, 0x03, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x01, 0x03, 0x06, 0x0C, 0x19, 0x32, 0x64, 0xC8, 0x10, 0x00, 0x00, 0x08, 0x04, 0x00, 0x01, 0x02,
-0x1A, 0x02, 0x01, 0x00, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x05, 0x88, 0x50, 0xFF, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0xFF, 0x00, 0xF8, 0x08, 0x08, 0x08, 0x08, 0xF8, 0x00, 0x00, 0x00, 0xF0, 0x10,
-0x10, 0x10, 0x10, 0x10, 0xF0, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x80, 0x80, 0x40, 0x40, 0x20, 0x10, 0x10, 0x08, 0x08, 0x04, 0x04, 0x84, 0xC4, 0xE4,
-0x94, 0x84, 0x84, 0x04, 0x08, 0x10, 0x20, 0x40, 0x40, 0x40, 0x40, 0x80, 0x80, 0x80, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x40, 0x60, 0x30, 0x18, 0x0C, 0x07, 0x05, 0x04, 0x04, 0x07, 0x0C, 0x18, 0x30,
-0x68, 0x48, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,
-0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,
-0x08, 0x08, 0x00, 0x7F, 0x40, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x40, 0x40, 0x40, 0x7F, 0x40,
-0x40, 0x40, 0x42, 0x40, 0x7F, 0x40, 0x40, 0x7F, 0x00, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,
-0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08, 0x08,
-0x00, 0x0F, 0x10, 0x10, 0x00, 0x18, 0x24, 0x5A, 0x5A, 0x24, 0x18, 0x00, 0x10, 0x10, 0x10, 0x14,
-0x13, 0x11, 0x10, 0x10, 0x10, 0x10, 0x00, 0x18, 0x24, 0x5A, 0x5A, 0x24, 0x18, 0x00, 0x11, 0x0E
-};
-
 uint8_t LCDpos = 0;
 bool LCDToggle = false;                                                         // Toggle display between two values
 unsigned char LCDText = 0;                                                      // Cycle through text messages
@@ -96,6 +61,7 @@ extern String APpassword;
 unsigned char activeRow;
 extern Switch_Phase_t Switching_Phases_C2;
 extern uint8_t RCMTestCounter;
+extern uint16_t MaxMains;
 
 #if SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40
 
@@ -450,10 +416,6 @@ void GLCDHelp(void)                                                             
 
 // called once a second
 void GLCD(void) {
-    unsigned char x;
-    unsigned int seconds, minutes;
-    static unsigned char energy_mains = 20; // X position
-    static unsigned char energy_ev = 74; // X position
     char Str[26];
     LCDTimer++;
     
@@ -617,18 +579,60 @@ void GLCD(void) {
         return;
     }
 
-                                                                                // MODE NORMAL
-    if (Mode == MODE_NORMAL || AccessStatus == OFF) {
+                                                                                // HARMONIZED STATUS SCREEN
+                                                                                // Same 8-row layout regardless of Mode/AccessStatus — only the mode
+                                                                                // icon+label (row 0) and the status word (row 7) change.
+    {
+        unsigned char icon;
+        const char *label;
+        if (AccessStatus == OFF)        { icon = 0x04; label = "STOPPED"; }
+        else if (AccessStatus == PAUSE) { icon = 0x05; label = "PAUSED";  }
+        else if (Mode == MODE_SOLAR)    { icon = 0x07; label = "SOLAR";   }
+        else if (Mode == MODE_SMART)    { icon = 0x08; label = "SMART";   }
+        else                             { icon = 0x06; label = "NORMAL";  }
 
-        GLCD_buffer_clr();                                                      // row 0: show IEC 61851 CP state with substate digit (A, B1, B2, C1, C2...), top-left
-        GLCD_write_buf_str(20, 0, evse_state_to_iec61851_substate(State, ErrorFlags), GLCD_ALIGN_LEFT);
-        mode_policy_status_text(Mode, AccessStatus, Str, sizeof(Str));          // explicit mode + OFF/PAUSED indicator, top-right
-        GLCD_write_buf_str(127, 0, Str, GLCD_ALIGN_RIGHT);
+        // Row 0: mode icon + label (left), IEC 61851 substate (right)
+        GLCD_buffer_clr();
+        Str[0] = (char) icon;
+        Str[1] = ' ';
+        snprintf(Str + 2, sizeof(Str) - 2, "%s", label);
+        GLCD_write_buf_str(0, 0, Str, GLCD_ALIGN_LEFT);
+        GLCD_write_buf_str(127, 0, evse_state_to_iec61851_substate(State, ErrorFlags), GLCD_ALIGN_RIGHT);
         GLCD_sendbuf(0, 1);
         glcd_clrln(1, 0x04);                                                    // horizontal line
-        glcd_clrln(6, 0x10);                                                    // horizontal line
-        glcd_clrln(7, 0x00);
 
+        // Row 2/3: EV target ("consigne") vs. actual current draw
+        GLCD_buffer_clr();
+        snprintf(Str, sizeof(Str), "EV   SET  %u.%uA", Balanced[0] / 10, Balanced[0] % 10);
+        GLCD_write_buf_str(0, 0, Str, GLCD_ALIGN_LEFT);
+        GLCD_sendbuf(2, 1);
+
+        GLCD_buffer_clr();
+        if (EVMeter.Type)
+            snprintf(Str, sizeof(Str), "EV   NOW  %u.%uA", EVMeter.Irms[0] / 10, EVMeter.Irms[0] % 10);
+        else
+            snprintf(Str, sizeof(Str), "EV   NOW  N/A");
+        GLCD_write_buf_str(0, 0, Str, GLCD_ALIGN_LEFT);
+        GLCD_sendbuf(3, 1);
+
+        // Row 4/5: configured mains cap vs. actual mains current (signed — negative means exporting)
+        GLCD_buffer_clr();
+        snprintf(Str, sizeof(Str), "MAIN CAP  %uA", MaxMains);
+        GLCD_write_buf_str(0, 0, Str, GLCD_ALIGN_LEFT);
+        GLCD_sendbuf(4, 1);
+
+        GLCD_buffer_clr();
+        {
+            int16_t isum_abs = Isum < 0 ? (int16_t)(-Isum) : Isum;
+            snprintf(Str, sizeof(Str), "MAIN NOW  %s%d.%uA", Isum < 0 ? "-" : "", isum_abs / 10, isum_abs % 10);
+        }
+        GLCD_write_buf_str(0, 0, Str, GLCD_ALIGN_LEFT);
+        GLCD_sendbuf(5, 1);
+
+        glcd_clrln(6, 0x10);                                                    // horizontal line
+
+        // Row 7: status word — same vocabulary regardless of Mode
+        Str[0] = '\0';
 #if ENABLE_OCPP && defined(SMARTEVSE_VERSION) //run OCPP only on ESP32
         if (OcppMode &&                                          // OCPP enabled
                 (getItemValue(MENU_RFIDREADER) == 6 || getItemValue(MENU_RFIDREADER) == 0) && // RFID in OCPP mode or disabled
@@ -636,387 +640,163 @@ void GLCD(void) {
             BacklightTimer = BACKLIGHT;
             switch(ocppGetTxNotification()) {
                 case MicroOcpp::TxNotification::Authorized:
-                    GLCD_print_buf2(2, (const char *) "ACCEPTED");
-                    GLCD_print_buf2(4, (const char *) "RFID CARD");
+                    snprintf(Str, sizeof(Str), "ACCEPTED RFID CARD");
                     break;
                 case MicroOcpp::TxNotification::AuthorizationRejected:
                 case MicroOcpp::TxNotification::DeAuthorized:
-                    GLCD_print_buf2(2, (const char *) "INVALID");
-                    GLCD_print_buf2(4, (const char *) "RFID CARD");
+                    snprintf(Str, sizeof(Str), "INVALID RFID CARD");
                     break;
                 case MicroOcpp::TxNotification::AuthorizationTimeout:
-                    GLCD_print_buf2(2, (const char *) "OFFLINE");
-                    GLCD_print_buf2(4, (const char *) "TRY LATER");
+                    snprintf(Str, sizeof(Str), "OFFLINE, TRY LATER");
                     break;
                 case MicroOcpp::TxNotification::ReservationConflict:
-                    GLCD_print_buf2(2, (const char *) "BLOCKED BY");
-                    GLCD_print_buf2(4, (const char *) "RESERVATION");
+                    snprintf(Str, sizeof(Str), "BLOCKED - RESERVED");
                     break;
                 case MicroOcpp::TxNotification::ConnectionTimeout:
-                    GLCD_print_buf2(2, (const char *) "TIMEOUT");
-                    GLCD_print_buf2(4, (const char *) "TRY AGAIN");
+                    snprintf(Str, sizeof(Str), "TIMEOUT, TRY AGAIN");
                     break;
                 case MicroOcpp::TxNotification::RemoteStart:
-                    if (!ocppIsConnectorPlugged()) {
-                        GLCD_print_buf2(2, (const char *) "PLUG IN");
-                        GLCD_print_buf2(4, (const char *) "VEHICLE");
-                    }
+                    if (!ocppIsConnectorPlugged())
+                        snprintf(Str, sizeof(Str), "PLUG IN VEHICLE");
                     break;
                 case MicroOcpp::TxNotification::StartTx:
-                    GLCD_print_buf2(2, (const char *) "STARTED");
-                    GLCD_print_buf2(4, (const char *) "TRANSACTION");
+                    snprintf(Str, sizeof(Str), "TRANSACTION STARTED");
                     break;
                 case MicroOcpp::TxNotification::StopTx:
-                    GLCD_print_buf2(2, (const char *) "STOPPED");
-                    GLCD_print_buf2(4, (const char *) "TRANSACTION");
+                    snprintf(Str, sizeof(Str), "TRANSACTION STOPPED");
                     break;
                 default:
                     break;
             }
-        } else
+        }
 #endif //ENABLE_OCPP
-        if (ErrorFlags & LESS_6A && AccessStatus == ON) {
-            GLCD_print_buf2(2, (const char *) "WAITING");
-            GLCD_print_buf2(4, (const char *) "FOR POWER");
+        if (Str[0]) {
+            // already set by an OCPP transaction notification above
+        } else if (ErrorFlags & LESS_6A && AccessStatus == ON) {
+            snprintf(Str, sizeof(Str), "WAITING FOR %s", Mode == MODE_SOLAR ? "SOLAR" : "POWER");
 #if MODEM
         } else if (State == STATE_MODEM_REQUEST || State == STATE_MODEM_WAIT || State == STATE_MODEM_DONE) {                                          // Modem states
-
             BacklightTimer = BACKLIGHT;
-
-            GLCD_print_buf2(2, (const char *) "MODEM");
-            GLCD_print_buf2(4, (const char *) "COMM");
+            snprintf(Str, sizeof(Str), "MODEM COMM");
         } else if (State == STATE_MODEM_DENIED) {                               // Modem denied state
-
             BacklightTimer = BACKLIGHT;
-
-            GLCD_print_buf2(2, (const char *) "MODEM");
-            GLCD_print_buf2(4, (const char *) "DENIED");
+            snprintf(Str, sizeof(Str), "MODEM DENIED");
 #endif
         } else if (State == STATE_C) {                                          // STATE C
-            
             BacklightTimer = BACKLIGHT;
-            
-            if (GridRelayOpen)
-                GLCD_print_buf2(2, (const char *) "LIMITED");
-            else
-                GLCD_print_buf2(2, (const char *) "CHARGING");
-            if (EVMeter.Type)                                                  // Show target/actual current when an EV meter is configured
-                snprintf(Str, sizeof(Str), "%u.%u/%u.%uA", Balanced[0] / 10, Balanced[0] % 10, EVMeter.Irms[0] / 10, EVMeter.Irms[0] % 10);
-            else
-                snprintf(Str, sizeof(Str), "%u.%uA", Balanced[0] / 10, Balanced[0] % 10);
-            GLCD_print_buf2(4, Str);
-        } else {                                                                // STATE A and STATE B
-            if (AccessStatus == ON) {
-                GLCD_print_buf2(2, (const char *) "READY TO");
-                snprintf(Str, sizeof(Str), "CHARGE %u", ChargeDelay);
-                if (ChargeDelay) {
-                    // BacklightTimer = BACKLIGHT;
-                } else Str[6] = '\0';
-                GLCD_print_buf2(4, Str);
-            } else if (AccessStatus == PAUSE) {
-                GLCD_print_buf2(2, (const char *) "PAUSE");
-            } else {
-#if ENABLE_OCPP && defined(SMARTEVSE_VERSION) //run OCPP only on ESP32
-                if (OcppMode &&                                  // OCPP enabled
-                        (getItemValue(MENU_RFIDREADER) == 6 || getItemValue(MENU_RFIDREADER) == 0)) { // RFID in OCPP mode or disabled
-                    switch (getChargePointStatus()) {
-                        case ChargePointStatus_Available:
-                            GLCD_print_buf2(2, (const char *) "AVAILABLE");
-                            GLCD_print_buf2(4, (const char *) "");
-                            break;
-                        case ChargePointStatus_Preparing:
-                            if (!ocppIsConnectorPlugged()) {
-                                GLCD_print_buf2(2, (const char *) "PLUG IN");
-                                GLCD_print_buf2(4, (const char *) "VEHICLE");
-                            } else {
-                                GLCD_print_buf2(2, (const char *) "PLEASE");
-                                GLCD_print_buf2(4, (const char *) "AUTHORIZE");
-                            }
-                            break;
-                        case ChargePointStatus_Charging:
-                        case ChargePointStatus_SuspendedEVSE:
-                        case ChargePointStatus_SuspendedEV:
-                            // Should not be reached (Access_bit or STATE_C above prevail)
-                            GLCD_print_buf2(2, (const char *) "CHARGING");
-                            GLCD_print_buf2(4, (const char *) "IN PROGRESS");
-                            break;
-                        case ChargePointStatus_Finishing:
-                            if (ocppLockingTxDefined()) {
-                                GLCD_print_buf2(2, (const char *) "UNLOCK BY");
-                                GLCD_print_buf2(4, (const char *) "RFID CARD");
-                            } else {
-                                GLCD_print_buf2(2, (const char *) "FINISHED");
-                                GLCD_print_buf2(4, (const char *) "CHARGING");
-                            }
-                            break;
-                        case ChargePointStatus_Reserved:
-                            GLCD_print_buf2(2, (const char *) "RESERVED");
-                            GLCD_print_buf2(4, (const char *) "");
-                            break;
-                        case ChargePointStatus_Unavailable:
-                            GLCD_print_buf2(2, (const char *) "OUT OF");
-                            GLCD_print_buf2(4, (const char *) "ORDER");
-                            break;
-                        case ChargePointStatus_Faulted:
-                            GLCD_print_buf2(2, (const char *) "NO SERVICE");
-                            GLCD_print_buf2(4, (const char *) "");
-                            break;
-                        default:
-                            break;
-                    }
-                } else
-#endif //ENABLE_OCPP
-                if (getItemValue(MENU_RFIDREADER)) {
-                    if (RFIDstatus == 7) {
-                        GLCD_print_buf2(2, (const char *) "INVALID");
-                        GLCD_print_buf2(4, (const char *) "RFID CARD");
-                    } else {
-                        GLCD_print_buf2(2, (const char *) "PRESENT");
-                        GLCD_print_buf2(4, (const char *) "RFID CARD");
-                    }
-                } else {
-                    if (DelayedStartTime.epoch2) {
-                        GLCD_print_buf2(2, (const char *) "STARTING @");
-#define _24H 24*60*60
-#define _WEEK 7*_24H
-                        String StrFormat;
-                        if (DelayedStartTime.diff <= _24H)
-                            //if it starts in the next 24 hours, just print hours : minutes
-                            StrFormat = "%R";
-                        else {
-                            //if it starts in the next week, print day of week, day of month, hours: minutes
-                            if (DelayedStartTime.diff <= _WEEK)
-                                StrFormat = "%a %e %R";
-                            else
-                            //if it starts later, print day of week, day of month, month, year perhaps scrolling hours/minutes?
-                                StrFormat = "%a %e %b";
-                                //StrFormat = "%a %e %b '%C %R";
-                        }
-                        if (DelayedStartTime.epoch2 && LocalTimeSet && DelayedStartTime.epoch2 != DelayedStartTime_Old) {
-                            time_t epoch = DelayedStartTime.epoch2 + EPOCH2_OFFSET;
-                            DelayedStartTimeTM = *localtime(&epoch);
-                        }
-                        if (!strftime(Str, sizeof(Str), StrFormat.c_str(), &DelayedStartTimeTM))
-                            snprintf(Str, sizeof(Str), "later...");
-                        GLCD_print_buf2(4, Str);
-                        //print current time
-                        if (LocalTimeSet) {
-                            GLCD_buffer_clr();
-                            if (strftime(Str, 26, "%a %e %b '%y %R", &timeinfo))
-                                GLCD_write_buf_str(0,0, Str, GLCD_ALIGN_LEFT);
-                            GLCD_sendbuf(7, 1);
-                        }
-                    } else {
-                        if (MainsMeter.linky.available && MainsMeter.linky.is_hp && !LinkyHpBypass) {
-                            GLCD_print_buf2(2, (const char *) "WAIT HC");
-                            if (Mode == MODE_SOLAR) GLCD_print_buf2(4, (const char *) "SOLAR");
-                            else if (Mode == MODE_SMART) GLCD_print_buf2(4, (const char *) "SMART");
-                            else GLCD_print_buf2(4, (const char *) "NORMAL");
-                        } else if (!MainsMeter.linky.available && LinkyFailSafe) {
-                            GLCD_print_buf2(2, (const char *) "LINKY");
-                            GLCD_print_buf2(4, (const char *) "OFFLINE");
-                        } else {
-                            GLCD_print_buf2(2, (const char *) "ACCESS");
-                            GLCD_print_buf2(4, (const char *) "DENIED");
-                        }
-                    }
-                }
-            }
-        }
-    }                                                                           // MODE SMART or SOLAR
-    else if ((Mode == MODE_SMART) || (Mode == MODE_SOLAR)) {
-
-        memcpy (GLCDbuf, LCD_Flow, 512);                                        // copy Flow Menu to LCD buffer
-
-        if (Mode == MODE_SMART) {                                               // remove the Sun from the LCD buffer
-            for (x=0; x<13; x++) {
-                GLCDbuf[x+74u] = 0;
-                GLCDbuf[x+74u+128u] = 0;
-            }
-        }
-        if (MaxSumMainsTimer) {                                                 // When Capacity limit is active, change Mains energy line
-            for (x=18; x<48; x+=4) {                                            // ______ -> _ _ _ _ 
-                GLCDbuf[x+(128*3)] = 0;
-                GLCDbuf[x+(128*3)+1] = 0;
-            }
-        }
-        if (SolarStopTimer || MaxSumMainsTimer) {                               // display remaining time before charging is stopped
-            if (SolarStopTimer != 0 && (MaxSumMainsTimer == 0 || SolarStopTimer < MaxSumMainsTimer)) {
-                seconds = SolarStopTimer;
-            } else {                                                            // use either SolarStopTimer or MaxSumMainsTimer, whichever is
-                seconds = MaxSumMainsTimer;
-            }              
-            minutes = seconds / 60;
-            seconds = seconds % 60;
-            snprintf(Str, sizeof(Str), "%02u:%02u", minutes, seconds);
-            GLCD_write_buf_str(100, 0, Str, GLCD_ALIGN_LEFT);                   // print to buffer
-        } else {
-            for (x = 0; x < 8; x++) GLCDbuf[x + 92u] = 0;                       // remove the clock from the LCD buffer
-        }
-
-
-        if (Isum < 0) {
-            energy_mains -= 3;                                                  // animate the flow of Mains energy on LCD.
-            if (energy_mains < 20) energy_mains = 44;                           // Only in Mode: Smart or Solar
-        } else {
-            energy_mains += 3;
-            if (energy_mains > 44) energy_mains = 20;
-        }
-
-        GLCDx = energy_mains;
-        GLCDy = 3;
-
-        if (abs(Isum) >3 ) GLCD_write_buf(0x0A, 0);                             // Show energy flow 'blob' between Grid and House
-                                                                                // If current flow is < 0.3A don't show the blob
-
-        if (EVMeter.Type) {                                                     // If we have a EV kWh meter configured, Show total charged energy in kWh on LCD.
-            sprintfl(Str, sizeof(Str),"%2d.%1dkWh", EVMeter.EnergyCharged, 3, 1);           // Will reset to 0.0kWh when charging cable reconnected, and state change from STATE B->C
-            GLCD_write_buf_str(89, 1, Str,GLCD_ALIGN_LEFT);                     // print to buffer
-        }
-
-        // Write number of used phases into the car
-   /*     if (Node[0].Phases) {
-            GLCDx = 110;
-            GLCDy = 2;
-            GLCD_write_buf(Node[0].Phases, 2 | GLCD_MERGE);
-        }
-*/
-        if (State == STATE_C) {
-            BacklightTimer = BACKLIGHT;
-
-            energy_ev += 3;                                                     // animate energy flow to EV
-            if (energy_ev > 89) energy_ev = 74;
-
-            GLCDx = energy_ev;
-            GLCDy = 3;
-            GLCD_write_buf(0x0A, 0);                                            // Show energy flow 'blob' between House and Car
-
-            if (LCDToggle && EVMeter.Type) {
-                if (EVMeter.PowerMeasured < 9950) {
-                    sprintfl(Str, sizeof(Str),"%1d.%1dkW", EVMeter.PowerMeasured, 3, 1);
-                } else {
-                    sprintfl(Str, sizeof(Str),"%dkW", EVMeter.PowerMeasured, 3, 0);
-                }
-            } else {
-                sprintfl(Str, sizeof(Str),"%uA", Balanced[0], 1, 0);
-            }
-            GLCD_write_buf_str(85, 2, Str, GLCD_ALIGN_CENTER);
-        } else if (State == STATE_A) {
-            // Remove line between House and Car
-            for (x = 73; x < 96; x++) GLCDbuf[3u * 128u + x] = 0;
-        }
-
-        if (LCDToggle && Mode == MODE_SOLAR) {                                  // Show Sum of currents when solar charging.
-            GLCDx = 41;
-            GLCDy = 1;
-            GLCD_write_buf(0x0B, 0);                                            // Sum symbol
-
-            sprintfl(Str, sizeof(Str),"%dA", Isum, 1, 0);
-            GLCD_write_buf_str(46, 2, Str, GLCD_ALIGN_RIGHT);                   // print to buffer
-        } else {                                                                // Displayed only in Smart and Solar modes
-            if (meter_mains_phase_count(MainsMeter.Type, MainsMeter.DetectedPhases) == 1) {
-                sprintfl(Str, sizeof(Str),"%d.%01dA", MainsMeter.Irms[0] * 10L, 2, 1);// Single-phase installation: L1 current only, 0.1A resolution
-                GLCD_write_buf_str(46, 0, Str, GLCD_ALIGN_RIGHT);
-                int32_t va = meter_apparent_power_va(MainsMeter.Irms[0], MainsMeter.linky.apparent_power, MainsMeter.linky.available);
-                sprintfl(Str, sizeof(Str),"%d.%01d", va, 3, 1);                 // Apparent power in kVA (Linky SINSTS or 230V estimate)
-                GLCD_write_buf_str(46, 1, Str, GLCD_ALIGN_RIGHT);
-                GLCD_write_buf_str(46, 2, (const char *) "kVA", GLCD_ALIGN_RIGHT);
-            } else for (x = 0; x < 3; x++) {                                    // Display L1, L2 and L3 currents on LCD
-                sprintfl(Str, sizeof(Str),"%d.%01dA", MainsMeter.Irms[x] * 10L, 2, 1);
-                GLCD_write_buf_str(46, x, Str, GLCD_ALIGN_RIGHT);               // print to buffer
-            }
-        }
-
-        GLCD_sendbuf(0, 4);                                                     // Copy LCD buffer to GLCD
-
-        GLCD_buffer_clr();                                                      // Row 4: IEC 61851 CP substate (A, B1, B2, C1, C2...) on its own row —
-        GLCD_write_buf_str(0, 0, evse_state_to_iec61851_substate(State, ErrorFlags), GLCD_ALIGN_LEFT); // never share row 0 with the mains current column
-        GLCD_sendbuf(4, 1);
-        if (ErrorFlags & LESS_6A) {
-            if (!LCDToggle) {
-                GLCD_print_buf2(5, (const char *) "WAITING");
-            } else {
-                if (Mode == MODE_SMART) {
-                    GLCD_print_buf2(5, (const char *) "FOR POWER");
-                } else {
-                    GLCD_print_buf2(5, (const char *) "FOR SOLAR");
-                }
-            }
-
-#if MODEM
-        } else if (State == STATE_MODEM_REQUEST || State == STATE_MODEM_WAIT || State == STATE_MODEM_DONE) {                                          // Modem states
-            GLCD_print_buf2(5, (const char *) "MODEM");
-#endif
-        } else if (AccessStatus == PAUSE) {
-                    if (LCDToggle)                                              // alternate so both the pause state and the mode are explicit
-                        GLCD_print_buf2(5, (Mode == MODE_SOLAR) ? "SOLAR" : "SMART");
-                    else
-                        GLCD_print_buf2(5, "PAUSED");
-        } else if (State != STATE_C) {
-                switch (Switching_Phases_C2) {
-                    case NO_SWITCH:
-                        if (Mode == MODE_SOLAR)
-                            snprintf(Str, sizeof(Str), "SOLAR %u", ChargeDelay);
-                        else
-                            snprintf(Str, sizeof(Str), "SMART %u", ChargeDelay);
-                        if (!ChargeDelay) Str[5] = '\0';
-                        break;
-                    case GOING_TO_SWITCH_1P:
-                        snprintf(Str, sizeof(Str), "3P -> 1P %u", ChargeDelay);
-                        if (!ChargeDelay) Str[8] = '\0';
-                        break;
-                    case GOING_TO_SWITCH_3P:
-                        snprintf(Str, sizeof(Str), "1P -> 3P %u", ChargeDelay);
-                        if (!ChargeDelay) Str[8] = '\0';
-                        break;
-                }
-                GLCD_print_buf2(5, Str);
-        } else if (State == STATE_C) {
             switch (LCDText) {
                 default:
                     LCDText = 0;
-                    if (Mode != MODE_NORMAL) {
-                        if (Mode == MODE_SOLAR) snprintf(Str, sizeof(Str), "SOLAR");
-                            else snprintf(Str, sizeof(Str), "SMART");
-                            snprintf(Str+5, sizeof(Str)-5, " %uP", Nr_Of_Phases_Charging);
-                        GLCD_print_buf2(5, Str);
-                        break;
-                    } else LCDText++;
-                    // fall through
+                    snprintf(Str, sizeof(Str), "%uP CHARGING", Nr_Of_Phases_Charging);
+                    break;
                 case 1:
                     if (GridRelayOpen) {
-                        GLCD_print_buf2(5, (const char *) "LIMITED");
+                        snprintf(Str, sizeof(Str), "LIMITED");
                         break;
                     } else LCDText++;
                     // fall through
                 case 2:
-                    GLCD_print_buf2(5, (const char *) "CHARGING");
+                    snprintf(Str, sizeof(Str), "CHARGING");
                     break;
                 case 3:
                     if (EVMeter.Type) {
-                        sprintfl(Str, sizeof(Str),"%d.%01d kW", EVMeter.PowerMeasured, 3, 1);
-                        GLCD_print_buf2(5, Str);
+                        sprintfl(Str, sizeof(Str), "%d.%01d kW", EVMeter.PowerMeasured, 3, 1);
                         break;
                     } else LCDText++;
                     // fall through
                 case 4:
                     if (EVMeter.Type) {
-                        sprintfl(Str, sizeof(Str),"%d.%02d kWh", EVMeter.EnergyCharged, 3, 2);
-                        GLCD_print_buf2(5, Str);
+                        sprintfl(Str, sizeof(Str), "%d.%02d kWh", EVMeter.EnergyCharged, 3, 2);
                         break;
                     } else LCDText++;
                     // fall through
                 case 5:
-                    if (EVMeter.Type)                                          // Show target/actual current when an EV meter is configured
-                        snprintf(Str, sizeof(Str), "%u.%u/%u.%u A", Balanced[0] / 10, Balanced[0] % 10, EVMeter.Irms[0] / 10, EVMeter.Irms[0] % 10);
-                    else
-                        snprintf(Str, sizeof(Str), "%u.%u A", Balanced[0] / 10, Balanced[0] % 10);
-                    GLCD_print_buf2(5, Str);
+                    snprintf(Str, sizeof(Str), "CHARGING");
                     break;
             }
+        } else if (Switching_Phases_C2 == GOING_TO_SWITCH_1P) {                 // STATE A/B: phase switching in progress
+            snprintf(Str, sizeof(Str), "3P -> 1P %u", ChargeDelay);
+        } else if (Switching_Phases_C2 == GOING_TO_SWITCH_3P) {
+            snprintf(Str, sizeof(Str), "1P -> 3P %u", ChargeDelay);
+        } else if (AccessStatus == ON) {
+            if (ChargeDelay)
+                snprintf(Str, sizeof(Str), "READY TO CHARGE %u", ChargeDelay);
+            else
+                snprintf(Str, sizeof(Str), "READY TO CHARGE");
+        } else if (AccessStatus == PAUSE) {
+            snprintf(Str, sizeof(Str), "PAUSED");
+        } else {                                                                // AccessStatus == OFF
+#if ENABLE_OCPP && defined(SMARTEVSE_VERSION) //run OCPP only on ESP32
+            if (OcppMode &&                                  // OCPP enabled
+                    (getItemValue(MENU_RFIDREADER) == 6 || getItemValue(MENU_RFIDREADER) == 0)) { // RFID in OCPP mode or disabled
+                switch (getChargePointStatus()) {
+                    case ChargePointStatus_Available:
+                        snprintf(Str, sizeof(Str), "AVAILABLE");
+                        break;
+                    case ChargePointStatus_Preparing:
+                        snprintf(Str, sizeof(Str), ocppIsConnectorPlugged() ? "PLEASE AUTHORIZE" : "PLUG IN VEHICLE");
+                        break;
+                    case ChargePointStatus_Charging:
+                    case ChargePointStatus_SuspendedEVSE:
+                    case ChargePointStatus_SuspendedEV:
+                        // Should not be reached (Access_bit or STATE_C above prevail)
+                        snprintf(Str, sizeof(Str), "CHARGING IN PROGRESS");
+                        break;
+                    case ChargePointStatus_Finishing:
+                        snprintf(Str, sizeof(Str), ocppLockingTxDefined() ? "UNLOCK BY RFID CARD" : "FINISHED CHARGING");
+                        break;
+                    case ChargePointStatus_Reserved:
+                        snprintf(Str, sizeof(Str), "RESERVED");
+                        break;
+                    case ChargePointStatus_Unavailable:
+                        snprintf(Str, sizeof(Str), "OUT OF ORDER");
+                        break;
+                    case ChargePointStatus_Faulted:
+                        snprintf(Str, sizeof(Str), "NO SERVICE");
+                        break;
+                    default:
+                        break;
+                }
+            } else
+#endif //ENABLE_OCPP
+            if (getItemValue(MENU_RFIDREADER)) {
+                snprintf(Str, sizeof(Str), RFIDstatus == 7 ? "INVALID RFID CARD" : "PRESENT RFID CARD");
+            } else if (DelayedStartTime.epoch2) {
+#define _24H 24*60*60
+#define _WEEK 7*_24H
+                String StrFormat;
+                char timeStr[16];
+                if (DelayedStartTime.diff <= _24H)
+                    //if it starts in the next 24 hours, just print hours : minutes
+                    StrFormat = "%R";
+                else {
+                    //if it starts in the next week, print day of week, day of month, hours: minutes
+                    if (DelayedStartTime.diff <= _WEEK)
+                        StrFormat = "%a %e %R";
+                    else
+                    //if it starts later, print day of week, day of month, month
+                        StrFormat = "%a %e %b";
+                }
+                if (DelayedStartTime.epoch2 && LocalTimeSet && DelayedStartTime.epoch2 != DelayedStartTime_Old) {
+                    time_t epoch = DelayedStartTime.epoch2 + EPOCH2_OFFSET;
+                    DelayedStartTimeTM = *localtime(&epoch);
+                }
+                if (!strftime(timeStr, sizeof(timeStr), StrFormat.c_str(), &DelayedStartTimeTM))
+                    snprintf(timeStr, sizeof(timeStr), "later...");
+                snprintf(Str, sizeof(Str), "START @ %s", timeStr);
+            } else if (MainsMeter.linky.available && MainsMeter.linky.is_hp && !LinkyHpBypass) {
+                snprintf(Str, sizeof(Str), "WAIT HC");
+            } else if (!MainsMeter.linky.available && LinkyFailSafe) {
+                snprintf(Str, sizeof(Str), "LINKY OFFLINE");
+            } else {
+                snprintf(Str, sizeof(Str), "ACCESS DENIED");
+            }
         }
-        glcd_clrln(7, 0x00);
-    } // End Mode SMART or SOLAR
+
+        GLCD_buffer_clr();
+        GLCD_write_buf_str(0, 0, Str, GLCD_ALIGN_LEFT);
+        GLCD_sendbuf(7, 1);
+    } // End harmonized status screen
 
 }
 
