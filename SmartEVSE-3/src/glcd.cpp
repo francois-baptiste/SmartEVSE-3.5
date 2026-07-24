@@ -700,7 +700,10 @@ void GLCD(void) {
                 GLCD_print_buf2(2, (const char *) "LIMITED");
             else
                 GLCD_print_buf2(2, (const char *) "CHARGING");
-            snprintf(Str, sizeof(Str), "%u.%uA",Balanced[0] / 10, Balanced[0] % 10);
+            if (EVMeter.Type)                                                  // Show target/actual current when an EV meter is configured
+                snprintf(Str, sizeof(Str), "%u.%u/%u.%uA", Balanced[0] / 10, Balanced[0] % 10, EVMeter.Irms[0] / 10, EVMeter.Irms[0] % 10);
+            else
+                snprintf(Str, sizeof(Str), "%u.%uA", Balanced[0] / 10, Balanced[0] % 10);
             GLCD_print_buf2(4, Str);
         } else {                                                                // STATE A and STATE B
             if (AccessStatus == ON) {
@@ -924,11 +927,11 @@ void GLCD(void) {
             }
         }
 
-        GLCD_write_buf_str(20, 0, evse_state_to_iec61851_substate(State, ErrorFlags), GLCD_ALIGN_LEFT); // IEC 61851 CP state with substate digit (A, B1, B2, C1, C2...), top-left gap in flow bitmap
-
         GLCD_sendbuf(0, 4);                                                     // Copy LCD buffer to GLCD
 
-        glcd_clrln(4, 0);                                                       // Clear line 4
+        GLCD_buffer_clr();                                                      // Row 4: IEC 61851 CP substate (A, B1, B2, C1, C2...) on its own row —
+        GLCD_write_buf_str(0, 0, evse_state_to_iec61851_substate(State, ErrorFlags), GLCD_ALIGN_LEFT); // never share row 0 with the mains current column
+        GLCD_sendbuf(4, 1);
         if (ErrorFlags & LESS_6A) {
             if (!LCDToggle) {
                 GLCD_print_buf2(5, (const char *) "WAITING");
@@ -1004,7 +1007,10 @@ void GLCD(void) {
                     } else LCDText++;
                     // fall through
                 case 5:
-                    snprintf(Str, sizeof(Str), "%u.%u A", Balanced[0] / 10, Balanced[0] % 10);
+                    if (EVMeter.Type)                                          // Show target/actual current when an EV meter is configured
+                        snprintf(Str, sizeof(Str), "%u.%u/%u.%u A", Balanced[0] / 10, Balanced[0] % 10, EVMeter.Irms[0] / 10, EVMeter.Irms[0] % 10);
+                    else
+                        snprintf(Str, sizeof(Str), "%u.%u A", Balanced[0] / 10, Balanced[0] % 10);
                     GLCD_print_buf2(5, Str);
                     break;
             }
