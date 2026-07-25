@@ -12,7 +12,7 @@ extern "C" {
 // Settings update request — parsed from POST /settings parameters.
 // Each field has a has_* flag and a value. Only fields with has_*=true were present.
 typedef struct {
-    bool has_mode;              int mode;           // 0=OFF, 1=Normal, 2=Solar, 3=Smart, 4=Pause
+    bool has_mode;              int mode;           // 0=OFF, 1=Normal, 3=Smart, 4=Pause
     bool has_backlight;         int backlight;
     bool has_current_min;       int current_min;
     bool has_max_sum_mains;     int max_sum_mains;
@@ -20,10 +20,7 @@ typedef struct {
     bool has_disable_override;
     bool has_custom_button;     int custom_button;
     bool has_enable_c2;         int enable_c2;
-    bool has_stop_timer;        int stop_timer;
     bool has_override_current;  int override_current;
-    bool has_solar_start;       int solar_start_current;
-    bool has_solar_max_import;  int solar_max_import;
     bool has_lcd_lock;          int lcd_lock;
     bool has_cable_lock;        int cable_lock;
     bool has_prio_strategy;     int prio_strategy;
@@ -62,15 +59,6 @@ const char *http_api_validate_current_min(int value, int load_bl);
 // Validate a max_sum_mains value.
 const char *http_api_validate_max_sum_mains(int value, int load_bl);
 
-// Validate a stop_timer value (0..60).
-const char *http_api_validate_stop_timer(int value);
-
-// Validate solar_start_current (0..48).
-const char *http_api_validate_solar_start(int value);
-
-// Validate solar_max_import (0..48).
-const char *http_api_validate_solar_max_import(int value);
-
 // Validate prio_strategy (0..2). Only valid on master (load_bl <= 1).
 const char *http_api_validate_prio_strategy(int value, int load_bl);
 
@@ -100,7 +88,7 @@ const char *http_api_validate_phase_switch(const http_phase_switch_request_t *re
 
 // Map internal EVSE state + error flags to an IEC 61851-1 state letter (A-F).
 // Hard errors (CT_NOCOMM, TEMP_HIGH, EV_NOCOMM, RCM_TRIPPED, etc.) override to 'E'.
-// Soft errors (LESS_6A, NO_SUN) are temporary and do NOT override the state.
+// Soft errors (LESS_6A) are temporary and do NOT override the state.
 // NOSTATE or unrecognized values return 'F' (not available).
 char evse_state_to_iec61851(int state, int error_flags);
 

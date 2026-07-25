@@ -126,7 +126,6 @@ extern uint8_t TestState;
 extern AccessStatus_t AccessStatus;
 extern uint16_t CardOffset;
 
-extern uint16_t SolarStopTimer;
 extern uint16_t MaxSumMainsTimer;
 extern uint8_t RFIDstatus;
 extern uint8_t OcppMode;
@@ -169,14 +168,14 @@ const struct {
 
     // System configuration
     /* LCD,       Desc,                                                 Min, Max, Default */
-    {"MODE",    "Normal, Smart or Solar EVSE mode",                   0, 2, MODE},
+    {"MODE",    "Normal or Smart EVSE mode",                          0, 1, MODE},
     {"CIRCUIT", "EVSE Circuit max Current",                           10, 160, MAX_CIRCUIT},
     {"GRID",    "Grid type to which the Sensorbox is connected",      0, 1, GRID},
     {"SB2 WIFI","Connect Sensorbox-2 to WiFi",                        0, 2, SB2_WIFI_MODE},
     {"MAINS",   "Max MAINS Current (per phase)",                      10, 200, MAX_MAINS},
-    {"START",   "Surplus energy start Current (sum of phases)",       0, 48, START_CURRENT},
-    {"STOP",    "Stop solar charging at 6A after this time",          0, 60, STOP_TIME},
-    {"IMPORT",  "Allow grid power when solar charging (sum of phase)",0, 48, IMPORT_CURRENT},
+    {"", "Reserved", 0, 0, 0},
+    {"", "Reserved", 0, 0, 0},
+    {"", "Reserved", 0, 0, 0},
     {"MAINS MET","Type of mains electric meter",                       0, (uint16_t) (EMConfigSize / sizeof(EMConfig[0])-1), MAINS_METER},
     {"MAINS ADR","Address of mains electric meter",                    MIN_METER_ADDRESS, MAX_METER_ADDRESS, MAINS_METER_ADDRESS},
     {"BYTE ORD","Byte order of custom electric meter",                0, 3, EMCUSTOM_ENDIANESS},
@@ -223,7 +222,6 @@ extern struct DelayedTimeStruct DelayedStartTime;
 void read_settings();
 void write_settings(void);
 void request_write_settings(void);
-void setSolarStopTimer(uint16_t Timer);
 void setState(uint8_t NewState);
 void setAccess(AccessStatus_t Access);
 void setOverrideCurrent(uint16_t Current);

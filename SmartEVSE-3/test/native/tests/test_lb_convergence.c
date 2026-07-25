@@ -68,7 +68,6 @@ static void setup_smart_master_n(int n, uint16_t max_mains, int32_t baseload) {
     ctx.MaxRampRate = 0;       /* No ramp rate limiter (master, not standalone) */
     ctx.SettlingWindow = 0;    /* No settling suppression */
     ctx.NoCurrentThreshold = NOCURRENT_THRESHOLD_DEFAULT;
-    ctx.SolarMinRunTime = 0;
 
     for (int i = 0; i < n && i < NR_EVSES; i++) {
         ctx.BalancedState[i] = STATE_C;
@@ -110,7 +109,6 @@ static void setup_smart_standalone(uint16_t max_mains, int32_t baseload) {
     ctx.MaxRampRate = 0;
     ctx.SettlingWindow = 0;
     ctx.NoCurrentThreshold = NOCURRENT_THRESHOLD_DEFAULT;
-    ctx.SolarMinRunTime = 0;
 
     ctx.State = STATE_C;
     ctx.BalancedState[0] = STATE_C;
@@ -124,17 +122,6 @@ static void setup_smart_standalone(uint16_t max_mains, int32_t baseload) {
     ctx.MainsMeterImeasured = (int16_t)(baseload + total_ev);
     ctx.Isum = ctx.MainsMeterImeasured;
     ctx.IsetBalanced = (int32_t)total_ev;
-}
-
-/* Helper: set up standalone EVSE in Solar mode */
-static void setup_solar_standalone(uint16_t max_mains, int32_t baseload,
-                                   uint16_t import_current) {
-    setup_smart_standalone(max_mains, baseload);
-    ctx.Mode = MODE_SOLAR;
-    ctx.ImportCurrent = import_current;
-    ctx.StartCurrent = 4;
-    ctx.StopTime = 10;
-    ctx.SolarFineDeadBand = SOLAR_FINE_DEADBAND_DEFAULT;
 }
 
 /* ========================================================================
@@ -516,48 +503,6 @@ void test_maxsummains_constrains_convergence(void) {
 }
 
 /* ========================================================================
- * GROUP: Solar mode convergence
- * ======================================================================== */
-
-/*
- * @feature LB Convergence
- * @req REQ-LB-034
- * @scenario Solar mode converges to export surplus
- * @given Standalone EVSE in Solar mode, large export (Isum negative)
- * @when 30 regulation cycles are simulated with meter feedback
- * @then IsetBalanced increases to absorb available solar surplus
- */
-void test_solar_standalone_converges_to_surplus(void) {
-    /* Simulate solar export: baseload = -200 dA (20A export) */
-    setup_solar_standalone(25, -200, 0);
-
-    simulate_n_cycles(&ctx, 30, -200);
-
-    /* With 20A export, EVSE should be charging.
-     * Exact value depends on fine regulation. Check it's above MinCurrent. */
-    TEST_ASSERT_GREATER_THAN(60, ctx.Balanced[0]);
-}
-
-/*
- * @feature LB Convergence
- * @req REQ-LB-035
- * @scenario Solar mode with ImportCurrent allows partial grid import
- * @given Standalone EVSE in Solar mode with ImportCurrent=6A
- * @when 30 regulation cycles run with modest solar export
- * @then EVSE charges above pure-solar level due to allowed import
- */
-void test_solar_import_current_allows_grid_use(void) {
-    /* Baseload = -80 dA (8A export). ImportCurrent = 6A allows 6A import. */
-    setup_solar_standalone(25, -80, 6);
-
-    simulate_n_cycles(&ctx, 30, -80);
-
-    /* With 8A export + 6A allowed import, up to 14A available.
-     * EVSE should be charging above MinCurrent. */
-    TEST_ASSERT_GREATER_OR_EQUAL(60, ctx.Balanced[0]);
-}
-
-/* ========================================================================
  * GROUP: Stability tests (oscillation detection)
  * ======================================================================== */
 
@@ -769,7 +714,7 @@ void test_adaptive_gain_dampens_noisy_load(void) {
  * @scenario Normal mode is unaffected by adaptive gain
  * @given Standalone EVSE in Normal mode
  * @when Regulation cycles run
- * @then OscillationCount remains 0 (adaptive gain only applies to Smart/Solar)
+ * @then OscillationCount remains 0 (adaptive gain only applies to Smart mode)
  */
 void test_normal_mode_no_adaptive_gain(void) {
     evse_init(&ctx, NULL);
@@ -1537,10 +1482,6 @@ int main(void) {
     RUN_TEST(test_hard_shortage_standalone_triggers_nocurrent);
     RUN_TEST(test_maxcircuit_limits_convergence);
     RUN_TEST(test_maxsummains_constrains_convergence);
-
-    /* Solar mode convergence */
-    RUN_TEST(test_solar_standalone_converges_to_surplus);
-    RUN_TEST(test_solar_import_current_allows_grid_use);
 
     /* Stability / oscillation detection */
     RUN_TEST(test_smart_stability_no_oscillation);

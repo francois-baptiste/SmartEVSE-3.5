@@ -32,12 +32,10 @@ void test_mode_normal(void) {
 /*
  * @feature MQTT Command Parsing
  * @req REQ-MQTT-001
- * @scenario Set mode to Solar via MQTT
+ * @scenario Setting mode to Solar via MQTT is rejected (Solar mode removed)
  */
 void test_mode_solar(void) {
-    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/Mode", "Solar", &cmd));
-    TEST_ASSERT_EQUAL_INT(MQTT_CMD_MODE, cmd.cmd);
-    TEST_ASSERT_EQUAL_INT(MQTT_MODE_SOLAR, cmd.mode);
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/Mode", "Solar", &cmd));
 }
 
 /*
@@ -450,12 +448,10 @@ void test_color_off_command(void) {
 /*
  * @feature MQTT Color Parsing
  * @req REQ-MQTT-010
- * @scenario ColorSolar topic parsed correctly
+ * @scenario ColorSolar topic is no longer recognized (Solar mode removed)
  */
 void test_color_solar_command(void) {
-    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/ColorSolar", "0,255,0", &cmd));
-    TEST_ASSERT_EQUAL_INT(MQTT_COLOR_SOLAR, cmd.color.index);
-    TEST_ASSERT_EQUAL_INT(255, cmd.color.g);
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/ColorSolar", "0,255,0", &cmd));
 }
 
 /*
@@ -901,48 +897,6 @@ void test_mqtt_change_only_invalid(void) {
     TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/MQTTChangeOnly", "2", &cmd));
 }
 
-// ---- SolarDebug ----
-
-/*
- * @feature Solar Debug Telemetry
- * @req REQ-SOL-020
- * @scenario SolarDebug enable via MQTT
- * @given A valid MQTT prefix
- * @when Topic is prefix/Set/SolarDebug with payload "1"
- * @then The parser returns true with solar_debug = true
- */
-void test_solar_debug_enable(void) {
-    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/SolarDebug", "1", &cmd));
-    TEST_ASSERT_EQUAL(MQTT_CMD_SOLAR_DEBUG, cmd.cmd);
-    TEST_ASSERT_TRUE(cmd.solar_debug);
-}
-
-/*
- * @feature Solar Debug Telemetry
- * @req REQ-SOL-020
- * @scenario SolarDebug disable via MQTT
- * @given A valid MQTT prefix
- * @when Topic is prefix/Set/SolarDebug with payload "0"
- * @then The parser returns true with solar_debug = false
- */
-void test_solar_debug_disable(void) {
-    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/SolarDebug", "0", &cmd));
-    TEST_ASSERT_EQUAL(MQTT_CMD_SOLAR_DEBUG, cmd.cmd);
-    TEST_ASSERT_FALSE(cmd.solar_debug);
-}
-
-/*
- * @feature Solar Debug Telemetry
- * @req REQ-SOL-020
- * @scenario SolarDebug rejects invalid payload
- * @given A valid MQTT prefix
- * @when Topic is prefix/Set/SolarDebug with payload "2"
- * @then The parser returns false
- */
-void test_solar_debug_invalid(void) {
-    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/SolarDebug", "2", &cmd));
-}
-
 // ---- DiagProfile ----
 
 /*
@@ -962,15 +916,13 @@ void test_diag_profile_general(void) {
 /*
  * @feature Diagnostic Telemetry
  * @req REQ-E2E-048
- * @scenario DiagProfile set to solar via MQTT
+ * @scenario DiagProfile "solar" name is no longer recognized (Solar mode removed)
  * @given A valid MQTT prefix
  * @when Topic is prefix/Set/DiagProfile with payload "solar"
- * @then The parser returns true with diag_profile = 2
+ * @then The parser returns false
  */
 void test_diag_profile_solar(void) {
-    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/DiagProfile", "solar", &cmd));
-    TEST_ASSERT_EQUAL(MQTT_CMD_DIAG_PROFILE, cmd.cmd);
-    TEST_ASSERT_EQUAL(2, cmd.diag_profile);
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/DiagProfile", "solar", &cmd));
 }
 
 /*
@@ -1447,11 +1399,6 @@ int main(void) {
     RUN_TEST(test_mqtt_change_only_enable);
     RUN_TEST(test_mqtt_change_only_disable);
     RUN_TEST(test_mqtt_change_only_invalid);
-
-    // SolarDebug
-    RUN_TEST(test_solar_debug_enable);
-    RUN_TEST(test_solar_debug_disable);
-    RUN_TEST(test_solar_debug_invalid);
 
     // DiagProfile
     RUN_TEST(test_diag_profile_general);

@@ -26,9 +26,6 @@ extern uint8_t  Mode;
 extern uint16_t ChargeCurrent;
 extern int16_t  IsetBalanced;
 extern uint16_t OverrideCurrent;
-extern uint16_t SolarStopTimer;
-extern uint16_t ImportCurrent;
-extern uint16_t StartCurrent;
 extern uint8_t  NoCurrent;
 extern uint8_t  C1Timer;
 extern uint8_t  AccessTimer;
@@ -84,7 +81,7 @@ void diag_start(diag_profile_t profile)
 void diag_stop(void)
 {
     /* Reset the profile to OFF so /diag/status reports the capture as
-     * stopped. Without this the ring stays "general/solar/loadbal/..."
+     * stopped. Without this the ring stays "general/loadbal/..."
      * (just frozen), and the web UI's auto-resume on page load
      * (app.js: `if (d.profile && d.profile !== 'off') diagConnectWs()`)
      * keeps re-attaching the WebSocket after every Stop press until
@@ -123,11 +120,6 @@ static void diag_fill_snapshot(diag_snapshot_t *snap)
     snap->charge_current  = ChargeCurrent;
     snap->iset_balanced   = (int16_t)IsetBalanced;
     snap->override_current = OverrideCurrent;
-
-    /* Solar */
-    snap->solar_stop_timer = SolarStopTimer;
-    snap->import_current   = ImportCurrent;
-    snap->start_current    = StartCurrent;
 
     /* Timers — StateTimer is internal to evse_ctx_t, read via bridge */
     evse_bridge_lock();
@@ -208,7 +200,7 @@ int diag_status_json(char *buf, size_t bufsz)
         return -1;
 
     const char *profile_names[] = {
-        "off", "general", "solar", "loadbal", "modbus", "fast"
+        "off", "general", "reserved", "loadbal", "modbus", "fast"
     };
     const char *pname = "off";
     if (diag_ring.profile >= DIAG_PROFILE_OFF &&

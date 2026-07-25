@@ -51,7 +51,6 @@ char RequiredEVCCID[32] = "";                                               // R
 #include "modbus.h"
 #include "meter.h"
 #include "evse_bridge.h"
-#include "solar_debug_json.h"
 #include "session_log.h"
 #include "diag_sampler.h"
 #include "diag_storage.h"
@@ -155,7 +154,6 @@ struct SettingsCache {
     uint8_t LoadBl;
     uint16_t MaxMains, MaxSumMains, MaxSumMainsTime, MaxCurrent, MinCurrent, MaxCircuit;
     uint8_t Switch, RCmon;
-    uint16_t StartCurrent, StopTime, ImportCurrent;
     uint8_t Grid, SB2_WIFImode, RFIDReader;
     uint8_t MainsMeterType, MainsMeterAddress, EVMeterType, EVMeterAddress, CircuitMeterType, CircuitMeterAddress;
     uint16_t MaxCircuitMains;
@@ -235,7 +233,7 @@ extern uint8_t pilot;
 extern const char StrStateName[15][13];
 const char StrStateNameWeb[15][17] = {"Ready to Charge", "Connected to EV", "Charging", "D", "Request State B", "State B OK", "Request State C", "State C OK", "Activate", "Charging Stopped", "Stop Charging", "Modem Setup", "Modem Request", "Modem Done", "Modem Denied"};
 const char StrErrorNameWeb[9][20] = {"None", "No Power Available", "Communication Error", "Temperature High", "EV Meter Comm Error", "RCM Tripped", "RCM Test", "Test IO", "Flash Error"};
-const char StrMode[3][8] = {"Normal", "Smart", "Solar"};
+const char StrMode[2][8] = {"Normal", "Smart"};
 const char StrRFIDStatusWeb[8][20] = {"Ready to read card","Present", "Card Stored", "Card Deleted", "Card already stored", "Card not in storage", "Card Storage full", "Invalid" };
 extern const char StrRFIDReader[7][10] = {"Disabled", "EnableAll", "EnableOne", "Learn", "Delete", "DeleteAll", "Rmt/OCPP"};
 bool BuzzerPresent = false;
@@ -269,14 +267,11 @@ extern uint8_t Lock;
 extern uint16_t MaxCircuit;
 extern uint8_t Config;
 extern uint8_t Switch;
-                                                                            // 3:Smart-Solar B / 4:Smart-Solar S / 5: Grid Relay
+                                                                            // 3:Smart B / 4:Smart S / 5: Grid Relay
                                                                             // 6:Custom B / 7:Custom S)
                                                                             // B=momentary push <B>utton, S=toggle <S>witch
 extern uint8_t RCmon;
 extern uint8_t AutoUpdate;
-extern uint16_t StartCurrent;
-extern uint16_t StopTime;
-extern uint16_t ImportCurrent;
 extern struct DelayedTimeStruct DelayedStopTime;
 extern uint8_t DelayedRepeat;
 extern uint8_t LCDlock;
@@ -322,7 +317,6 @@ extern uint16_t CardOffset;
 
 extern uint8_t ConfigChanged;
 
-extern uint16_t SolarStopTimer;
 extern uint8_t State;
 extern uint8_t ErrorFlags;
 extern uint8_t LoadBl;
@@ -344,7 +338,6 @@ extern time_t homeBatteryLastUpdate;
 extern uint8_t ColorOff[3] ;
 extern uint8_t ColorNormal[3] ;
 extern uint8_t ColorSmart[3] ;
-extern uint8_t ColorSolar[3] ;
 extern uint8_t ColorCustom[3];
 
 #define FW_UPDATE_DELAY 3600                                                    // time between detection of new version and actual update in seconds
@@ -634,8 +627,6 @@ void writeMqttCaCert(const String& cert) {
 }
 
 #if MQTT
-static void mqttSetSolarDebug(bool enabled);  // forward declaration
-
 void mqtt_receive_callback(const String topic, const String payload) {
     mqtt_command_t cmd;
     if (!mqtt_parse_command(MQTTprefix.c_str(), topic.c_str(), payload.c_str(), &cmd))
@@ -652,9 +643,6 @@ void mqtt_receive_callback(const String topic, const String payload) {
                 setAccess(OFF);
             } else if (cmd.mode == MQTT_MODE_PAUSE) {
                 setAccess(PAUSE);
-            } else if (cmd.mode == MQTT_MODE_SOLAR) {
-                setOverrideCurrent(0);
-                setMode(cmd.mode);
             } else {
                 setMode(cmd.mode);
             }
@@ -769,7 +757,6 @@ void mqtt_receive_callback(const String topic, const String payload) {
                 case MQTT_COLOR_OFF:    color_target = ColorOff;    break;
                 case MQTT_COLOR_NORMAL: color_target = ColorNormal; break;
                 case MQTT_COLOR_SMART:  color_target = ColorSmart;  break;
-                case MQTT_COLOR_SOLAR:  color_target = ColorSolar;  break;
                 case MQTT_COLOR_CUSTOM: color_target = ColorCustom; break;
                 default: return;
             }
@@ -818,10 +805,6 @@ void mqtt_receive_callback(const String topic, const String payload) {
         case MQTT_CMD_MQTT_CHANGE_ONLY:
             MQTTChangeOnly = cmd.mqtt_change_only;
             request_write_settings();
-            break;
-
-        case MQTT_CMD_SOLAR_DEBUG:
-            mqttSetSolarDebug(cmd.solar_debug);
             break;
 
         // BEGIN PLAN-06: Diagnostic telemetry
@@ -1104,8 +1087,6 @@ void SetupMQTTClient() {
     MQTTclient.announce("LED Color Normal", "text", optional_payload);
     optional_payload = MQTTclient.jsna("state_topic", String(MQTTprefix + "/LEDColorSmart")) + MQTTclient.jsna("command_topic", String(MQTTprefix + "/Set/ColorSmart"));
     MQTTclient.announce("LED Color Smart", "text", optional_payload);
-    optional_payload = MQTTclient.jsna("state_topic", String(MQTTprefix + "/LEDColorSolar")) + MQTTclient.jsna("command_topic", String(MQTTprefix + "/Set/ColorSolar"));
-    MQTTclient.announce("LED Color Solar", "text", optional_payload);
     optional_payload = MQTTclient.jsna("state_topic", String(MQTTprefix + "/LEDColorCustom")) + MQTTclient.jsna("command_topic", String(MQTTprefix + "/Set/ColorCustom"));
     MQTTclient.announce("LED Color Custom", "text", optional_payload);
     
@@ -1113,8 +1094,6 @@ void SetupMQTTClient() {
     optional_payload += String(R"(, "options" : ["On", "Off"])");
     MQTTclient.announce("Custom Button", "select", optional_payload);
 
-    optional_payload = MQTTclient.jsna("device_class","duration") + MQTTclient.jsna("unit_of_measurement","s") + MQTTclient.jsna("state_class","measurement");
-    MQTTclient.announce("SolarStopTimer", "sensor", optional_payload);
     //set the parameters for and MQTTclient.announce diagnostic sensor entities:
     optional_payload = MQTTclient.jsna("entity_category","diagnostic");
     MQTTclient.announce("Error", "sensor", optional_payload);
@@ -1149,11 +1128,11 @@ void SetupMQTTClient() {
 #endif
     //set the parameters for and MQTTclient.announce select entities, overriding automatic state_topic:
     optional_payload = MQTTclient.jsna("state_topic", String(MQTTprefix + "/Mode")) + MQTTclient.jsna("command_topic", String(MQTTprefix + "/Set/Mode"));
-    optional_payload += String(R"(, "options" : ["Off", "Normal", "Smart", "Solar", "Pause"])");
+    optional_payload += String(R"(, "options" : ["Off", "Normal", "Smart", "Pause"])");
     MQTTclient.announce("Mode", "select", optional_payload);
 
     optional_payload = MQTTclient.jsna("state_topic", String(MQTTprefix + "/EnableC2")) + MQTTclient.jsna("command_topic", String(MQTTprefix + "/Set/EnableC2"));
-    optional_payload += String(R"(, "options" : ["Not present", "Always Off", "Solar Off", "Always On", "Auto"])");
+    optional_payload += String(R"(, "options" : ["Not present", "Always Off", "Always On", "Auto"])");
     MQTTclient.announce("EnableC2", "select", optional_payload);
 
     //set the parameters for and MQTTclient.announce number entities:
@@ -1363,7 +1342,7 @@ void mqttPublishData() {
         mqtt_pub_int(MQTT_SLOT_MAX_CIRCUIT_MAINS, "/MaxCircuitMains", MaxCircuitMains, true, now_s);
         // END PLAN-14
         mqtt_pub_int(MQTT_SLOT_ESP_TEMP, "/ESPTemp", TempEVSE, false, now_s);
-        mqtt_pub_str(MQTT_SLOT_MODE, "/Mode", AccessStatus == OFF ? "Off" : AccessStatus == PAUSE ? "Pause" : Mode > 3 ? "N/A" : StrMode[Mode], true, now_s);
+        mqtt_pub_str(MQTT_SLOT_MODE, "/Mode", AccessStatus == OFF ? "Off" : AccessStatus == PAUSE ? "Pause" : Mode > 1 ? "N/A" : StrMode[Mode], true, now_s);
         mqtt_pub_int(MQTT_SLOT_MAX_CURRENT, "/MaxCurrent", MaxCurrent * 10, true, now_s);
         mqtt_pub_str(MQTT_SLOT_CUSTOM_BUTTON, "/CustomButton", CustomButton ? "On" : "Off", false, now_s);
         mqtt_pub_int(MQTT_SLOT_CHARGE_CURRENT, "/ChargeCurrent", Balanced[0], true, now_s);
@@ -1433,8 +1412,6 @@ void mqttPublishData() {
             mqtt_pub_str(MQTT_SLOT_LED_COLOR_NORMAL, "/LEDColorNormal", color_buf, true, now_s);
             snprintf(color_buf, sizeof(color_buf), "%u,%u,%u", ColorSmart[0], ColorSmart[1], ColorSmart[2]);
             mqtt_pub_str(MQTT_SLOT_LED_COLOR_SMART, "/LEDColorSmart", color_buf, true, now_s);
-            snprintf(color_buf, sizeof(color_buf), "%u,%u,%u", ColorSolar[0], ColorSolar[1], ColorSolar[2]);
-            mqtt_pub_str(MQTT_SLOT_LED_COLOR_SOLAR, "/LEDColorSolar", color_buf, true, now_s);
             snprintf(color_buf, sizeof(color_buf), "%u,%u,%u", ColorCustom[0], ColorCustom[1], ColorCustom[2]);
             mqtt_pub_str(MQTT_SLOT_LED_COLOR_CUSTOM, "/LEDColorCustom", color_buf, true, now_s);
         }
@@ -1457,7 +1434,6 @@ void mqttPublishData() {
          * cleanup that wipes any legacy retained PIN once on first publish. */
         mqtt_pub_str(MQTT_SLOT_PAIRING_PIN, "/PairingPin", PairingPin.c_str(), false, now_s);
         mqtt_pub_str(MQTT_SLOT_FIRMWARE_VERSION, "/FirmwareVersion", VERSION, true, now_s);
-        mqtt_pub_int(MQTT_SLOT_SOLAR_STOP_TIMER, "/SolarStopTimer", SolarStopTimer, false, now_s);
         mqtt_pub_int(MQTT_SLOT_CURRENT_MAX_SUM_MAINS, "/CurrentMaxSumMains", MaxSumMains, true, now_s);
         if (LoadBl == 1) {
             static const char *StrPrioStrategy[] = {"ModbusAddr", "FirstConn", "LastConn"};
@@ -1512,12 +1488,11 @@ void mqttSmartEVSEPublishData() {
     MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/Access", AccessStatus == OFF ? "Deny" : AccessStatus == ON ? "Allow" : AccessStatus == PAUSE ? "Pause" : "N/A", true, 0);
     MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/ChargeCurrent", String(Balanced[0]), true, 0);
     MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/ChargeCurrentOverride", String(OverrideCurrent), true, 0);
-    MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/Mode", AccessStatus == OFF ? "Off" : AccessStatus == PAUSE ? "Pause" : Mode > 3 ? "N/A" : StrMode[Mode], true, 0);
+    MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/Mode", AccessStatus == OFF ? "Off" : AccessStatus == PAUSE ? "Pause" : Mode > 1 ? "N/A" : StrMode[Mode], true, 0);
     MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/NrOfPhases", String(Nr_Of_Phases_Charging), true, 0);
     MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/State", getStateNameWeb(State), true, 0);
     MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/Error", getErrorNameWeb(ErrorFlags), true, 0);
     MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/LoadBl", String(LoadBl), true, 0);
-    MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/SolarStopTimer", String(SolarStopTimer), false, 0);
     if (MainsMeter.Type) {
         MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/MainsCurrentL1", String(MainsMeter.Irms[0]), false, 0);
         MQTTclientSmartEVSE.publish(MQTTSmartEVSEprefix + "/MainsCurrentL2", String(MainsMeter.Irms[1]), false, 0);
@@ -1560,35 +1535,6 @@ void mqttPublishSessionComplete(void) {
     }
 }
 
-// Solar debug MQTT publishing (Issue #66)
-// Gated behind SolarDebugEnabled flag — only publishes when enabled.
-// Rate-limited: publishes at most once every SOLAR_DEBUG_INTERVAL_MS.
-static bool SolarDebugEnabled = false;
-static unsigned long SolarDebugLastPublish = 0;
-#define SOLAR_DEBUG_INTERVAL_MS 5000
-
-void mqttPublishSolarDebug(void) {
-    if (!SolarDebugEnabled) return;
-    if (!MQTTclient.connected) return;
-
-    unsigned long now = millis();
-    if (SolarDebugLastPublish != 0 && (now - SolarDebugLastPublish) < SOLAR_DEBUG_INTERVAL_MS)
-        return;
-
-    evse_solar_debug_t snap;
-    evse_get_solar_debug(&snap);
-
-    char json[384];
-    if (solar_debug_to_json(&snap, json, sizeof(json)) > 0) {
-        MQTTclient.publish(MQTTprefix + "/Debug/Solar", json, false, 0);
-        SolarDebugLastPublish = now;
-    }
-}
-
-static void mqttSetSolarDebug(bool enabled) {
-    SolarDebugEnabled = enabled;
-    if (!enabled) SolarDebugLastPublish = 0;
-}
 #endif
 
 
@@ -1677,11 +1623,8 @@ void read_settings() {
         MaxCurrent = preferences.getUShort("MaxCurrent", MAX_CURRENT); 
         MinCurrent = preferences.getUShort("MinCurrent", MIN_CURRENT); 
         MaxCircuit = preferences.getUShort("MaxCircuit", MAX_CIRCUIT); 
-        Switch = preferences.getUChar("Switch", SWITCH); 
-        RCmon = preferences.getUChar("RCmon", RC_MON); 
-        StartCurrent = preferences.getUShort("StartCurrent", START_CURRENT); 
-        StopTime = preferences.getUShort("StopTime", STOP_TIME); 
-        ImportCurrent = preferences.getUShort("ImportCurrent",IMPORT_CURRENT);
+        Switch = preferences.getUChar("Switch", SWITCH);
+        RCmon = preferences.getUChar("RCmon", RC_MON);
         Grid = preferences.getUChar("Grid",GRID);
         SB2_WIFImode = preferences.getUChar("SB2WIFImode",SB2_WIFI_MODE);
         RFIDReader = preferences.getUChar("RFIDReader",RFID_READER);
@@ -1766,9 +1709,6 @@ void read_settings() {
         settingsCache.MaxCircuit = MaxCircuit;
         settingsCache.Switch = Switch;
         settingsCache.RCmon = RCmon;
-        settingsCache.StartCurrent = StartCurrent;
-        settingsCache.StopTime = StopTime;
-        settingsCache.ImportCurrent = ImportCurrent;
         settingsCache.Grid = Grid;
         settingsCache.SB2_WIFImode = SB2_WIFImode;
         settingsCache.RFIDReader = RFIDReader;
@@ -1853,9 +1793,6 @@ void write_settings(void) {
     PREFS_PUT_USHORT_IF_CHANGED("MaxCircuit", MaxCircuit, MaxCircuit);
     PREFS_PUT_UCHAR_IF_CHANGED("Switch", Switch, Switch);
     PREFS_PUT_UCHAR_IF_CHANGED("RCmon", RCmon, RCmon);
-    PREFS_PUT_USHORT_IF_CHANGED("StartCurrent", StartCurrent, StartCurrent);
-    PREFS_PUT_USHORT_IF_CHANGED("StopTime", StopTime, StopTime);
-    PREFS_PUT_USHORT_IF_CHANGED("ImportCurrent", ImportCurrent, ImportCurrent);
     PREFS_PUT_UCHAR_IF_CHANGED("Grid", Grid, Grid);
     PREFS_PUT_UCHAR_IF_CHANGED("SB2WIFImode", SB2_WIFImode, SB2_WIFImode);
     PREFS_PUT_UCHAR_IF_CHANGED("RFIDReader", RFIDReader, RFIDReader);
@@ -2010,7 +1947,7 @@ void RecomputeSoC(void) {
                 if (EVMeter.PowerMeasured > 0) {
                     // Use real-time PowerMeasured data if available
                     TimeToGo = (3600 * EnergyRemaining) / EVMeter.PowerMeasured;
-                } else if (Mode != MODE_SOLAR && MaxCapacity != 0) { //prevent divide by zero
+                } else if (MaxCapacity != 0) { //prevent divide by zero
                     // Else, fall back on the theoretical maximum of the cable + nr of phases
                     TimeToGo = (3600 * EnergyRemaining) / (MaxCapacity * (Nr_Of_Phases_Charging * 230));
                 }
@@ -2454,8 +2391,8 @@ void ocppLoop() {
     if (RFIDReader == 6 || RFIDReader == 0) {
         // RFID reader in OCPP mode or RFID fully disabled - OCPP controls Access_bit
         if (!OcppTrackPermitsCharge && ocppPermitsCharge()) {
-            // Guard: defer Access_bit if mode/delay conflicts (FreeVend + Solar, ChargeDelay)
-            if (ocpp_should_defer_access(Mode, ChargeDelay, ErrorFlags)) {
+            // Guard: defer Access_bit if mode/delay conflicts (FreeVend + ChargeDelay)
+            if (ocpp_should_defer_access(Mode, ChargeDelay)) {
                 // Don't update OcppTrackPermitsCharge — retry rising edge on next loop
                 _LOG_D("OCPP: deferring Access_bit (Mode=%u ChargeDelay=%u ErrorFlags=0x%04X)\n", Mode, ChargeDelay, ErrorFlags);
             } else {
@@ -3062,9 +2999,9 @@ void loop() {
         //this block is for non-time critical stuff that needs to run approx 1 / second
 #if !defined(SMARTEVSE_VERSION) || SMARTEVSE_VERSION >=30 && SMARTEVSE_VERSION < 40 //not on ESP32 v4
         //printStatus:
-        _LOG_I ("STATE: %s Error: %u StartCurrent: -%i ChargeDelay: %u SolarStopTimer: %u NoCurrent: %u Imeasured: %.1f A IsetBalanced: %.1f A, MainsMeter.Timeout=%u, EVMeter.Timeout=%u.\n", getStateName(State), ErrorFlags, StartCurrent, ChargeDelay, SolarStopTimer,  NoCurrent, (float)MainsMeter.Imeasured/10, (float)IsetBalanced/10, MainsMeter.Timeout, EVMeter.Timeout);
+        _LOG_I ("STATE: %s Error: %u ChargeDelay: %u NoCurrent: %u Imeasured: %.1f A IsetBalanced: %.1f A, MainsMeter.Timeout=%u, EVMeter.Timeout=%u.\n", getStateName(State), ErrorFlags, ChargeDelay, NoCurrent, (float)MainsMeter.Imeasured/10, (float)IsetBalanced/10, MainsMeter.Timeout, EVMeter.Timeout);
 #else
-        _LOG_I ("STATE: %s Error: %u StartCurrent: -%i ChargeDelay: %u SolarStopTimer: %u NoCurrent: %u Imeasured: %.1f A IsetBalanced: %.1f A.\n", getStateName(State), ErrorFlags, StartCurrent, ChargeDelay, SolarStopTimer,  NoCurrent, (float)MainsMeter.Imeasured/10, (float)IsetBalanced/10);
+        _LOG_I ("STATE: %s Error: %u ChargeDelay: %u NoCurrent: %u Imeasured: %.1f A IsetBalanced: %.1f A.\n", getStateName(State), ErrorFlags, ChargeDelay, NoCurrent, (float)MainsMeter.Imeasured/10, (float)IsetBalanced/10);
 #endif
         _LOG_I("L1: %.1f A L2: %.1f A L3: %.1f A Isum: %.1f A\n", (float)MainsMeter.Irms[0]/10, (float)MainsMeter.Irms[1]/10, (float)MainsMeter.Irms[2]/10, (float)Isum/10);
 

@@ -30,17 +30,15 @@ typedef struct __attribute__((packed)) {
     uint16_t balanced_error[8];     /* Error per node                  (16) */
     uint8_t  node_online[8];        /* Online status per node          (8)  */
     uint8_t  node_phases[8];        /* Phases per node                 (8)  */
-    uint16_t node_solar_timer[8];   /* SolarTimer per node             (16) */
     uint16_t max_sum_mains;         /* MaxSumMains setting             (2)  */
     uint8_t  active_evse_count;     /* Number of active EVSEs          (1)  */
     uint8_t  _reserved[3];         /* Padding                          (3)  */
-} diag_extended_t;                  /* Total: 94 bytes                      */
+} diag_extended_t;                  /* Total: 78 bytes                      */
 
 /* Auto-dump trigger reasons (bitfield) */
 #define DIAG_TRIGGER_NONE          0x00
 #define DIAG_TRIGGER_ERROR_ONSET   0x01  /* ErrorFlags 0→nonzero          */
 #define DIAG_TRIGGER_UNEXPECTED_A  0x02  /* STATE_C→STATE_A               */
-#define DIAG_TRIGGER_SOLAR_MAX     0x04  /* SolarStopTimer reached max    */
 #define DIAG_TRIGGER_METER_TIMEOUT 0x08  /* MainsMeter.Timeout exceeded   */
 #define DIAG_TRIGGER_MANUAL        0x10  /* REST/MQTT explicit dump       */
 
@@ -62,9 +60,8 @@ bool diag_storage_delete(const char *filename);
 
 /* Check auto-dump trigger conditions.
  * Call from timer1s after the state machine tick.
- * old_error/old_state/old_solar_timer: values before the tick. */
-void diag_storage_check_triggers(uint8_t old_error, uint8_t old_state,
-                                  uint16_t old_solar_timer);
+ * old_error/old_state: values before the tick. */
+void diag_storage_check_triggers(uint8_t old_error, uint8_t old_state);
 
 /* Enable/disable auto-dump triggers. Enabled by default. */
 void diag_storage_set_auto_dump(bool enabled);

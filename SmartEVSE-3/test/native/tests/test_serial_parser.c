@@ -9,7 +9,6 @@
 
 /* Constants matching firmware values */
 #define EM_API        9
-#define MODE_SOLAR    2
 #define MODE_NORMAL   0
 #define MODE_SMART    1
 #define ALWAYS_OFF    1
@@ -230,8 +229,6 @@ void test_node_status_valid(void) {
     buf[1] = 1;    /* STATE_B */
     buf[3] = 0;    /* No error */
     buf[7] = 0;    /* MODE_NORMAL */
-    buf[8] = 0;    /* Solar timer high byte */
-    buf[9] = 120;  /* Solar timer low byte = 120 */
     buf[13] = 0;   /* Config not changed */
     buf[15] = 32;  /* Max current = 32 * 10 = 320 (32A) */
 
@@ -240,7 +237,6 @@ void test_node_status_valid(void) {
     TEST_ASSERT_EQUAL_INT(1, out.state);
     TEST_ASSERT_EQUAL_INT(0, out.error);
     TEST_ASSERT_EQUAL_INT(0, out.mode);
-    TEST_ASSERT_EQUAL_INT(120, out.solar_timer);
     TEST_ASSERT_EQUAL_INT(0, out.config_changed);
     TEST_ASSERT_EQUAL_INT(320, out.max_current);
 }
@@ -248,18 +244,16 @@ void test_node_status_valid(void) {
 /*
  * @feature Serial Message Parsing
  * @req REQ-SERIAL-003
- * @scenario Node status with error flags and solar timer
- * @given A buffer with RCM_TRIPPED error and large solar timer
+ * @scenario Node status with error flags
+ * @given A buffer with RCM_TRIPPED error
  * @when serial_parse_node_status is called
- * @then Error and solar timer are parsed correctly
+ * @then Error is parsed correctly
  */
 void test_node_status_error_and_timer(void) {
     uint8_t buf[16] = {0};
     buf[1] = 2;    /* STATE_C */
     buf[3] = 16;   /* RCM_TRIPPED */
-    buf[7] = 2;    /* MODE_SOLAR */
-    buf[8] = 1;    /* Solar timer high byte */
-    buf[9] = 44;   /* Solar timer = 256 + 44 = 300 */
+    buf[7] = 1;    /* MODE_SMART */
     buf[13] = 1;   /* Config changed */
     buf[15] = 16;  /* Max current = 160 (16A) */
 
@@ -267,8 +261,7 @@ void test_node_status_error_and_timer(void) {
     TEST_ASSERT_TRUE(serial_parse_node_status(buf, 16, &out));
     TEST_ASSERT_EQUAL_INT(2, out.state);
     TEST_ASSERT_EQUAL_INT(16, out.error);
-    TEST_ASSERT_EQUAL_INT(2, out.mode);
-    TEST_ASSERT_EQUAL_INT(300, out.solar_timer);
+    TEST_ASSERT_EQUAL_INT(1, out.mode);
     TEST_ASSERT_EQUAL_INT(1, out.config_changed);
     TEST_ASSERT_EQUAL_INT(160, out.max_current);
 }
@@ -341,14 +334,14 @@ void test_node_status_null_output(void) {
 /*
  * @feature Battery Current Calculation
  * @req REQ-CALC-001
- * @scenario Fresh battery data in solar mode
- * @given Battery update 30s ago, solar mode, current = 1000
+ * @scenario Fresh battery data returns zero (Solar mode removed)
+ * @given Battery update 30s ago, Smart mode, current = 1000
  * @when calc_battery_current is called
- * @then Returns 1000 (battery current value)
+ * @then Returns 0 (Solar mode was the only mode that used battery current)
  */
 void test_battery_current_fresh_solar_api(void) {
-    int16_t result = calc_battery_current(30, MODE_SOLAR, EM_API, 1000);
-    TEST_ASSERT_EQUAL_INT(1000, result);
+    int16_t result = calc_battery_current(30, MODE_SMART, EM_API, 1000);
+    TEST_ASSERT_EQUAL_INT(0, result);
 }
 
 /*
@@ -360,30 +353,30 @@ void test_battery_current_fresh_solar_api(void) {
  * @then Returns 0 (stale data ignored)
  */
 void test_battery_current_stale_data(void) {
-    int16_t result = calc_battery_current(61, MODE_SOLAR, EM_API, 1000);
+    int16_t result = calc_battery_current(61, MODE_SMART, EM_API, 1000);
     TEST_ASSERT_EQUAL_INT(0, result);
 }
 
 /*
  * @feature Battery Current Calculation
  * @req REQ-CALC-001
- * @scenario Battery data exactly at 60 second boundary
- * @given Battery update exactly 60s ago
+ * @scenario Battery data exactly at 60 second boundary still returns zero
+ * @given Battery update exactly 60s ago (not stale)
  * @when calc_battery_current is called
- * @then Returns battery current (60s is not stale)
+ * @then Returns 0 (Solar mode was the only mode that used battery current)
  */
 void test_battery_current_boundary_60s(void) {
-    int16_t result = calc_battery_current(60, MODE_SOLAR, EM_API, 500);
-    TEST_ASSERT_EQUAL_INT(500, result);
+    int16_t result = calc_battery_current(60, MODE_SMART, EM_API, 500);
+    TEST_ASSERT_EQUAL_INT(0, result);
 }
 
 /*
  * @feature Battery Current Calculation
  * @req REQ-CALC-001
- * @scenario Non-solar mode returns zero
+ * @scenario Normal mode returns zero
  * @given Normal mode with fresh battery data
  * @when calc_battery_current is called
- * @then Returns 0 (battery only used in solar mode)
+ * @then Returns 0
  */
 void test_battery_current_normal_mode(void) {
     int16_t result = calc_battery_current(10, MODE_NORMAL, EM_API, 1000);
@@ -393,14 +386,14 @@ void test_battery_current_normal_mode(void) {
 /*
  * @feature Battery Current Calculation
  * @req REQ-CALC-001
- * @scenario Non-API meter in solar mode still returns battery current
- * @given Solar mode with non-API meter type
+ * @scenario Non-API meter also returns zero
+ * @given Smart mode with non-API meter type
  * @when calc_battery_current is called
- * @then Returns battery current (battery used with any meter in solar mode)
+ * @then Returns 0
  */
 void test_battery_current_non_api_meter(void) {
-    int16_t result = calc_battery_current(10, MODE_SOLAR, 1, 1000);
-    TEST_ASSERT_EQUAL_INT(1000, result);
+    int16_t result = calc_battery_current(10, MODE_SMART, 1, 1000);
+    TEST_ASSERT_EQUAL_INT(0, result);
 }
 
 /*
@@ -412,21 +405,21 @@ void test_battery_current_non_api_meter(void) {
  * @then Returns 0
  */
 void test_battery_current_never_updated(void) {
-    int16_t result = calc_battery_current(0, MODE_SOLAR, EM_API, 1000);
+    int16_t result = calc_battery_current(0, MODE_SMART, EM_API, 1000);
     TEST_ASSERT_EQUAL_INT(0, result);
 }
 
 /*
  * @feature Battery Current Calculation
  * @req REQ-CALC-001
- * @scenario Negative battery current (discharging) in solar mode
+ * @scenario Negative battery current (discharging) still returns zero
  * @given Battery discharging with negative current value
  * @when calc_battery_current is called
- * @then Returns the negative value
+ * @then Returns 0 (Solar mode was the only mode that used battery current)
  */
 void test_battery_current_negative_discharge(void) {
-    int16_t result = calc_battery_current(5, MODE_SOLAR, EM_API, -500);
-    TEST_ASSERT_EQUAL_INT(-500, result);
+    int16_t result = calc_battery_current(5, MODE_SMART, EM_API, -500);
+    TEST_ASSERT_EQUAL_INT(0, result);
 }
 
 /* ================================================================

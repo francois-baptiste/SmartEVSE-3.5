@@ -32,7 +32,6 @@ typedef struct {
     uint8_t state;          /* buf[1] - Node State */
     uint8_t error;          /* buf[3] - Error status */
     uint8_t mode;           /* buf[7] - Node Mode */
-    uint16_t solar_timer;   /* (buf[8]<<8) | buf[9] */
     uint8_t config_changed; /* buf[13] */
     uint16_t max_current;   /* buf[15] * 10 (in 0.1A) */
 } serial_node_status_t;
@@ -71,7 +70,7 @@ bool serial_parse_node_status(const uint8_t *buf, uint8_t buf_len,
 
 /*
  * Pure Isum calculation: adjusts mains currents for battery and sums phases.
- * enable_c2 values: 0=NOT_PRESENT, 1=ALWAYS_OFF, 2=SOLAR_OFF, 3=ALWAYS_ON, 4=AUTO
+ * enable_c2 values: 0=NOT_PRESENT, 1=ALWAYS_OFF, 2=RESERVED, 3=ALWAYS_ON, 4=AUTO
  * When enable_c2 == ALWAYS_OFF (1), full battery current applied to L1 only.
  * Otherwise battery current is distributed equally across all 3 phases.
  */
@@ -79,10 +78,10 @@ calc_isum_result_t calc_isum(const calc_isum_input_t *input);
 
 /*
  * Pure battery current logic: returns battery current if conditions met.
- * Returns 0 if data is stale (>60s), mode is not solar, or meter is not API.
+ * Solar mode (the only mode that used battery current) has been removed,
+ * so this always returns 0 now; kept for API/wire compatibility.
  *
  * time_since_update: seconds since last homeBatteryLastUpdate (0 = never updated)
- * mode: current operating mode (MODE_SOLAR = 2)
  * mains_meter_type: MainsMeter.Type value (EM_API = 9)
  * battery_current: raw homeBatteryCurrent value in 0.1A
  */

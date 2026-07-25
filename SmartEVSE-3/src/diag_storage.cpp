@@ -27,7 +27,6 @@ extern uint16_t BalancedError[];
 extern uint16_t MaxSumMains;
 extern uint8_t  State;
 extern uint8_t  ErrorFlags;
-extern uint16_t SolarStopTimer;
 
 /* Node struct from main.h */
 extern struct Node_t Node[];
@@ -101,7 +100,6 @@ static void capture_extended(diag_extended_t *ext)
         ext->balanced_error[i] = BalancedError[i];
         ext->node_online[i]    = Node[i].Online;
         ext->node_phases[i]    = Node[i].Phases;
-        ext->node_solar_timer[i] = Node[i].SolarTimer;
     }
     ext->max_sum_mains = MaxSumMains;
 
@@ -231,8 +229,7 @@ bool diag_storage_delete(const char *filename)
     return ok;
 }
 
-void diag_storage_check_triggers(uint8_t old_error, uint8_t old_state,
-                                  uint16_t old_solar_timer)
+void diag_storage_check_triggers(uint8_t old_error, uint8_t old_state)
 {
     if (!auto_dump_enabled)
         return;
@@ -250,11 +247,6 @@ void diag_storage_check_triggers(uint8_t old_error, uint8_t old_state,
     /* Unexpected STATE_C → STATE_A (vehicle disconnect during charging) */
     if (old_state == 2 && State == 0)  /* STATE_C=2, STATE_A=0 */
         trigger |= DIAG_TRIGGER_UNEXPECTED_A;
-
-    /* SolarStopTimer reached maximum (solar oscillation detected)
-     * Timer counts up from 0; if it jumped significantly, trigger */
-    if (SolarStopTimer > 0 && old_solar_timer == 0 && SolarStopTimer >= 60)
-        trigger |= DIAG_TRIGGER_SOLAR_MAX;
 
     /* MainsMeter.Timeout exceeds threshold */
     if (MainsMeter.Timeout >= 10 && old_error == 0)

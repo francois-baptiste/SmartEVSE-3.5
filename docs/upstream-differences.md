@@ -32,7 +32,11 @@ Structural changes that affect the entire codebase — not specific features.
 
 ## Feature Differences by Area
 
-### Smart & Solar Mode
+### Smart Mode (formerly "Smart & Solar Mode")
+
+> **Solar mode was removed.** The table below is kept as a historical record
+> of the stability work that predates the removal — several rows describe
+> fixes to code that no longer exists. Only Normal and Smart modes remain.
 
 Background — community reports:
 [#327](https://github.com/dingo35/SmartEVSE-3.5/issues/327),
@@ -41,15 +45,15 @@ Background — community reports:
 
 | Improvement | Why | Details |
 |-------------|-----|---------|
-| EMA current smoothing | Oscillation in smart/solar modes | [Features: Solar & Smart Mode](features.md#solar--smart-mode) |
-| Dead band regulation | Micro-adjustments cause unnecessary switching | [Features: Solar & Smart Mode](features.md#solar--smart-mode) |
-| Symmetric ramp rates | Overshoot/undershoot from asymmetric regulation | [Features: Solar & Smart Mode](features.md#solar--smart-mode) |
-| Tiered phase switching timers | Rapid 1P/3P cycling | [Features: Solar & Smart Mode](features.md#solar--smart-mode) |
-| Stop/start cycling prevention | Solar mode stops and restarts unnecessarily | [Features: Solar & Smart Mode](features.md#solar--smart-mode) |
-| Multi-node SolarStopTimer fix | Upstream threshold scales with `ActiveEVSE`, unreachable for 2+ nodes (commit `94ca08e`). Upstream attempted a different fix in `02dafa2` that we evaluated and rejected — it reproduces the multi-node scaling bug and causes stop/start cycling for fixed 3-phase. See [analysis](upstream-sync/analysis-02dafa2-solar-stop-threshold.md). | [PR #119](https://github.com/basmeerman/SmartEVSE-3.5/pull/119) |
+| EMA current smoothing | Oscillation in smart mode | [Features: Smart Mode](features.md#smart-mode) |
+| Dead band regulation | Micro-adjustments cause unnecessary switching | [Features: Smart Mode](features.md#smart-mode) |
+| Symmetric ramp rates | Overshoot/undershoot from asymmetric regulation | [Features: Smart Mode](features.md#smart-mode) |
+| Tiered phase switching timers *(removed with Solar mode)* | Rapid 1P/3P cycling | — |
+| Stop/start cycling prevention | Reduces unnecessary stop/start cycles | [Features: Smart Mode](features.md#smart-mode) |
+| Multi-node SolarStopTimer fix *(removed with Solar mode)* | Upstream threshold scales with `ActiveEVSE`, unreachable for 2+ nodes (commit `94ca08e`). Upstream attempted a different fix in `02dafa2` that we evaluated and rejected. See [analysis](upstream-sync/analysis-02dafa2-solar-stop-threshold.md). | [PR #119](https://github.com/basmeerman/SmartEVSE-3.5/pull/119) |
 | Slave mode sync via setMode() | Upstream `SETITEM(MENU_MODE)` skips phase switching and error clearing on slaves | [PR #121](https://github.com/basmeerman/SmartEVSE-3.5/pull/121) |
-| Slow EV compatibility | Renault Zoe stalls on rapid current changes | [Features: Solar & Smart Mode](features.md#solar--smart-mode) |
-| ChargeDelay re-set on solar loss | Solar mode ChargeDelay could expire without solar, causing charging-without-solar oscillation — integrated upstream `74e20c8` (master) + `3ab1cee` (node-side) with 3 unit tests | upstream `74e20c8`, `3ab1cee` |
+| Slow EV compatibility | Renault Zoe stalls on rapid current changes | [Features: Smart Mode](features.md#smart-mode) |
+| ChargeDelay re-set on solar loss *(removed with Solar mode)* | Solar mode ChargeDelay could expire without solar, causing charging-without-solar oscillation — integrated upstream `74e20c8` (master) + `3ab1cee` (node-side) with 3 unit tests | upstream `74e20c8`, `3ab1cee` |
 
 ### Load Balancing
 
@@ -73,7 +77,7 @@ Background — community report:
 | Bridge transaction mutex | Daily OCPP session failures from concurrent task corruption | [Features: OCPP & Authorization](features.md#rfid-ocpp--authorization) |
 | Pure C OCPP logic extraction | OCPP logic untestable (85 tests added) | [Features: OCPP & Authorization](features.md#rfid-ocpp--authorization) |
 | LoadBl exclusivity enforcement | OCPP limits silently ignored when LoadBl toggled at runtime | [Features: OCPP & Authorization](features.md#rfid-ocpp--authorization) |
-| FreeVend solar safety | Auto-authorize bypasses solar surplus checks | [Features: OCPP & Authorization](features.md#rfid-ocpp--authorization) |
+| FreeVend ChargeDelay safety | Auto-authorize bypasses an active ChargeDelay countdown | [Features: OCPP & Authorization](features.md#rfid-ocpp--authorization) |
 | OCPP settings validation | Invalid URLs/IDs accepted silently | [Features: OCPP & Authorization](features.md#rfid-ocpp--authorization) |
 | OCPP connection telemetry | No diagnostics for connection drops | [Features: OCPP & Authorization](features.md#rfid-ocpp--authorization) |
 | IEC 61851 → OCPP status mapping | EVCC integration needs standard status codes | [Features: OCPP & Authorization](features.md#rfid-ocpp--authorization) |

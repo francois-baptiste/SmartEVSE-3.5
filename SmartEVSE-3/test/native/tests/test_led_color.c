@@ -17,7 +17,6 @@
 #define STATE_MODEM_DENIED  14
 #define MODE_NORMAL         0
 #define MODE_SMART          1
-#define MODE_SOLAR          2
 #define ACCESS_OFF          0
 #define ACCESS_ON           1
 #define CT_NOCOMM           2
@@ -30,7 +29,6 @@
 static const uint8_t COLOR_OFF[3]    = {0, 0, 0};
 static const uint8_t COLOR_NORMAL[3] = {0, 255, 0};
 static const uint8_t COLOR_SMART[3]  = {0, 255, 0};
-static const uint8_t COLOR_SOLAR[3]  = {255, 170, 0};
 static const uint8_t COLOR_CUSTOM[3] = {0, 0, 255};
 
 /* Helper to initialize a default state snapshot */
@@ -43,7 +41,6 @@ static led_state_t make_default_state(void) {
     memcpy(s.color_off, COLOR_OFF, 3);
     memcpy(s.color_normal, COLOR_NORMAL, 3);
     memcpy(s.color_smart, COLOR_SMART, 3);
-    memcpy(s.color_solar, COLOR_SOLAR, 3);
     memcpy(s.color_custom, COLOR_CUSTOM, 3);
     return s;
 }
@@ -247,14 +244,14 @@ void test_modem_denied_shows_off(void) {
 /*
  * @feature LED Status Indication
  * @req REQ-LED-003
- * @scenario Solar mode with charge delay shows slow blink
- * @given Solar mode, ChargeDelay > 0, no errors
+ * @scenario Smart mode with charge delay shows slow blink
+ * @given Smart mode, ChargeDelay > 0, no errors
  * @when led_compute_color is called repeatedly
- * @then LED blinks with solar color (orange)
+ * @then LED blinks with smart color
  */
-void test_waiting_solar_blink(void) {
+void test_waiting_smart_blink(void) {
     led_state_t s = make_default_state();
-    s.mode = MODE_SOLAR;
+    s.mode = MODE_SMART;
     s.charge_delay = 10;
     led_context_t ctx = {0, 0};
 
@@ -415,29 +412,6 @@ void test_state_c_breathing(void) {
     TEST_ASSERT_TRUE(max_g > min_g);
 }
 
-/*
- * @feature LED Status Indication
- * @req REQ-LED-006
- * @scenario State C Solar mode has slower breathing
- * @given State C, Solar mode
- * @when led_compute_color is called
- * @then led_count increments by 1 per call (vs 2 for other modes)
- */
-void test_state_c_solar_slower(void) {
-    led_state_t s = make_default_state();
-    s.state = STATE_C;
-    s.mode = MODE_SOLAR;
-    led_context_t ctx = {0, 0};
-
-    led_compute_color(&s, &ctx);
-    TEST_ASSERT_EQUAL_INT(1, ctx.led_count); /* Increments by 1 in solar */
-
-    led_context_t ctx2 = {0, 0};
-    s.mode = MODE_NORMAL;
-    led_compute_color(&s, &ctx2);
-    TEST_ASSERT_EQUAL_INT(2, ctx2.led_count); /* Increments by 2 normally */
-}
-
 /* ================================================================
  * Color Mode Tests
  * ================================================================ */
@@ -445,21 +419,21 @@ void test_state_c_solar_slower(void) {
 /*
  * @feature LED Color Configuration
  * @req REQ-LED-004
- * @scenario Solar mode State A shows solar orange (dimmed)
- * @given State A, Solar mode
+ * @scenario Smart mode State A shows smart color (dimmed)
+ * @given State A, Smart mode
  * @when led_compute_color is called
- * @then LED shows orange tint at STATE_A brightness
+ * @then LED shows smart color tint at STATE_A brightness
  */
-void test_state_a_solar_color(void) {
+void test_state_a_smart_color(void) {
     led_state_t s = make_default_state();
     s.state = STATE_A;
-    s.mode = MODE_SOLAR;
+    s.mode = MODE_SMART;
     led_context_t ctx = {0, 0};
 
     led_rgb_t rgb = led_compute_color(&s, &ctx);
-    /* Solar: (255,170,0) at brightness 40 */
-    TEST_ASSERT_EQUAL_INT(40 * 255 / 255, rgb.r); /* 40 */
-    TEST_ASSERT_EQUAL_INT(40 * 170 / 255, rgb.g); /* 26 */
+    /* Smart: (0,255,0) at brightness 40 */
+    TEST_ASSERT_EQUAL_INT(0, rgb.r);
+    TEST_ASSERT_EQUAL_INT(40 * 255 / 255, rgb.g); /* 40 */
     TEST_ASSERT_EQUAL_INT(0, rgb.b);
 }
 
@@ -774,7 +748,7 @@ int main(void) {
     RUN_TEST(test_modem_denied_shows_off);
 
     /* Waiting / ChargeDelay */
-    RUN_TEST(test_waiting_solar_blink);
+    RUN_TEST(test_waiting_smart_blink);
     RUN_TEST(test_waiting_smart_color);
     RUN_TEST(test_waiting_custom_button);
 
@@ -784,10 +758,9 @@ int main(void) {
     RUN_TEST(test_state_b1_full_brightness);
     RUN_TEST(test_state_b_sets_count_128);
     RUN_TEST(test_state_c_breathing);
-    RUN_TEST(test_state_c_solar_slower);
 
     /* Color modes */
-    RUN_TEST(test_state_a_solar_color);
+    RUN_TEST(test_state_a_smart_color);
     RUN_TEST(test_state_b_custom_override);
 
     /* Public scheme (upstream 3679fe3) */

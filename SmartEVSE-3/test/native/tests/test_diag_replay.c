@@ -51,7 +51,7 @@ void test_load_from_serialized_buffer(void)
     static diag_snapshot_t buf[4];
     static diag_ring_t ring;
     diag_ring_init(&ring, buf, 4);
-    diag_set_profile(&ring, DIAG_PROFILE_SOLAR);
+    diag_set_profile(&ring, DIAG_PROFILE_GENERAL);
     ring.start_time = 500;
 
     diag_snapshot_t s;
@@ -141,13 +141,12 @@ void test_replay_field_mapping(void)
 
     /* Set distinct values on snapshot 2 */
     g_cap.snapshots[2].state = STATE_C;
-    g_cap.snapshots[2].mode = MODE_SOLAR;
+    g_cap.snapshots[2].mode = MODE_SMART;
     g_cap.snapshots[2].charge_current = 130;
     g_cap.snapshots[2].mains_irms[0] = -250;
     g_cap.snapshots[2].mains_irms[1] = -100;
     g_cap.snapshots[2].mains_irms[2] = -50;
     g_cap.snapshots[2].isum = -400;
-    g_cap.snapshots[2].solar_stop_timer = 0;
     g_cap.snapshots[2].nr_phases_charging = 3;
     g_cap.snapshots[2].temp_evse = 42;
 
@@ -163,13 +162,12 @@ void test_replay_field_mapping(void)
     ctx.MainsMeterIrms[1] = s->mains_irms[1];
     ctx.MainsMeterIrms[2] = s->mains_irms[2];
     ctx.Isum = s->isum;
-    ctx.SolarStopTimer = s->solar_stop_timer;
     ctx.Nr_Of_Phases_Charging = s->nr_phases_charging;
     ctx.TempEVSE = s->temp_evse;
 
     /* Verify mapping */
     TEST_ASSERT_EQUAL(STATE_C, ctx.State);
-    TEST_ASSERT_EQUAL(MODE_SOLAR, ctx.Mode);
+    TEST_ASSERT_EQUAL(MODE_SMART, ctx.Mode);
     TEST_ASSERT_EQUAL(130, ctx.ChargeCurrent);
     TEST_ASSERT_EQUAL(-250, ctx.MainsMeterIrms[0]);
     TEST_ASSERT_EQUAL(-400, ctx.Isum);
@@ -207,19 +205,19 @@ void test_replay_state_transitions(void)
 /*
  * @feature Diagnostic Telemetry
  * @req REQ-E2E-051
- * @scenario Advisory replay detects solar current oscillation pattern
+ * @scenario Advisory replay detects current oscillation pattern
  * @given A capture with charge_current oscillating between 0 and 80
  * @when Snapshots are analyzed for oscillation
  * @then The oscillation is detected (>2 zero-crossings in the window)
  */
 void test_replay_solar_oscillation_detection(void)
 {
-    diag_create_synthetic(&g_cap, 10, 300, DIAG_PROFILE_SOLAR);
+    diag_create_synthetic(&g_cap, 10, 300, DIAG_PROFILE_GENERAL);
 
-    /* Simulate solar oscillation: current toggling */
+    /* Simulate current oscillation: current toggling */
     uint16_t currents[] = { 80, 0, 80, 0, 80, 0, 80, 0, 80, 0 };
     for (int i = 0; i < 10; i++) {
-        g_cap.snapshots[i].mode = MODE_SOLAR;
+        g_cap.snapshots[i].mode = MODE_SMART;
         g_cap.snapshots[i].charge_current = currents[i];
     }
 

@@ -208,7 +208,6 @@ cppcheck --enable=warning,style,performance \
   SmartEVSE-3/src/modbus_log.c \
   SmartEVSE-3/src/ocpp_logic.c \
   SmartEVSE-3/src/ocpp_telemetry.c \
-  SmartEVSE-3/src/solar_debug_json.c \
   SmartEVSE-3/src/diag_telemetry.c \
   SmartEVSE-3/src/diag_modbus.c \
   SmartEVSE-3/src/capacity_peak.c \
@@ -262,7 +261,6 @@ cppcheck --enable=warning,style,performance \
   SmartEVSE-3/src/modbus_log.c \
   SmartEVSE-3/src/ocpp_logic.c \
   SmartEVSE-3/src/ocpp_telemetry.c \
-  SmartEVSE-3/src/solar_debug_json.c \
   SmartEVSE-3/src/diag_telemetry.c \
   SmartEVSE-3/src/diag_modbus.c \
   SmartEVSE-3/src/capacity_peak.c \

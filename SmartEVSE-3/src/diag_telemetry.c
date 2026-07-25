@@ -87,7 +87,7 @@ void diag_set_profile(diag_ring_t *ring, diag_profile_t profile)
         ring->sample_divider = 1;  /* Every tick (called from 100ms context) */
         break;
     case DIAG_PROFILE_GENERAL:
-    case DIAG_PROFILE_SOLAR:
+    case DIAG_PROFILE_RESERVED:
     case DIAG_PROFILE_LOADBAL:
         ring->sample_divider = 1;  /* Every tick (called from 1s context) */
         break;

@@ -138,7 +138,7 @@ static const char *mode_string(uint8_t mode) {
     switch (mode) {
         case 0:  return "normal";
         case 1:  return "smart";
-        case 2:  return "solar";
+        case 2:  return "solar";   /* Solar mode removed; kept so historical session records still render */
         default: return "unknown";
     }
 }

@@ -123,7 +123,6 @@ struct WsDataPrev {
     uint16_t charge_current;
     int8_t temp;
     uint32_t pwm;
-    uint16_t solar_stop_timer;
     bool car_connected;
     uint8_t loadbl;
     int32_t phase[3];
@@ -143,20 +142,18 @@ static uint8_t wsGetModeId() {
     if (AccessStatus == PAUSE) return 4;
     switch (Mode) {
         case MODE_NORMAL: return 1;
-        case MODE_SOLAR:  return 2;
-        case MODE_SMART:  return 3;
+        case MODE_SMART:  return 2;
         default:          return 255;
     }
 }
 
-/* Configured mode as a UI mode ID (1=NORMAL, 2=SOLAR, 3=SMART), independent
+/* Configured mode as a UI mode ID (1=NORMAL, 2=SMART), independent
  * of AccessStatus. Used for evse_mode WS field so the JS can show which mode
  * will resume after HP pause without needing to know the raw Mode constants. */
 static uint8_t wsGetConfiguredModeId() {
     switch (Mode) {
         case MODE_NORMAL: return 1;
-        case MODE_SOLAR:  return 2;
-        case MODE_SMART:  return 3;
+        case MODE_SMART:  return 2;
         default:          return 0;
     }
 }
@@ -188,7 +185,6 @@ static void wsBuildFullState(DynamicJsonDocument &doc) {
     d["temp"] = TempEVSE;
     d["temp_max"] = maxTemp;
     d["pwm"] = CurrentPWM;
-    d["solar_stop_timer"] = SolarStopTimer;
     d["car_connected"] = (pilot != PILOT_12V);
     d["loadbl"] = LoadBl;
     d["override_current"] = OverrideCurrent;
@@ -258,7 +254,6 @@ static void ws_data_timer_fn(void *arg) {
         WS_DIFF(charge_current, Balanced[0]);
         WS_DIFF(temp, TempEVSE);
         WS_DIFF(pwm, CurrentPWM);
-        WS_DIFF(solar_stop_timer, SolarStopTimer);
 
         bool connected = (pilot != PILOT_12V);
         if (!wsPrev.initialized || wsPrev.car_connected != connected) {
@@ -314,7 +309,6 @@ static void ws_data_timer_fn(void *arg) {
         wsPrev.charge_current = Balanced[0];
         wsPrev.temp = TempEVSE;
         wsPrev.pwm = CurrentPWM;
-        wsPrev.solar_stop_timer = SolarStopTimer;
         wsPrev.car_connected = (pilot != PILOT_12V);
         wsPrev.loadbl = LoadBl;
         wsPrev.override_current = OverrideCurrent;

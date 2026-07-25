@@ -59,7 +59,6 @@ extern int phasesLastUpdate;
 extern uint8_t ColorOff[3];
 extern uint8_t ColorNormal[3];
 extern uint8_t ColorSmart[3];
-extern uint8_t ColorSolar[3];
 extern uint8_t ColorCustom[3];
 extern uint8_t OcppMode;
 extern uint16_t MaxMains;
@@ -70,9 +69,6 @@ extern uint16_t MaxCurrent;
 extern uint16_t MinCurrent;
 extern uint16_t MaxCircuit;
 extern uint16_t MaxCircuitMains;
-extern uint16_t StartCurrent;
-extern uint16_t StopTime;
-extern uint16_t ImportCurrent;
 extern struct DelayedTimeStruct DelayedStopTime;
 extern uint8_t DelayedRepeat;
 extern uint8_t RFIDReader;
@@ -284,7 +280,6 @@ static const char * const k_mqtt_topics[MQTT_SLOT_COUNT] = {
     "LEDColorOff",                  /* MQTT_SLOT_LED_COLOR_OFF         */
     "LEDColorNormal",               /* MQTT_SLOT_LED_COLOR_NORMAL      */
     "LEDColorSmart",                /* MQTT_SLOT_LED_COLOR_SMART       */
-    "LEDColorSolar",                /* MQTT_SLOT_LED_COLOR_SOLAR       */
     "LEDColorCustom",               /* MQTT_SLOT_LED_COLOR_CUSTOM      */
     "CableLock",                    /* MQTT_SLOT_CABLE_LOCK            */
     "ESPUptime",                    /* MQTT_SLOT_ESP_UPTIME            */
@@ -292,7 +287,6 @@ static const char * const k_mqtt_topics[MQTT_SLOT_COUNT] = {
     "LoadBl",                       /* MQTT_SLOT_LOAD_BL               */
     "PairingPin",                   /* MQTT_SLOT_PAIRING_PIN           */
     "FirmwareVersion",              /* MQTT_SLOT_FIRMWARE_VERSION      */
-    "SolarStopTimer",               /* MQTT_SLOT_SOLAR_STOP_TIMER      */
     "CurrentMaxSumMains",           /* MQTT_SLOT_CURRENT_MAX_SUM_MAINS */
     "PrioStrategy",                 /* MQTT_SLOT_PRIO_STRATEGY         */
     "RotationInterval",             /* MQTT_SLOT_ROTATION_INTERVAL     */
@@ -377,8 +371,7 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
         } else {
             switch(Mode) {
                 case MODE_NORMAL: mode = "NORMAL"; modeId=1; break;
-                case MODE_SOLAR: mode = "SOLAR"; modeId=2; break;
-                case MODE_SMART: mode = "SMART"; modeId=3; break;
+                case MODE_SMART: mode = "SMART"; modeId=2; break;
             }
         }
         if (mode == "N/A") { //this should never happen, but it does
@@ -434,11 +427,10 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
         doc["evse"]["temp_max"] = maxTemp;
         doc["evse"]["connected"] = evConnected;
         doc["evse"]["access"] = AccessStatus;
-        doc["evse"]["mode"] = (Mode==MODE_NORMAL?1:Mode==MODE_SMART?3:Mode==MODE_SOLAR?2:0);
+        doc["evse"]["mode"] = (Mode==MODE_NORMAL?1:Mode==MODE_SMART?2:0);
         doc["evse"]["loadbl"] = LoadBl;
         doc["evse"]["pwm"] = CurrentPWM;
         doc["evse"]["custombutton"] = CustomButton;
-        doc["evse"]["solar_stop_timer"] = SolarStopTimer;
         doc["evse"]["state"] = evstate;
         doc["evse"]["state_id"] = State;
         doc["evse"]["error"] = error;
@@ -467,9 +459,6 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
         doc["settings"]["circuit_meter_address"] = CircuitMeter.Address;
         doc["settings"]["max_circuit_mains"] = MaxCircuitMains;
         doc["settings"]["max_sum_mains_time"] = MaxSumMainsTime;
-        doc["settings"]["solar_max_import"] = ImportCurrent;
-        doc["settings"]["solar_start_current"] = StartCurrent;
-        doc["settings"]["solar_stop_time"] = StopTime;
         doc["settings"]["enable_C2"] = StrEnableC2[EnableC2];
         doc["settings"]["mains_meter"] = EMConfig[MainsMeter.Type].Desc;
         doc["settings"]["starttime"] = (DelayedStartTime.epoch2 ? DelayedStartTime.epoch2 + EPOCH2_OFFSET : 0);
@@ -644,9 +633,6 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
         doc["color"]["smart"]["R"] = ColorSmart[0];
         doc["color"]["smart"]["G"] = ColorSmart[1];
         doc["color"]["smart"]["B"] = ColorSmart[2];
-        doc["color"]["solar"]["R"] = ColorSolar[0];
-        doc["color"]["solar"]["G"] = ColorSolar[1];
-        doc["color"]["solar"]["B"] = ColorSolar[2];
         doc["color"]["custom"]["R"] = ColorCustom[0];
         doc["color"]["custom"]["G"] = ColorCustom[1];
         doc["color"]["custom"]["B"] = ColorCustom[2];
@@ -816,10 +802,6 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
                     setMode(MODE_NORMAL);
                     break;
                 case 2:
-                    if (mode_policy_allowed(MODE_SOLAR, ModesDisabled)) setMode(MODE_SOLAR);
-                    else mode = "Value not allowed!";
-                    break;
-                case 3:
                     if (mode_policy_allowed(MODE_SMART, ModesDisabled)) setMode(MODE_SMART);
                     else mode = "Value not allowed!";
                     break;
@@ -859,17 +841,6 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
             }
         }
 
-        if(request->hasParam("stop_timer")) {
-            int stop_timer = request->getParam("stop_timer")->value().toInt();
-            const char *err = http_api_validate_stop_timer(stop_timer);
-            if(!err) {
-                StopTime = stop_timer;
-                doc["stop_timer"] = true;
-            } else {
-                doc["stop_timer"] = false;
-            }
-        }
-
         if(Mode == MODE_NORMAL || Mode == MODE_SMART) {
             if(request->hasParam("override_current")) {
                 int current = request->getParam("override_current")->value().toInt();
@@ -880,28 +851,6 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
                 } else {
                     doc["override_current"] = err;
                 }
-            }
-        }
-
-        if(request->hasParam("solar_start_current")) {
-            int current = request->getParam("solar_start_current")->value().toInt();
-            const char *err = http_api_validate_solar_start(current);
-            if(!err) {
-                StartCurrent = current;
-                doc["solar_start_current"] = StartCurrent;
-            } else {
-                doc["solar_start_current"] = err;
-            }
-        }
-
-        if(request->hasParam("solar_max_import")) {
-            int current = request->getParam("solar_max_import")->value().toInt();
-            const char *err = http_api_validate_solar_max_import(current);
-            if(!err) {
-                ImportCurrent = current;
-                doc["solar_max_import"] = ImportCurrent;
-            } else {
-                doc["solar_max_import"] = err;
             }
         }
 
@@ -1146,22 +1095,6 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
                                      request->getParam("B")->value().toInt(), &r, &g, &b)) {
                 ColorSmart[0] = r; ColorSmart[1] = g; ColorSmart[2] = b;
                 doc["color"]["smart"]["R"] = r; doc["color"]["smart"]["G"] = g; doc["color"]["smart"]["B"] = b;
-            }
-        }
-        String json;
-        serializeJson(doc, json);
-        mg_http_reply(c, 200, "Content-Type: application/json\r\n", "%s\r\n", json.c_str());
-        return true;
-    } else if (mg_http_match_uri(hm, "/color_solar") && !memcmp("POST", hm->method.buf, hm->method.len)) {
-        if (!require_auth(c, hm)) return true;  // Plan 16 — auth gate
-        DynamicJsonDocument doc(200);
-        if (request->hasParam("R") && request->hasParam("G") && request->hasParam("B")) {
-            uint8_t r, g, b;
-            if (http_api_parse_color(request->getParam("R")->value().toInt(),
-                                     request->getParam("G")->value().toInt(),
-                                     request->getParam("B")->value().toInt(), &r, &g, &b)) {
-                ColorSolar[0] = r; ColorSolar[1] = g; ColorSolar[2] = b;
-                doc["color"]["solar"]["R"] = r; doc["color"]["solar"]["G"] = g; doc["color"]["solar"]["B"] = b;
             }
         }
         String json;
@@ -1670,8 +1603,7 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
         mg_http_get_var(&hm->query, "profile", pbuf, sizeof(pbuf));
 
         diag_profile_t profile = DIAG_PROFILE_GENERAL;
-        if (strcmp(pbuf, "solar") == 0)        profile = DIAG_PROFILE_SOLAR;
-        else if (strcmp(pbuf, "loadbal") == 0)  profile = DIAG_PROFILE_LOADBAL;
+        if (strcmp(pbuf, "loadbal") == 0)       profile = DIAG_PROFILE_LOADBAL;
         else if (strcmp(pbuf, "modbus") == 0)   profile = DIAG_PROFILE_MODBUS;
         else if (strcmp(pbuf, "fast") == 0)     profile = DIAG_PROFILE_FAST;
         /* else default to GENERAL */

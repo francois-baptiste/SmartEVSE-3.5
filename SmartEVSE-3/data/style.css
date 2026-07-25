@@ -107,10 +107,6 @@ input[type="datetime-local"],input[type="number"],input[type="text"],input[type=
 .btn:hover{opacity:.85}
 .btn-sm{padding:5px 12px;font-size:.75rem}
 
-/* Solar controls inline */
-.with_solar .solar-ctrl{display:inline-flex;align-items:center;gap:4px;margin-right:12px;font-size:.8rem;color:var(--fg2)}
-.with_solar .solar-ctrl input{width:60px;padding:4px 6px;border:1px solid var(--bg3);border-radius:6px;background:var(--bg);color:var(--fg);font-size:.8rem;text-align:center}
-
 /* LCD widget */
 .lcd-frame{background:#1a1a2e;border-radius:12px;padding:16px;text-align:center}
 .lcd-screen{display:block;max-width:100%;height:auto;image-rendering:pixelated;margin:0 auto 12px;background:#0a0a1a;border-radius:8px;min-height:50px}

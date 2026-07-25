@@ -1,8 +1,8 @@
 /*
- * test_operating_modes.c - Normal / Smart / Solar mode behavior
+ * test_operating_modes.c - Normal / Smart mode behavior
  *
- * Tests how the operating mode affects current calculation,
- * regulation, and solar-specific stop/start timers.
+ * Tests how the operating mode affects current calculation
+ * and regulation.
  */
 
 #include "test_framework.h"
@@ -141,119 +141,6 @@ void test_smart_mode_fast_decrease(void) {
     TEST_ASSERT_TRUE(ctx.IsetBalanced < 200);
 }
 
-// ---- Solar mode tests ----
-
-/*
- * @feature Operating Modes
- * @req REQ-MODE-007
- * @scenario Solar mode requires surplus power to make current available
- * @given EVSE is in Solar mode with StartCurrent=6A and Isum=0 (no surplus)
- * @when evse_is_current_available is called
- * @then Returns 0 (unavailable) because there is no solar surplus for charging
- */
-void test_solar_current_available_requires_surplus(void) {
-    evse_init(&ctx, NULL);
-    ctx.Mode = MODE_SOLAR;
-    ctx.StartCurrent = 6;  // Need 6A surplus
-    ctx.AccessStatus = ON;
-    // No surplus (Isum = 0, StartCurrent*-10 = -60)
-    ctx.Isum = 0;
-    int result = evse_is_current_available(&ctx);
-    TEST_ASSERT_EQUAL_INT(0, result);
-}
-
-/*
- * @feature Operating Modes
- * @req REQ-MODE-008
- * @scenario Solar mode allows charging when sufficient surplus is available
- * @given EVSE is in Solar mode with StartCurrent=6A and Isum=-80 (8A export surplus)
- * @when evse_is_current_available is called
- * @then Returns 1 (available) because export surplus exceeds StartCurrent threshold
- */
-void test_solar_current_available_with_surplus(void) {
-    evse_init(&ctx, NULL);
-    ctx.Mode = MODE_SOLAR;
-    ctx.StartCurrent = 6;
-    ctx.AccessStatus = ON;
-    ctx.MinCurrent = MIN_CURRENT;
-    // Strong surplus: Isum = -80 (8A export)
-    ctx.Isum = -80;
-    int result = evse_is_current_available(&ctx);
-    TEST_ASSERT_EQUAL_INT(1, result);
-}
-
-/*
- * @feature Operating Modes
- * @req REQ-MODE-009
- * @scenario Solar mode increases current in small steps when surplus is available
- * @given EVSE is standalone in STATE_C in Solar mode with 2A export surplus and past solar startup phase
- * @when Balanced current is calculated
- * @then IsetBalanced increases from its initial 100 value in fine-grained solar increments
- */
-void test_solar_fine_grained_increase(void) {
-    setup_charging_single();
-    ctx.Mode = MODE_SOLAR;
-    ctx.MainsMeterType = 1;
-    ctx.MaxMains = 25;
-    ctx.ImportCurrent = 0;
-    ctx.Isum = -20;  // 2A export surplus
-    ctx.IsetBalanced = 100;
-    ctx.MainsMeterImeasured = 50;
-    ctx.phasesLastUpdateFlag = true;
-    ctx.Node[0].IntTimer = SOLARSTARTTIME;  // Past solar startup phase
-    evse_calc_balanced_current(&ctx, 0);
-    // Solar should increase by small steps
-    TEST_ASSERT_TRUE(ctx.IsetBalanced >= 100);
-}
-
-/*
- * @feature Operating Modes
- * @req REQ-MODE-010
- * @scenario Solar mode decreases current rapidly when importing from grid
- * @given EVSE is standalone in STATE_C in Solar mode with Isum=50 (5A import) and IsetBalanced=100
- * @when Balanced current is calculated with grid import detected
- * @then IsetBalanced decreases below 100 to reduce grid import quickly
- */
-void test_solar_rapid_decrease_on_import(void) {
-    setup_charging_single();
-    ctx.Mode = MODE_SOLAR;
-    ctx.MainsMeterType = 1;
-    ctx.MaxMains = 25;
-    ctx.ImportCurrent = 0;
-    ctx.Isum = 50;  // 5A import, over threshold
-    ctx.IsetBalanced = 100;
-    ctx.MainsMeterImeasured = 50;
-    ctx.phasesLastUpdateFlag = true;
-    ctx.Node[0].IntTimer = SOLARSTARTTIME;  // Past solar startup phase
-    evse_calc_balanced_current(&ctx, 0);
-    // Solar should decrease quickly
-    TEST_ASSERT_TRUE(ctx.IsetBalanced < 100);
-}
-
-/*
- * @feature Operating Modes
- * @req REQ-MODE-011
- * @scenario Solar mode ImportCurrent offset allows controlled grid import
- * @given EVSE is in Solar mode with ImportCurrent=3A allowance and Isum=20 (2A import within allowance)
- * @when Balanced current is calculated with import within the allowed offset
- * @then IsetBalanced increases because IsumImport (20 - 30 = -10) indicates effective surplus
- */
-void test_solar_import_current_offset(void) {
-    setup_charging_single();
-    ctx.Mode = MODE_SOLAR;
-    ctx.MainsMeterType = 1;
-    ctx.MaxMains = 25;
-    ctx.ImportCurrent = 3;  // Allow 3A import
-    ctx.Isum = 20;  // 2A import - within allowance
-    ctx.IsetBalanced = 100;
-    ctx.MainsMeterImeasured = 50;
-    ctx.phasesLastUpdateFlag = true;
-    ctx.Node[0].IntTimer = SOLARSTARTTIME;  // Past solar startup phase
-    evse_calc_balanced_current(&ctx, 0);
-    // IsumImport = 20 - 30 = -10, should increase
-    TEST_ASSERT_TRUE(ctx.IsetBalanced >= 100);
-}
-
 // ---- Phase switching tests ----
 
 /*
@@ -287,29 +174,17 @@ void test_force_single_phase_always_off(void) {
 /*
  * @feature Operating Modes
  * @req REQ-MODE-014
- * @scenario EnableC2=SOLAR_OFF forces single phase when in Solar mode
- * @given EVSE has EnableC2 set to SOLAR_OFF and Mode is MODE_SOLAR
- * @when evse_force_single_phase is called
- * @then Returns 1 because SOLAR_OFF disables contactor 2 in solar mode
+ * @scenario EnableC2=RESERVED_C2_2 (formerly SOLAR_OFF) never forces single phase
+ * @given EVSE has EnableC2 set to RESERVED_C2_2, Solar mode removed
+ * @when evse_force_single_phase is called in either Normal or Smart mode
+ * @then Always returns 0 (Solar mode was the only mode this value affected)
  */
-void test_force_single_phase_solar_off_in_solar_mode(void) {
+void test_force_single_phase_reserved_c2_2(void) {
     evse_init(&ctx, NULL);
-    ctx.EnableC2 = SOLAR_OFF;
-    ctx.Mode = MODE_SOLAR;
-    TEST_ASSERT_EQUAL_INT(1, evse_force_single_phase(&ctx));
-}
+    ctx.EnableC2 = RESERVED_C2_2;
+    ctx.Mode = MODE_NORMAL;
+    TEST_ASSERT_EQUAL_INT(0, evse_force_single_phase(&ctx));
 
-/*
- * @feature Operating Modes
- * @req REQ-MODE-015
- * @scenario EnableC2=SOLAR_OFF does not force single phase in Smart mode
- * @given EVSE has EnableC2 set to SOLAR_OFF and Mode is MODE_SMART
- * @when evse_force_single_phase is called
- * @then Returns 0 because SOLAR_OFF only applies in Solar mode, not Smart mode
- */
-void test_force_single_phase_solar_off_in_smart_mode(void) {
-    evse_init(&ctx, NULL);
-    ctx.EnableC2 = SOLAR_OFF;
     ctx.Mode = MODE_SMART;
     TEST_ASSERT_EQUAL_INT(0, evse_force_single_phase(&ctx));
 }
@@ -419,15 +294,9 @@ int main(void) {
     RUN_TEST(test_smart_mode_respects_maxmains);
     RUN_TEST(test_smart_mode_slow_increase);
     RUN_TEST(test_smart_mode_fast_decrease);
-    RUN_TEST(test_solar_current_available_requires_surplus);
-    RUN_TEST(test_solar_current_available_with_surplus);
-    RUN_TEST(test_solar_fine_grained_increase);
-    RUN_TEST(test_solar_rapid_decrease_on_import);
-    RUN_TEST(test_solar_import_current_offset);
     RUN_TEST(test_force_single_phase_not_present);
     RUN_TEST(test_force_single_phase_always_off);
-    RUN_TEST(test_force_single_phase_solar_off_in_solar_mode);
-    RUN_TEST(test_force_single_phase_solar_off_in_smart_mode);
+    RUN_TEST(test_force_single_phase_reserved_c2_2);
     RUN_TEST(test_force_single_phase_auto_c2_1p);
     RUN_TEST(test_force_single_phase_auto_c2_3p);
     RUN_TEST(test_force_single_phase_always_on);

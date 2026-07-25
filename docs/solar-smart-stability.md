@@ -1,9 +1,13 @@
-# Solar & Smart Mode Stability
+# Smart Mode Stability
 
-This page documents the solar and smart mode stability behaviour: current
-smoothing, dead bands, ramp rate limiting, phase switching timers, and
-stop/start cycling prevention. These address oscillation, slow phase
-switching, and compatibility with EVs like the Renault Zoe.
+> Solar mode was removed. This page previously covered both Solar and Smart
+> mode stability; it now documents only the Smart mode settings that remain.
+> Phase-switching timers, `SolarFineDeadBand`, `SolarChargeDelay`, and
+> `SolarMinRunTime` were removed along with Solar mode.
+
+This page documents the smart mode stability behaviour: current smoothing,
+dead bands, and ramp rate limiting. These address oscillation and
+compatibility with EVs like the Renault Zoe.
 
 Background — community reports that motivated the work:
 [#335](https://github.com/dingo35/SmartEVSE-3.5/issues/335),
@@ -12,15 +16,13 @@ Background — community reports that motivated the work:
 
 ## Overview
 
-The original solar/smart regulation algorithm used fixed-step adjustments on
-a fast tick (100 ms) with no damping, no hysteresis, and no awareness of
-measurement latency. That caused oscillation, unnecessary phase switches,
-stop/start cycling, and poor behaviour with vehicles that respond slowly to
+The original smart mode regulation algorithm used fixed-step adjustments with
+no damping, no hysteresis, and no awareness of measurement latency. That
+caused oscillation and poor behaviour with vehicles that respond slowly to
 current changes.
 
-The current implementation adds configurable smoothing, dead bands, ramp
-rate limiting, improved phase switching timers, and stop/start cycling
-prevention.
+The current implementation adds configurable smoothing, dead bands, and ramp
+rate limiting.
 
 ## New settings
 
@@ -35,22 +37,12 @@ instability.
 | `EmaAlpha` | 100 | 0-100 | EMA smoothing weight. 100 = no smoothing (original behavior). Lower = more damping. Recommended: 50-80 for oscillation issues. |
 | `SmartDeadBand` | 10 (1.0A) | 0-50 | Dead band for smart mode regulation in 0.1A units. Adjustments smaller than this are suppressed. |
 | `RampRateDivisor` | 4 | 1-16 | Symmetric ramp rate for current changes. Higher = slower, smoother changes in both directions. |
-| `SolarFineDeadBand` | 5 (0.5A) | 0-20 | Dead band for solar fine regulation in 0.1A units. Upstream was effectively 3 (0.3A). |
-
-### Phase switching timers
-
-| Setting | Default | Range | Description |
-|---------|---------|-------|-------------|
-| `PhaseSwitchHoldDownTime` | 300s (5 min) | 0-3600 | After switching from 3P to 1P, wait this long before allowing a switch back to 3P. Prevents rapid cycling. |
-| `PhaseSwitchSevereTime` | 30s | 10-600 | Timer for severe shortage (import >= MinCurrent * 10). Fast 3P-to-1P switch when heavily overloaded. |
 
 ### Stop/start cycling prevention
 
 | Setting | Default | Range | Description |
 |---------|---------|-------|-------------|
 | `NoCurrentThreshold` | 10 | 1-50 | Number of shortage ticks before triggering LESS_6A error. Upstream was 3 (too sensitive). |
-| `SolarChargeDelay` | 15s | 5-60 | Charge delay after solar stop. Upstream was 60s (too long for solar recovery). |
-| `SolarMinRunTime` | 60s | 0-600 | Minimum charge time before NoCurrent can trigger LESS_6A. Prevents false stops during startup. |
 
 ## How it works
 
@@ -72,20 +64,11 @@ Previously, smart mode increased current slowly (`/4`) but decreased instantly
 (full step). This asymmetry caused overshoot-undershoot oscillation. Both directions
 now use the same `RampRateDivisor`, making regulation predictable.
 
-### Tiered phase switching
-
-Previously, the 3P-to-1P switch used the `SolarStopTimer` (typically 10 minutes).
-Now the timers are separate and tiered:
-
-- **Severe shortage** (mains import >= MinCurrent * 10): switch in `PhaseSwitchSevereTime` (30s)
-- **Mild shortage** (import > 0 but < severe): use the standard timer
-- **Hold-down guard**: after switching 3P→1P, block 1P→3P for `PhaseSwitchHoldDownTime` (5 min)
-
 ### NoCurrent decay
 
 Instead of resetting `NoCurrent` to 0 when current returns, it now decrements by 1
-each cycle. This means brief solar dips build up gradually and recover gradually,
-instead of snapping between "no problem" and "emergency stop."
+each cycle, so brief dips build up gradually and recover gradually instead of
+snapping between "no problem" and "emergency stop."
 
 ### Slow EV compatibility (Renault Zoe)
 
@@ -119,7 +102,4 @@ curl -X POST http://smartevse-xxxx.local/settings \
 | Problem | Recommended settings |
 |---------|---------------------|
 | Current oscillates in smart mode | `EmaAlpha=50`, `SmartDeadBand=15`, `RampRateDivisor=6` |
-| Rapid 1P/3P switching | `PhaseSwitchHoldDownTime=600` (10 min) |
-| Stop/start cycling on marginal solar | `NoCurrentThreshold=15`, `SolarMinRunTime=120`, `SolarChargeDelay=20` |
-| Renault Zoe 1-phase solar issues | `EmaAlpha=40`, `RampRateDivisor=8` (slower, smoother changes) |
-| Grid import spikes during 3P→1P switch | `PhaseSwitchSevereTime=15` (faster switch on severe shortage) |
+| Renault Zoe stalls on rapid current changes | `EmaAlpha=40`, `RampRateDivisor=8` (slower, smoother changes) |

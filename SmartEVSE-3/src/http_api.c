@@ -14,9 +14,9 @@
 #endif
 
 /* Soft error flags that do not indicate an EVSE fault — these are
- * temporary operational conditions (current too low, no solar surplus)
- * and should not map to IEC 61851 state E. */
-#define SOFT_ERROR_MASK (LESS_6A | NO_SUN)
+ * temporary operational conditions (current too low) and should not
+ * map to IEC 61851 state E. */
+#define SOFT_ERROR_MASK (LESS_6A)
 
 char evse_state_to_iec61851(int state, int error_flags) {
     /* Hard errors override the state-based mapping */
@@ -128,24 +128,6 @@ const char *http_api_validate_max_sum_mains(int value, int load_bl) {
     return NULL;
 }
 
-const char *http_api_validate_stop_timer(int value) {
-    if (value < 0 || value > 60)
-        return "Value not allowed!";
-    return NULL;
-}
-
-const char *http_api_validate_solar_start(int value) {
-    if (value < 0 || value > 48)
-        return "Value not allowed!";
-    return NULL;
-}
-
-const char *http_api_validate_solar_max_import(int value) {
-    if (value < 0 || value > 48)
-        return "Value not allowed!";
-    return NULL;
-}
-
 const char *http_api_validate_prio_strategy(int value, int load_bl) {
     if (load_bl >= 2)
         return "Value not allowed!";
@@ -194,7 +176,7 @@ const char *http_api_validate_mqtt_change_only(int value) {
  * @max_current  Configured maximum charge current (Amps), used for override_current bounds.
  * @load_bl      Load-balancing role: 0=Standalone, 1=Master, >=2=Node/Slave.
  *               Many settings are Master-only and are rejected when load_bl >= 2.
- * @current_mode Charge mode: 0=Normal, 1=Smart, 2=Solar.
+ * @current_mode Charge mode: 0=Normal, 1=Smart.
  *               override_current is only accepted in Normal and Smart modes.
  * @errors       Output array of validation errors (field name + message pairs).
  * @max_errors   Capacity of the @errors array; collection stops when full.
@@ -246,37 +228,6 @@ int http_api_validate_settings(const http_settings_request_t *req,
                 errors[count].error = err;
                 count++;
             }
-        }
-    }
-
-    /* --- Timers --- */
-
-    if (req->has_stop_timer && count < max_errors) {
-        const char *err = http_api_validate_stop_timer(req->stop_timer);
-        if (err) {
-            errors[count].field = "stop_timer";
-            errors[count].error = err;
-            count++;
-        }
-    }
-
-    /* --- Solar settings --- */
-
-    if (req->has_solar_start && count < max_errors) {
-        const char *err = http_api_validate_solar_start(req->solar_start_current);
-        if (err) {
-            errors[count].field = "solar_start_current";
-            errors[count].error = err;
-            count++;
-        }
-    }
-
-    if (req->has_solar_max_import && count < max_errors) {
-        const char *err = http_api_validate_solar_max_import(req->solar_max_import);
-        if (err) {
-            errors[count].field = "solar_max_import";
-            errors[count].error = err;
-            count++;
         }
     }
 

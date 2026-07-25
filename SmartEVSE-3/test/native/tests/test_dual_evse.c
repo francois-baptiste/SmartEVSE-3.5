@@ -1,7 +1,7 @@
 /*
  * test_dual_evse.c - Dual-EVSE master/slave load balancing scenarios
  *
- * Tests current distribution between two EVSEs in Normal, Smart, and Solar
+ * Tests current distribution between two EVSEs in Normal and Smart
  * modes with varying power availability, errors, and phase switching.
  *
  * All tests use a single evse_ctx_t configured as master (LoadBl=1) with
@@ -342,70 +342,6 @@ void test_s5_smart_overload_decreases(void) {
 }
 
 // ===================================================================
-// S6: Solar mode with both EVSEs
-// ===================================================================
-
-/*
- * @feature Dual-EVSE Load Balancing
- * @req REQ-DUAL-S6A
- * @scenario Solar mode: both EVSEs in startup get MinCurrent
- * @given MODE_SOLAR, both in STATE_C with IntTimer < SOLARSTARTTIME
- * @when evse_calc_balanced_current
- * @then Both receive exactly MinCurrent * 10 = 60
- */
-void test_s6_solar_both_in_startup(void) {
-    setup_dual_normal();
-    ctx.Mode = MODE_SOLAR;
-    ctx.MainsMeterType = 1;
-    ctx.StartCurrent = 4;
-    ctx.StopTime = 10;
-    ctx.ImportCurrent = 0;
-    both_charging_at(60, 160);
-    ctx.Node[0].IntTimer = 5;
-    ctx.Node[1].IntTimer = 5;
-    ctx.IsetBalanced = 200;
-    ctx.MainsMeterImeasured = -100;
-    ctx.Isum = -50;
-
-    evse_calc_balanced_current(&ctx, 0);
-
-    TEST_ASSERT_EQUAL_INT(60, ctx.Balanced[0]);
-    TEST_ASSERT_EQUAL_INT(60, ctx.Balanced[1]);
-}
-
-/*
- * @feature Dual-EVSE Load Balancing
- * @req REQ-DUAL-S6B
- * @scenario Solar mode: insufficient solar starts SolarStopTimer
- * @given MODE_SOLAR, high grid import, past startup
- * @when evse_calc_balanced_current
- * @then SolarStopTimer is set
- */
-void test_s6_solar_insufficient_starts_timer(void) {
-    setup_dual_normal();
-    ctx.Mode = MODE_SOLAR;
-    ctx.MainsMeterType = 1;
-    ctx.StartCurrent = 4;
-    ctx.StopTime = 10;
-    ctx.ImportCurrent = 0;
-    ctx.EnableC2 = NOT_PRESENT;
-    both_charging_at(60, 160);
-    ctx.State = STATE_C;
-    ctx.Node[0].IntTimer = SOLARSTARTTIME + 1;
-    ctx.Node[1].IntTimer = SOLARSTARTTIME + 1;
-    ctx.IsetBalanced = 100;
-    ctx.MainsMeterImeasured = 300;
-    // Isum must exceed (ActiveEVSE * MinCurrent * Nr_Of_Phases_Charging - StartCurrent) * 10
-    // = (2 * 6 * 3 - 4) * 10 = 320 to trigger SolarStopTimer path
-    ctx.Isum = 400;
-    ctx.SolarStopTimer = 0;
-
-    evse_calc_balanced_current(&ctx, 0);
-
-    TEST_ASSERT_GREATER_THAN(0, (int)ctx.SolarStopTimer);
-}
-
-// ===================================================================
 // S7: MinCurrent violation / current starvation
 // ===================================================================
 
@@ -663,10 +599,6 @@ int main(void) {
     RUN_TEST(test_s5_smart_mode_new_join);
     RUN_TEST(test_s5_smart_surplus_increases);
     RUN_TEST(test_s5_smart_overload_decreases);
-
-    /* S6: Solar mode */
-    RUN_TEST(test_s6_solar_both_in_startup);
-    RUN_TEST(test_s6_solar_insufficient_starts_timer);
 
     /* S7: MinCurrent violation */
     RUN_TEST(test_s7_mincurrent_violation);

@@ -121,13 +121,13 @@ void test_balanced_max_caps_individual(void) {
 /*
  * @feature Load Balancing
  * @req REQ-LB-005
- * @scenario No active EVSEs resets shortage and solar timers
+ * @scenario No active EVSEs resets shortage timer
  * @given Two EVSEs are both in STATE_A (disconnected) as master
  * @when evse_calc_balanced_current is called
- * @then NoCurrent and SolarStopTimer are reset to 0
+ * @then NoCurrent is reset to 0
  */
 // With no active EVSEs, IsetBalanced IS computed (from Mode/limits) but
-// no distribution occurs. Timers are reset (NoCurrent=0, SolarStopTimer=0).
+// no distribution occurs. NoCurrent is reset to 0.
 void test_no_active_evse_resets_timers(void) {
     evse_init(&ctx, NULL);
     ctx.Mode = MODE_NORMAL;
@@ -135,11 +135,9 @@ void test_no_active_evse_resets_timers(void) {
     ctx.BalancedState[0] = STATE_A;
     ctx.BalancedState[1] = STATE_A;
     ctx.NoCurrent = 5;
-    ctx.SolarStopTimer = 10;
     evse_calc_balanced_current(&ctx, 0);
-    // No active EVSEs: timers are reset
+    // No active EVSEs: timer is reset
     TEST_ASSERT_EQUAL_INT(0, ctx.NoCurrent);
-    TEST_ASSERT_EQUAL_INT(0, ctx.SolarStopTimer);
 }
 
 /*
@@ -445,7 +443,7 @@ void test_config_fixed_cable_no_maxcapacity_cap(void) {
 void test_handout_surplus_zero_uncapped_no_crash(void) {
     evse_init(&ctx, NULL);
     ctx.AccessStatus = ON;
-    ctx.Mode = MODE_SOLAR;
+    ctx.Mode = MODE_SMART;
     ctx.LoadBl = 1;  // Master
     ctx.MaxCurrent = 16;
     ctx.MaxCapacity = 16;
@@ -454,8 +452,6 @@ void test_handout_surplus_zero_uncapped_no_crash(void) {
     ctx.MaxMains = 25;
     ctx.ChargeCurrent = 60;
     ctx.phasesLastUpdateFlag = true;
-    ctx.StartCurrent = 4;
-    ctx.ImportCurrent = 0;
 
     // Two EVSEs charging at very low max — they will be "capped" immediately
     ctx.BalancedState[0] = STATE_C;

@@ -21,7 +21,7 @@ extern "C" {
 void diag_sampler_init(void);
 
 /* Take a sample if the active profile says it's time.
- * Call from timer1s (1 Hz context) for GENERAL/SOLAR/LOADBAL profiles. */
+ * Call from timer1s (1 Hz context) for GENERAL/LOADBAL profiles. */
 void diag_sample(void);
 
 /* Take a fast sample (10 Hz context) for MODBUS/FAST profiles.

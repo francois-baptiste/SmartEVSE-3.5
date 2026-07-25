@@ -66,8 +66,7 @@
     <button class="mode-btn" id="mode_0" type="button" onclick="activate(0)">OFF</button>
     <button class="mode-btn" id="mode_4" type="button" onclick="activate(4)">PAUSE</button>
     <button class="mode-btn" id="mode_1" type="button" onclick="activate(1)">NORMAL</button>
-    <button class="mode-btn with_mainsmeter" id="mode_2" type="button" onclick="activate(2)">SOLAR</button>
-    <button class="mode-btn with_mainsmeter" id="mode_3" type="button" onclick="activate(3)">SMART</button>
+    <button class="mode-btn with_mainsmeter" id="mode_2" type="button" onclick="activate(2)">SMART</button>
   </div>
 </div>
 
@@ -204,17 +203,6 @@
     <span class="card-title" style="margin-bottom:0">Control &amp; Schedule</span>
   </div>
   <div class="section-body">
-    <!-- Solar controls -->
-    <div class="with_solar" style="display:none">
-      <div class="form-row">
-        <span class="form-label">Solar Settings</span>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-          <label style="font-size:.8rem;color:var(--fg2)">Start <input type="number" onchange="SolStartCurr()" id="solar_start_current" min="0" max="16" style="width:60px;padding:4px 6px;border:1px solid var(--bg3);border-radius:6px;background:var(--bg);color:var(--fg);font-size:.8rem;text-align:center"> A</label>
-          <label style="font-size:.8rem;color:var(--fg2)">Import <input type="number" onchange="SolImportCurr()" id="solar_max_import_current" min="0" max="16" style="width:60px;padding:4px 6px;border:1px solid var(--bg3);border-radius:6px;background:var(--bg);color:var(--fg);font-size:.8rem;text-align:center"> A</label>
-          <label style="font-size:.8rem;color:var(--fg2)">Stop <input type="number" onchange="SolStopTime()" id="solar_stop_time" min="0" style="width:60px;padding:4px 6px;border:1px solid var(--bg3);border-radius:6px;background:var(--bg);color:var(--fg);font-size:.8rem;text-align:center"> min</label>
-        </div>
-      </div>
-    </div>
     <!-- Override current -->
     <div class="form-row" id="override_current_box">
       <span class="form-label" title="Limit charge current per phase (A). Press a mode button to activate.">Override Current</span>
@@ -249,10 +237,6 @@
     <div class="form-row">
       <span class="form-label" title="Hide and block the selected charge modes. Normal mode is always available.">Disabled modes</span>
       <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
-        <label style="font-size:.85rem;display:flex;align-items:center;gap:4px" title="Disable Solar mode (hides the SOLAR button and rejects mode changes to Solar)">
-          <input type="checkbox" id="dis_solar" onclick="setModesDisabled()">
-          <span>Disable Solar</span>
-        </label>
         <label style="font-size:.85rem;display:flex;align-items:center;gap:4px" title="Disable Smart mode (hides the SMART button and rejects mode changes to Smart)">
           <input type="checkbox" id="dis_smart" onclick="setModesDisabled()">
           <span>Disable Smart</span>
@@ -471,7 +455,6 @@
     <div class="diag-controls mt-1">
       <select id="diag_profile" class="form-input" style="max-width:160px">
         <option value="general">General (1Hz)</option>
-        <option value="solar">Solar (1Hz)</option>
         <option value="loadbal">Load Bal (1Hz)</option>
         <option value="modbus">Modbus (10Hz)</option>
         <option value="fast">Fast (10Hz)</option>
@@ -491,8 +474,7 @@
   <button type="button" id="mnav_0" onclick="activate(0)">OFF</button>
   <button type="button" id="mnav_4" onclick="activate(4)">PAUSE</button>
   <button type="button" id="mnav_1" onclick="activate(1)">NORMAL</button>
-  <button type="button" id="mnav_2" onclick="activate(2)">SOLAR</button>
-  <button type="button" id="mnav_3" onclick="activate(3)">SMART</button>
+  <button type="button" id="mnav_2" onclick="activate(2)">SMART</button>
 </nav>
 
 <!-- Footer help bar -->

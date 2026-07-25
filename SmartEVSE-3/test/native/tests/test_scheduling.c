@@ -299,43 +299,6 @@ void test_standalone_no_scheduling(void) {
 
 /*
  * @feature Priority-Based Power Scheduling
- * @req REQ-LB-115
- * @scenario Solar mode: paused EVSEs get NO_SUN error instead of LESS_6A
- * @given Master with 2 EVSEs in STATE_C, Mode=MODE_SOLAR
- * @and Available power = 5A (below 2*6A=12A)
- * @when evse_calc_balanced_current(ctx, 0) is called
- * @then Balanced[1] == 0 and BalancedError[1] has NO_SUN set
- */
-void test_solar_paused_gets_no_sun(void) {
-    setup_master_n(2);
-    ctx.Mode = MODE_SOLAR;
-    ctx.MainsMeterType = 1;
-    ctx.MaxMains = 25;
-    /* Set up so IsetBalanced < 2*60=120 in Solar mode.
-     * Solar regulation: IsetBalanced += solar adjustments.
-     * Set IsetBalanced directly to a low value and use mod=0. */
-    ctx.MainsMeterImeasured = 200;
-    ctx.Balanced[0] = 50;
-    ctx.Balanced[1] = 50;
-    ctx.EVMeterImeasured = 0;
-    ctx.IsetBalanced = 50;  /* Will decrease via regulation */
-    ctx.Isum = 200;         /* Importing power */
-    ctx.ImportCurrent = 0;
-    ctx.StartCurrent = 4;
-    ctx.StopTime = 10;
-    ctx.Node[0].IntTimer = 100;
-    ctx.Node[1].IntTimer = 100;
-    ctx.NoCurrent = 0;
-
-    evse_calc_balanced_current(&ctx, 0);
-
-    /* EVSE[1] should be paused with NO_SUN (not LESS_6A) in solar mode */
-    TEST_ASSERT_EQUAL_INT(0, ctx.Balanced[1]);
-    TEST_ASSERT_TRUE(ctx.BalancedError[1] & NO_SUN);
-}
-
-/*
- * @feature Priority-Based Power Scheduling
  * @req REQ-LB-116
  * @scenario Capped EVSE surplus redistributed to uncapped ones
  * @given Master with 3 EVSEs in STATE_C, MinCurrent=6A
@@ -916,7 +879,6 @@ int main(void) {
     RUN_TEST(test_sufficient_power_no_scheduling);
     RUN_TEST(test_surplus_distributed_fairly);
     RUN_TEST(test_standalone_no_scheduling);
-    RUN_TEST(test_solar_paused_gets_no_sun);
     RUN_TEST(test_capped_surplus_redistribution);
     RUN_TEST(test_exactly_one_mincurrent);
     RUN_TEST(test_zero_power_pauses_all);

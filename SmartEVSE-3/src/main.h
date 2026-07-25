@@ -43,19 +43,6 @@
 #define AUTOMATED_TESTING 0
 #endif
 
-#ifndef FAKE_SUNNY_DAY
-//set this to 1 to emulate a sunny day where your solar charger is injecting current in the grid:
-#define FAKE_SUNNY_DAY 0
-//disclaimer: might not work for CT1 calibration/uncalibration stuff, since I can't test that
-//the number of Amperes you want to have fake injected into Lx
-#endif
-
-#if FAKE_SUNNY_DAY
-#define INJECT_CURRENT_L1 10
-#define INJECT_CURRENT_L2 0
-#define INJECT_CURRENT_L3 0
-#endif
-
 #ifndef ENABLE_OCPP
 #define ENABLE_OCPP 0
 #endif
@@ -94,9 +81,6 @@
 #define CHARGEDELAY 60                                                          // Seconds to wait after overcurrent, before trying again
 #define BACKLIGHT 120                                                           // Seconds delay for the LCD backlight to turn off.
 #define RFIDLOCKTIME 60                                                         // Seconds delay for the EVSE to lock again (RFIDreader = EnableOne)
-#define START_CURRENT 4                                                         // Start charging when surplus current on sum of all phases exceeds 4A (Solar)
-#define STOP_TIME 10                                                            // Stop charging after 10 minutes at MIN charge current (Solar)
-#define IMPORT_CURRENT 0                                                        // Allow the use of grid power when solar charging (Amps)
 #define MAINS_METER 1                                                           // Mains Meter, 0=Disabled, 1= Sensorbox, 2=Phoenix, 3= Finder, 4= Eastron, 5=Custom
 #define GRID 0                                                                  // Grid, 0= 4-Wire CW, 1= 4-Wire CCW, 2= 3-Wire CW, 3= 3-Wire CCW
 #define MAINS_METER_ADDRESS 10
@@ -126,7 +110,6 @@
 #define MAX_TEMPERATURE 65
 #define DELAYEDSTARTTIME 0                                                             // The default StartTime for delayed charged, 0 = not delaying
 #define DELAYEDSTOPTIME 0                                                       // The default StopTime for delayed charged, 0 = not stopping
-#define SOLARSTARTTIME 40                                                       // Seconds to keep chargecurrent at 6A
 #define OCPP_MODE 0
 #define AUTOUPDATE 0                                                            // default for Automatic Firmware Update: 0 = disabled, 1 = enabled
 #define SB2_WIFI_MODE 0
@@ -139,7 +122,6 @@
 // Mode settings
 #define MODE_NORMAL 0
 #define MODE_SMART 1
-#define MODE_SOLAR 2
 
 #define MODBUS_BAUDRATE 9600
 #define MODBUS_TIMEOUT 4
@@ -236,7 +218,6 @@ void setPilot(bool On);
 #define STATUS_ERROR 65                                                         // 0x0001: Error
 #define STATUS_CURRENT 66                                                       // 0x0002: Charging current (A * 10)
 #define STATUS_MODE 67                                                          // 0x0003: EVSE Mode
-#define STATUS_SOLAR_TIMER 68                                                   // 0x0004: Solar Timer
 #define STATUS_ACCESS 69                                                        // 0x0005: Access bit
 #define STATUS_CONFIG_CHANGED 70                                                // 0x0006: Configuration changed
 #define STATUS_MAX 71                                                           // 0x0007: Maximum charging current (RO)
@@ -264,9 +245,6 @@ void setPilot(bool On);
 #define MENU_GRID 14                                                            // 0x0202: Grid type to which the Sensorbox is connected
 #define MENU_SB2_WIFI 15                                                        // 0x0203: WiFi mode of the Sensorbox 2
 #define MENU_MAINS 16                                                           // 0x0204: Max Mains Current
-#define MENU_START 17                                                           // 0x0205: Surplus energy start Current
-#define MENU_STOP 18                                                            // 0x0206: Stop solar charging at 6A after this time
-#define MENU_IMPORT 19                                                          // 0x0207: Allow grid power when solar charging
 #define MENU_MAINSMETER 20                                                      // 0x0208: Type of Mains electric meter
 #define MENU_MAINSMETERADDRESS 21                                               // 0x0209: Address of Mains electric meter
 #define MENU_EMCUSTOM_ENDIANESS 22                                              // 0x020D: Byte order of custom electric meter
@@ -306,7 +284,7 @@ void setPilot(bool On);
 
 #define MENU_LEDMODE 51                                                         // LED color scheme (0:Standard / 1:Public charging station) — upstream 3679fe3
 #define MENU_AUTHMODE 52                                                        // HTTP auth mode (0:Off legacy / 1:Required) — Plan 16 Phase 1
-#define MENU_MODESDIS 53                                                        // Bitmask of disabled operating modes (2:Smart / 4:Solar)
+#define MENU_MODESDIS 53                                                        // Bitmask of disabled operating modes (2:Smart)
 
 class Button {
   public:
@@ -357,7 +335,10 @@ struct Sensorbox {
 uint8_t setItemValue(uint8_t nav, uint16_t val);
 uint16_t getItemValue(uint8_t nav);
 
-enum EnableC2_t { NOT_PRESENT, ALWAYS_OFF, SOLAR_OFF, ALWAYS_ON, AUTO };
+// Ordinal 2 (formerly SOLAR_OFF) is kept reserved/unused so persisted NVS
+// values for this setting on existing hardware don't silently remap to a
+// different config after upgrade.
+enum EnableC2_t { NOT_PRESENT, ALWAYS_OFF, RESERVED_C2_2, ALWAYS_ON, AUTO };
 extern EnableC2_t EnableC2;
 
 struct Node_t {
@@ -369,7 +350,6 @@ struct Node_t {
     uint8_t Phases;
     uint32_t Timer;         // 1s
     uint32_t IntTimer;      // 1s
-    uint16_t SolarTimer;    // 1s
     uint8_t Mode;
 };
 
