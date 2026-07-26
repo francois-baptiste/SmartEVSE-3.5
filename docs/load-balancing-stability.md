@@ -39,6 +39,14 @@ on `Idifference`). When oscillation is detected:
 This is adaptive — it only slows regulation when oscillation is actually detected,
 preserving fast response during normal operation.
 
+**Standalone-only faster decay.** A standalone EVSE (`LoadBl=0`) doesn't share a
+mains connection with other nodes, so the cross-node hunting risk this dampener
+guards against doesn't apply to it. Standalone installs decay `OscillationCount`
+by 2 per stable cycle instead of 1, so a burst of load-toggling (e.g. testing by
+switching household devices on/off) doesn't leave the EVSE sluggish for
+10-20+ seconds afterward. Multi-node (`LoadBl>=1`) master/node behavior is
+unchanged (still -1/cycle) to preserve the original anti-hunting protection.
+
 ### EMA filter on Idifference
 
 An exponential moving average filter smooths the raw `Idifference` measurement
@@ -115,14 +123,23 @@ The three features operate in sequence during each regulation cycle:
 
 ## Settings
 
-These features use the existing `RampRateDivisor` and `EmaAlpha` settings from
-the smart mode stability improvements. The oscillation dampening and delta
-clamping are always active in Smart mode with no additional configuration.
+All of the settings below are runtime-configurable via MQTT (`<prefix>/Set/<Name>`,
+values also published back on `<prefix>/<Name>`) and via `GET`/`POST /settings`
+(snake_case field names, e.g. `ramp_rate_divisor`). Every default reproduces the
+firmware's original hardcoded behavior exactly — nothing changes until you opt in.
 
-| Setting | Effect on load balancing |
-|---------|------------------------|
-| `RampRateDivisor` | Base regulation speed. Oscillation dampening adds to this value adaptively |
-| `EmaAlpha` | Controls the single-measurement EMA. The load balancing Idifference EMA uses a fixed 25% alpha (3/4 weight on previous) |
+| Setting | MQTT / HTTP name | Range | Default | Effect |
+|---------|------------------|-------|---------|--------|
+| `RampRateDivisor` | `RampRateDivisor` / `ramp_rate_divisor` | 1-20 | 4 | Base regulation speed. Oscillation dampening adds to this value adaptively |
+| `EmaAlpha` | `EmaAlpha` / `ema_alpha` | 0-100 | 100 (no smoothing) | Weight for the IsetBalanced EMA smoothing stage (Issue #15) |
+| `SmartDeadBand` | `SmartDeadBand` / `smart_deadband` | 0-50 (deciamps) | 10 | Suppresses micro-adjustments below this filtered-headroom threshold |
+| `MaxRampRate` | `MaxRampRate` / `max_ramp_rate` | 0-100 (deciamps, 0=disabled) | 30 (3.0A) | Standalone per-cycle ramp limiter on `Balanced[0]` |
+| `OscillationBoostMax` | `OscillationBoostMax` / `oscillation_boost_max` | 0-20 | 10 | Cap on how far `OscillationCount` can boost the effective divisor |
+| `IdiffEmaWeight` | `IdiffEmaWeight` / `idiff_ema_weight` | 1-4 | 1 (25% alpha) | Weight (out of 4) given to the new sample in the Idifference EMA; 4 = no filtering (immediate tracking) |
+
+Lowering `OscillationBoostMax` and/or raising `IdiffEmaWeight` on a standalone
+install makes Smart-mode recovery snappier after load-toggling, at the cost of
+some of the multi-node-style noise rejection — see Troubleshooting below.
 
 ### Settings that do NOT apply
 
@@ -160,3 +177,4 @@ measurements between regulation cycles, simulating real-world control loop dynam
 | Slow convergence after EVSE joins | Expected: clamping bypassed for join, but re-enabled immediately after | Wait 4-6 cycles (~10s) for system to stabilize |
 | Shortage detected unexpectedly | `NoCurrent` incrementing, `Shortage` flag set | Check if `NoCurrentThreshold` is too low; verify mains meter readings |
 | Current jumps on specific EVSE | Delta clamping should prevent >3A jumps | If jumps >3A occur, check that EVSE is not repeatedly joining/leaving (mod=1 bypass) |
+| Recovery feels slow/pessimistic after toggling loads (standalone install) | Charge current cuts back quickly but climbs back up slowly for 10-20+ seconds | Standalone (`LoadBl=0`) already decays `OscillationCount` twice as fast as multi-node; for even snappier recovery, lower `OscillationBoostMax` (e.g. to 2-3) and/or raise `IdiffEmaWeight` (e.g. to 3-4) via MQTT/HTTP |

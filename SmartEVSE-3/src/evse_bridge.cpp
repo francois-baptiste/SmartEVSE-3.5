@@ -90,6 +90,12 @@ extern Meter EVMeter;
 extern int16_t CapacityHeadroom_da;
 extern Meter CircuitMeter;
 extern uint16_t MaxCircuitMains;
+extern uint8_t RampRateDivisor;
+extern uint8_t EmaAlpha;
+extern uint8_t SmartDeadBand;
+extern uint8_t MaxRampRate;
+extern uint8_t OscillationBoostMax;
+extern uint8_t IdiffEmaWeight;
 
 // These are inside the #if CH32/v3 guard in main.cpp
 extern uint8_t C1Timer;
@@ -333,6 +339,12 @@ void evse_sync_globals_to_ctx(void) {
         ctx->CircuitMeterImeasured = 0;
     }
     ctx->MaxCircuitMains = MaxCircuitMains;
+    ctx->RampRateDivisor = RampRateDivisor;
+    ctx->EmaAlpha = EmaAlpha;
+    ctx->SmartDeadBand = SmartDeadBand;
+    ctx->MaxRampRate = MaxRampRate;
+    ctx->OscillationBoostMax = OscillationBoostMax;
+    ctx->IdiffEmaWeight = IdiffEmaWeight;
 
     ctx->ErrorFlags = ErrorFlags;
     ctx->ChargeDelay = ChargeDelay;

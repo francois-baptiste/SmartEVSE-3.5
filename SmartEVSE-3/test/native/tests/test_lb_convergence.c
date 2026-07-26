@@ -742,6 +742,223 @@ void test_normal_mode_no_adaptive_gain(void) {
 }
 
 /* ========================================================================
+ * GROUP: Standalone oscillation relaxation & configurable EMA weight
+ * (dynamic load shedding recovery-speed tuning)
+ *
+ * Real-device monitoring (2026-07-26, standalone LoadBl=0 install) showed
+ * charge current cutting back ~1A/s after a load spike but only recovering
+ * at ~0.06 A/s afterward -- ~17x slower -- because the multi-node
+ * oscillation dampener (built for #316 cross-node hunting) also throttles
+ * standalone installs that toggle loads during testing. These tests cover:
+ * (a) standalone-only faster OscillationCount decay, (b) master decay stays
+ * unchanged (non-regression), (c) OscillationBoostMax is configurable, and
+ * (d) IdiffEmaWeight controls Idifference-EMA tracking speed.
+ * ======================================================================== */
+
+/*
+ * @feature LB Convergence
+ * @req REQ-LB-180
+ * @scenario Standalone EVSE decays OscillationCount twice as fast as a master
+ * @given A standalone EVSE (LoadBl=0) and a master (LoadBl=1, 2 EVSEs), both
+ *        with OscillationCount=6 and a stable (non-flipping) Idifference sign
+ * @when 3 consecutive stable regulation cycles run on each
+ * @then The standalone EVSE's OscillationCount reaches 0 (decay=2/cycle)
+ *       while the master's reaches 3 (decay=1/cycle, unchanged)
+ */
+void test_standalone_oscillation_decays_faster_than_master(void) {
+    /* Standalone: LoadBl=0 */
+    setup_smart_standalone(25, 50);
+    ctx.OscillationCount = 6;
+    ctx.IdiffPrev = 50;
+    for (int i = 0; i < 3; i++) {
+        int32_t total_ev = ctx.Balanced[0];
+        ctx.EVMeterImeasured = (int16_t)total_ev;
+        ctx.MainsMeterImeasured = (int16_t)(50 + total_ev);
+        ctx.Isum = ctx.MainsMeterImeasured;
+        ctx.phasesLastUpdateFlag = true;
+        evse_calc_balanced_current(&ctx, 0);
+    }
+    TEST_ASSERT_EQUAL_INT(0, ctx.OscillationCount);
+
+    /* Master: LoadBl=1, 2 EVSEs, identical stimulus */
+    setup_smart_master_n(2, 50, 100);
+    ctx.OscillationCount = 6;
+    ctx.IdiffPrev = 50;
+    for (int i = 0; i < 3; i++) {
+        int32_t total_ev = 0;
+        for (int n = 0; n < NR_EVSES; n++)
+            if (ctx.BalancedState[n] == STATE_C) total_ev += ctx.Balanced[n];
+        ctx.EVMeterImeasured = (int16_t)total_ev;
+        ctx.MainsMeterImeasured = (int16_t)(100 + total_ev);
+        ctx.Isum = ctx.MainsMeterImeasured;
+        ctx.phasesLastUpdateFlag = true;
+        evse_calc_balanced_current(&ctx, 0);
+    }
+    TEST_ASSERT_EQUAL_INT(3, ctx.OscillationCount);
+}
+
+/*
+ * @feature LB Convergence
+ * @req REQ-LB-181
+ * @scenario Master OscillationCount decay rate is unchanged (non-regression)
+ * @given A master (LoadBl=1, 2 EVSEs) with OscillationCount=5
+ * @when 4 consecutive stable regulation cycles run
+ * @then OscillationCount decays by exactly 1 per cycle, reaching 1
+ */
+void test_master_oscillation_decay_unchanged(void) {
+    setup_smart_master_n(2, 50, 100);
+    ctx.OscillationCount = 5;
+    ctx.IdiffPrev = 50;
+    for (int i = 0; i < 4; i++) {
+        int32_t total_ev = 0;
+        for (int n = 0; n < NR_EVSES; n++)
+            if (ctx.BalancedState[n] == STATE_C) total_ev += ctx.Balanced[n];
+        ctx.EVMeterImeasured = (int16_t)total_ev;
+        ctx.MainsMeterImeasured = (int16_t)(100 + total_ev);
+        ctx.Isum = ctx.MainsMeterImeasured;
+        ctx.phasesLastUpdateFlag = true;
+        evse_calc_balanced_current(&ctx, 0);
+    }
+    TEST_ASSERT_EQUAL_INT(1, ctx.OscillationCount);
+}
+
+/*
+ * @feature LB Convergence
+ * @req REQ-LB-182
+ * @scenario OscillationBoostMax caps the adaptive divisor boost
+ * @given Standalone EVSE with OscillationBoostMax=2 and repeated sign flips
+ * @when 8 regulation cycles alternate Idifference sign (worst-case hunting)
+ * @then OscillationCount never exceeds the configured cap of 2 (default is 10)
+ */
+void test_oscillation_boost_max_configurable(void) {
+    setup_smart_standalone(25, 50);
+    ctx.OscillationBoostMax = 2;
+    ctx.IdiffPrev = 50;
+
+    for (int i = 0; i < 8; i++) {
+        int32_t total_ev = ctx.Balanced[0];
+        ctx.EVMeterImeasured = (int16_t)total_ev;
+        /* Alternate a large overload/headroom swing to force sign flips every cycle */
+        ctx.MainsMeterImeasured = (i % 2 == 0) ? 100 : 280;
+        ctx.Isum = ctx.MainsMeterImeasured;
+        ctx.phasesLastUpdateFlag = true;
+        evse_calc_balanced_current(&ctx, 0);
+        (void)total_ev;
+    }
+
+    TEST_ASSERT_LESS_OR_EQUAL(2, ctx.OscillationCount);
+}
+
+/*
+ * @feature LB Convergence
+ * @req REQ-LB-183
+ * @scenario Default IdiffEmaWeight (1) reproduces the prior hardcoded 25% EMA
+ * @given Standalone EVSE with IdiffEmaWeight left at its default (1)
+ * @when A regulation cycle runs with a known Idifference
+ * @then IdiffFiltered equals the previous hardcoded formula (old*3 + new)/4 exactly
+ */
+void test_idiff_ema_weight_default_matches_prior_formula(void) {
+    setup_smart_standalone(25, 50);
+    ctx.IdiffFiltered = 0;
+    TEST_ASSERT_EQUAL_INT(IDIFF_EMA_WEIGHT_DEFAULT, ctx.IdiffEmaWeight);
+
+    ctx.MainsMeterImeasured = 100;  /* Idifference = 250 - 100 = 150 */
+    ctx.EVMeterImeasured = 60;
+    ctx.Isum = 100;
+    ctx.phasesLastUpdateFlag = true;
+    evse_calc_balanced_current(&ctx, 0);
+
+    int32_t expected = (0 * 3 + 150) / 4;  /* Prior hardcoded formula */
+    TEST_ASSERT_EQUAL_INT(expected, ctx.IdiffFiltered);
+}
+
+/*
+ * @feature LB Convergence
+ * @req REQ-LB-184
+ * @scenario IdiffEmaWeight=4 tracks a step change within a single cycle
+ * @given Standalone EVSE with IdiffEmaWeight=4 (no filtering)
+ * @when A regulation cycle runs with a known Idifference
+ * @then IdiffFiltered equals the raw Idifference exactly (immediate tracking)
+ */
+void test_idiff_ema_weight_four_tracks_immediately(void) {
+    setup_smart_standalone(25, 50);
+    ctx.IdiffEmaWeight = 4;
+    ctx.IdiffFiltered = 0;
+
+    ctx.MainsMeterImeasured = 100;  /* Idifference = 250 - 100 = 150 */
+    ctx.EVMeterImeasured = 60;
+    ctx.Isum = 100;
+    ctx.phasesLastUpdateFlag = true;
+    evse_calc_balanced_current(&ctx, 0);
+
+    TEST_ASSERT_EQUAL_INT(150, ctx.IdiffFiltered);
+}
+
+/*
+ * @feature LB Convergence
+ * @req REQ-LB-185
+ * @scenario Relaxed standalone settings recover materially faster after
+ *           repeated load-toggling than today's defaults (real-world scenario)
+ * @given Two identical standalone EVSEs converged at 200dA at the production
+ *        default RampRateDivisor; one with default oscillation/EMA tuning,
+ *        one relaxed (OscillationBoostMax=2, IdiffEmaWeight=4)
+ * @when Both experience 3 on/off load toggles (baseload flips 250<->50,
+ *       mirroring a user switching household devices), then the load
+ *       settles at 50 for 5 recovery cycles
+ * @then The relaxed configuration has recovered further toward the 200dA
+ *       target than the default configuration after the same 5 cycles
+ */
+static int32_t run_toggle_then_recover_scenario(bool relaxed, int recover_cycles) {
+    setup_smart_standalone(25, 50);
+    /* setup_smart_standalone forces RampRateDivisor=1 for clean-convergence
+     * tests elsewhere in this file; restore the real production default so
+     * this scenario exercises realistic divisor + oscillation dynamics. */
+    ctx.RampRateDivisor = RAMP_RATE_DIVISOR_DEFAULT;
+    if (relaxed) {
+        ctx.OscillationBoostMax = 2;
+        ctx.IdiffEmaWeight = 4;
+    }
+
+    simulate_n_cycles(&ctx, 20, 50);   /* Converge to ~200dA */
+
+    /* Simulate the user's real test: toggling household loads on/off several
+     * times (3 up/down flips), each one a sign-flip in Idifference. */
+    for (int i = 0; i < 6; i++) {
+        int32_t baseload = (i % 2 == 0) ? 250 : 50;
+        int32_t total_ev = ctx.Balanced[0];
+        ctx.EVMeterImeasured = (int16_t)total_ev;
+        ctx.MainsMeterImeasured = (int16_t)(baseload + total_ev);
+        ctx.Isum = ctx.MainsMeterImeasured;
+        ctx.phasesLastUpdateFlag = true;
+        evse_calc_balanced_current(&ctx, 0);
+    }
+
+    /* Load released for good: measure recovery RATE over a modest number of
+     * cycles (not full settling — at high divisor/weight combinations,
+     * integer-truncation residuals near the target are an unrelated
+     * artifact that would swamp the speed comparison this test cares about). */
+    for (int i = 0; i < recover_cycles; i++) {
+        int32_t total_ev = ctx.Balanced[0];
+        ctx.EVMeterImeasured = (int16_t)total_ev;
+        ctx.MainsMeterImeasured = (int16_t)(50 + total_ev);
+        ctx.Isum = ctx.MainsMeterImeasured;
+        ctx.phasesLastUpdateFlag = true;
+        evse_calc_balanced_current(&ctx, 0);
+    }
+
+    return ctx.IsetBalanced;
+}
+
+void test_relaxed_standalone_settings_recover_faster(void) {
+    int32_t default_iset = run_toggle_then_recover_scenario(false, 5);
+    int32_t relaxed_iset = run_toggle_then_recover_scenario(true, 5);
+
+    /* Relaxed tuning should have recovered further toward the 200dA target
+     * after the same 5 post-toggle cycles. */
+    TEST_ASSERT_TRUE(relaxed_iset > default_iset);
+}
+
+/* ========================================================================
  * GROUP: EMA filter on Idifference (Issue #23)
  * ======================================================================== */
 
@@ -1493,6 +1710,14 @@ int main(void) {
     RUN_TEST(test_oscillation_count_decays_when_stable);
     RUN_TEST(test_adaptive_gain_dampens_noisy_load);
     RUN_TEST(test_normal_mode_no_adaptive_gain);
+
+    /* Standalone oscillation relaxation & configurable EMA weight (delestage dynamique) */
+    RUN_TEST(test_standalone_oscillation_decays_faster_than_master);
+    RUN_TEST(test_master_oscillation_decay_unchanged);
+    RUN_TEST(test_oscillation_boost_max_configurable);
+    RUN_TEST(test_idiff_ema_weight_default_matches_prior_formula);
+    RUN_TEST(test_idiff_ema_weight_four_tracks_immediately);
+    RUN_TEST(test_relaxed_standalone_settings_recover_faster);
 
     /* EMA filter on Idifference (Issue #23) */
     RUN_TEST(test_ema_filter_smooths_spike);

@@ -143,6 +143,13 @@ typedef enum {
     MQTT_SLOT_LINKY_POWER_FACTOR_L2,
     MQTT_SLOT_LINKY_POWER_FACTOR_L3,
     MQTT_SLOT_LINKY_POWER_FACTOR_TOTAL,
+    /* Smart-mode regulation tuning (dynamic load shedding / delestage dynamique) */
+    MQTT_SLOT_RAMP_RATE_DIVISOR,
+    MQTT_SLOT_EMA_ALPHA,
+    MQTT_SLOT_SMART_DEADBAND,
+    MQTT_SLOT_MAX_RAMP_RATE,
+    MQTT_SLOT_OSCILLATION_BOOST_MAX,
+    MQTT_SLOT_IDIFF_EMA_WEIGHT,
     MQTT_SLOT_COUNT  /* must be <= MQTT_CACHE_MAX_SLOTS */
 } mqtt_slot_t;
 

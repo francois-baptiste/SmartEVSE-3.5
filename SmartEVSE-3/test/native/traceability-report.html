@@ -125,8 +125,8 @@ footer {
 <h1>SmartEVSE-3 Traceability Report</h1>
 <div class="summary">
 <div class="stat"><div class="number">75</div><div class="label">Features</div></div>
-<div class="stat"><div class="number">1074</div><div class="label">Test Scenarios</div></div>
-<div class="stat"><div class="number">1074</div><div class="label">With Requirements</div></div>
+<div class="stat"><div class="number">1095</div><div class="label">Test Scenarios</div></div>
+<div class="stat"><div class="number">1095</div><div class="label">With Requirements</div></div>
 <div class="stat"><div class="number">100%</div><div class="label">Requirement Coverage</div></div>
 </div>
 <div class="feature-section">
@@ -2643,7 +2643,7 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">LB Convergence (45 scenarios)</div>
+<div class="feature-title">LB Convergence (50 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -2800,172 +2800,207 @@ footer {
 <td><span class="file-ref">test_lb_convergence.c:711</span></td>
 </tr>
 <tr>
+<td><span class="req-tag">REQ-LB-180</span></td>
+<td>Standalone EVSE decays OscillationCount twice as fast as a master</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A standalone EVSE (LoadBl=0) and a master (LoadBl=1, 2 EVSEs), both</li><li class="step-when"><span class="step-keyword">When</span> 3 consecutive stable regulation cycles run on each</li><li class="step-then"><span class="step-keyword">Then</span> The standalone EVSE&#x27;s OscillationCount reaches 0 (decay=2/cycle)</li></ul></td>
+<td><code>test_standalone_oscillation_decays_faster_than_master</code></td>
+<td><span class="file-ref">test_lb_convergence.c:758</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LB-181</span></td>
+<td>Master OscillationCount decay rate is unchanged (non-regression)</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A master (LoadBl=1, 2 EVSEs) with OscillationCount=5</li><li class="step-when"><span class="step-keyword">When</span> 4 consecutive stable regulation cycles run</li><li class="step-then"><span class="step-keyword">Then</span> OscillationCount decays by exactly 1 per cycle, reaching 1</li></ul></td>
+<td><code>test_master_oscillation_decay_unchanged</code></td>
+<td><span class="file-ref">test_lb_convergence.c:800</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LB-182</span></td>
+<td>OscillationBoostMax caps the adaptive divisor boost</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Standalone EVSE with OscillationBoostMax=2 and repeated sign flips</li><li class="step-when"><span class="step-keyword">When</span> 8 regulation cycles alternate Idifference sign (worst-case hunting)</li><li class="step-then"><span class="step-keyword">Then</span> OscillationCount never exceeds the configured cap of 2 (default is 10)</li></ul></td>
+<td><code>test_oscillation_boost_max_configurable</code></td>
+<td><span class="file-ref">test_lb_convergence.c:825</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LB-183</span></td>
+<td>Default IdiffEmaWeight (1) reproduces the prior hardcoded 25% EMA</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Standalone EVSE with IdiffEmaWeight left at its default (1)</li><li class="step-when"><span class="step-keyword">When</span> A regulation cycle runs with a known Idifference</li><li class="step-then"><span class="step-keyword">Then</span> IdiffFiltered equals the previous hardcoded formula (old*3 + new)/4 exactly</li></ul></td>
+<td><code>test_idiff_ema_weight_default_matches_prior_formula</code></td>
+<td><span class="file-ref">test_lb_convergence.c:852</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LB-184</span></td>
+<td>IdiffEmaWeight=4 tracks a step change within a single cycle</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Standalone EVSE with IdiffEmaWeight=4 (no filtering)</li><li class="step-when"><span class="step-keyword">When</span> A regulation cycle runs with a known Idifference</li><li class="step-then"><span class="step-keyword">Then</span> IdiffFiltered equals the raw Idifference exactly (immediate tracking)</li></ul></td>
+<td><code>test_idiff_ema_weight_four_tracks_immediately</code></td>
+<td><span class="file-ref">test_lb_convergence.c:875</span></td>
+</tr>
+<tr>
 <td><span class="req-tag">REQ-LB-043</span></td>
 <td>EMA filter smooths Idifference spikes</td>
-<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Standalone EVSE in Smart mode converged at stable load</li><li class="step-when"><span class="step-keyword">When</span> A single large Idifference spike occurs (sudden mains change)</li><li class="step-then"><span class="step-keyword">Then</span> The filtered Idifference used for regulation is less than the raw spike</li></ul></td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Two identical standalone EVSEs converged at 200dA at the production</li><li class="step-given"><span class="step-keyword">Given</span> Standalone EVSE in Smart mode converged at stable load</li><li class="step-when"><span class="step-keyword">When</span> Both experience 3 on/off load toggles (baseload flips 250&lt;-&gt;50,</li><li class="step-when"><span class="step-keyword">When</span> A single large Idifference spike occurs (sudden mains change)</li><li class="step-then"><span class="step-keyword">Then</span> The relaxed configuration has recovered further toward the 200dA</li><li class="step-then"><span class="step-keyword">Then</span> The filtered Idifference used for regulation is less than the raw spike</li></ul></td>
 <td><code>test_ema_filter_smooths_spike</code></td>
-<td><span class="file-ref">test_lb_convergence.c:748</span></td>
+<td><span class="file-ref">test_lb_convergence.c:897</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-044</span></td>
 <td>EMA filter preserves convergence (no regression)</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Standalone EVSE in Smart mode with EMA filtering active</li><li class="step-when"><span class="step-keyword">When</span> 30 regulation cycles run</li><li class="step-then"><span class="step-keyword">Then</span> IsetBalanced converges to target within 10 dA (may be slower but still converges)</li></ul></td>
 <td><code>test_ema_filter_still_converges</code></td>
-<td><span class="file-ref">test_lb_convergence.c:779</span></td>
+<td><span class="file-ref">test_lb_convergence.c:996</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-045</span></td>
 <td>EMA filter reduces peak-to-peak swing under noisy measurements</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Standalone EVSE in Smart mode converged</li><li class="step-when"><span class="step-keyword">When</span> 40 cycles with +-30dA measurement noise are simulated</li><li class="step-then"><span class="step-keyword">Then</span> Peak-to-peak IsetBalanced swing is at most 30dA (~50% of raw 60dA noise)</li></ul></td>
 <td><code>test_ema_filter_reduces_noise_swing</code></td>
-<td><span class="file-ref">test_lb_convergence.c:798</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1015</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-046</span></td>
 <td>EMA filter tracks sustained load change within 10 cycles</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Standalone EVSE in Smart mode converged at 5A baseload</li><li class="step-when"><span class="step-keyword">When</span> Baseload increases permanently by 100dA (10A)</li><li class="step-then"><span class="step-keyword">Then</span> After 10 cycles, IsetBalanced has moved at least 50% toward new target</li></ul></td>
 <td><code>test_ema_filter_tracks_sustained_change</code></td>
-<td><span class="file-ref">test_lb_convergence.c:828</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1045</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-047</span></td>
 <td>Distribution smoothing clamps per-EVSE current change</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in Smart mode, converged to 100dA each</li><li class="step-when"><span class="step-keyword">When</span> IsetBalanced suddenly jumps to 320dA (large headroom increase)</li><li class="step-then"><span class="step-keyword">Then</span> Each EVSE Balanced[] changes by at most MAX_DELTA_PER_CYCLE (30dA) per cycle</li></ul></td>
 <td><code>test_distribution_smoothing_clamps_increase</code></td>
-<td><span class="file-ref">test_lb_convergence.c:859</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1076</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-048</span></td>
 <td>Distribution smoothing clamps per-EVSE current decrease</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in Smart mode, converged to 200dA each</li><li class="step-when"><span class="step-keyword">When</span> IsetBalanced suddenly drops (mains overloaded)</li><li class="step-then"><span class="step-keyword">Then</span> Each EVSE Balanced[] decreases by at most MAX_DELTA_PER_CYCLE per cycle</li></ul></td>
 <td><code>test_distribution_smoothing_clamps_decrease</code></td>
-<td><span class="file-ref">test_lb_convergence.c:889</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1106</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-049</span></td>
 <td>Distribution smoothing is skipped for mod=1 (new EVSE joining)</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs, EVSE 1 just joined with mod=1</li><li class="step-when"><span class="step-keyword">When</span> Balanced current is calculated with mod=1</li><li class="step-then"><span class="step-keyword">Then</span> Balanced[] values are NOT clamped (full redistribution allowed)</li></ul></td>
 <td><code>test_distribution_smoothing_skipped_on_mod1</code></td>
-<td><span class="file-ref">test_lb_convergence.c:918</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1135</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-050</span></td>
 <td>Distribution smoothing still converges within 20 cycles</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in Smart mode, starting from MinCurrent</li><li class="step-when"><span class="step-keyword">When</span> 20 regulation cycles with distribution smoothing</li><li class="step-then"><span class="step-keyword">Then</span> Both EVSEs converge to fair sharing within 10dA</li></ul></td>
 <td><code>test_distribution_smoothing_still_converges</code></td>
-<td><span class="file-ref">test_lb_convergence.c:952</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1169</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-051</span></td>
 <td>BalancedPrev tracks previous cycle values</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs after a regulation cycle</li><li class="step-when"><span class="step-keyword">When</span> A second regulation cycle runs</li><li class="step-then"><span class="step-keyword">Then</span> BalancedPrev[] matches the Balanced[] values from the previous cycle</li></ul></td>
 <td><code>test_balanced_prev_tracks_previous</code></td>
-<td><span class="file-ref">test_lb_convergence.c:971</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1188</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-052</span></td>
 <td>LB diagnostic snapshot populated after regulation cycle</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs in Smart mode after regulation</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current completes</li><li class="step-then"><span class="step-keyword">Then</span> lb_diag contains correct IsetBalanced, ActiveEVSE, and Balanced[] values</li></ul></td>
 <td><code>test_lb_diag_snapshot_populated</code></td>
-<td><span class="file-ref">test_lb_convergence.c:1003</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1220</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-053</span></td>
 <td>LB diagnostic captures shortage state</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 4 EVSEs in Smart mode under hard shortage</li><li class="step-when"><span class="step-keyword">When</span> Regulation cycle detects insufficient power</li><li class="step-then"><span class="step-keyword">Then</span> lb_diag.Shortage is true and lb_diag.NoCurrent &gt; 0</li></ul></td>
 <td><code>test_lb_diag_captures_shortage</code></td>
-<td><span class="file-ref">test_lb_convergence.c:1021</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1238</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-054</span></td>
 <td>LB diagnostic captures oscillation count</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Standalone EVSE with OscillationCount elevated</li><li class="step-when"><span class="step-keyword">When</span> Regulation cycle completes</li><li class="step-then"><span class="step-keyword">Then</span> lb_diag.OscillationCount matches ctx.OscillationCount</li></ul></td>
 <td><code>test_lb_diag_captures_oscillation</code></td>
-<td><span class="file-ref">test_lb_convergence.c:1039</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1256</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-055</span></td>
 <td>LB diagnostic captures delta clamping state</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs where distribution smoothing will clamp</li><li class="step-when"><span class="step-keyword">When</span> Large current change triggers clamping</li><li class="step-then"><span class="step-keyword">Then</span> lb_diag.DeltaClamped is true</li></ul></td>
 <td><code>test_lb_diag_captures_delta_clamped</code></td>
-<td><span class="file-ref">test_lb_convergence.c:1061</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1278</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-056</span></td>
 <td>Eight EVSEs in Normal mode receive fair distribution</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 8 EVSEs all in STATE_C, MaxCircuit=64A</li><li class="step-when"><span class="step-keyword">When</span> Regulation cycles complete</li><li class="step-then"><span class="step-keyword">Then</span> All 8 EVSEs receive equal current (80dA = 8A each)</li></ul></td>
 <td><code>test_eight_evse_normal_fair</code></td>
-<td><span class="file-ref">test_lb_convergence.c:1092</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1309</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-057</span></td>
 <td>Eight EVSEs in Smart mode converge with sufficient headroom</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 8 EVSEs in Smart mode, 80A mains, 5A baseload</li><li class="step-when"><span class="step-keyword">When</span> 40 regulation cycles are simulated</li><li class="step-then"><span class="step-keyword">Then</span> All 8 EVSEs receive current within 10dA of each other</li></ul></td>
 <td><code>test_eight_evse_smart_converges</code></td>
-<td><span class="file-ref">test_lb_convergence.c:1133</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1350</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-058</span></td>
 <td>Eight EVSEs with varying BalancedMax distribute fairly</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 8 EVSEs, each with different BalancedMax (60-320dA)</li><li class="step-when"><span class="step-keyword">When</span> Regulation cycles complete in Normal mode</li><li class="step-then"><span class="step-keyword">Then</span> Each EVSE is capped at its BalancedMax, total equals IsetBalanced</li></ul></td>
 <td><code>test_eight_evse_varying_max</code></td>
-<td><span class="file-ref">test_lb_convergence.c:1159</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1376</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-059</span></td>
 <td>Eight EVSEs: sequential join cycle</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master starts with 2 EVSEs, then adds one per cycle up to 8</li><li class="step-when"><span class="step-keyword">When</span> Each new EVSE joins with mod=1 followed by 5 regulation cycles</li><li class="step-then"><span class="step-keyword">Then</span> After all 8 are active, distribution is fair within 10dA</li></ul></td>
 <td><code>test_eight_evse_sequential_join</code></td>
-<td><span class="file-ref">test_lb_convergence.c:1204</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1421</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-060</span></td>
 <td>Eight EVSEs: sequential leave cycle</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 8 EVSEs converged in Smart mode</li><li class="step-when"><span class="step-keyword">When</span> EVSEs disconnect one by one (7 down to 2)</li><li class="step-then"><span class="step-keyword">Then</span> Remaining EVSEs get progressively more current</li></ul></td>
 <td><code>test_eight_evse_sequential_leave</code></td>
-<td><span class="file-ref">test_lb_convergence.c:1249</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1466</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-061</span></td>
 <td>Eight EVSEs under tight capacity: priority scheduling</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 8 EVSEs, only enough power for 3 at MinCurrent</li><li class="step-when"><span class="step-keyword">When</span> Regulation cycles run</li><li class="step-then"><span class="step-keyword">Then</span> At most 3 EVSEs are active, others are paused, NoCurrent stays 0</li></ul></td>
 <td><code>test_eight_evse_tight_capacity_priority</code></td>
-<td><span class="file-ref">test_lb_convergence.c:1275</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1492</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-062</span></td>
 <td>EVSE converges with 2-cycle vehicle response delay</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Standalone EVSE in Smart mode with simulated vehicle response lag</li><li class="step-when"><span class="step-keyword">When</span> 80 regulation cycles with vehicle response model</li><li class="step-then"><span class="step-keyword">Then</span> IsetBalanced converges to target within 30dA despite lag</li></ul></td>
 <td><code>test_vehicle_response_delay_converges</code></td>
-<td><span class="file-ref">test_lb_convergence.c:1304</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1521</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-063</span></td>
 <td>Vehicle lag with noise does not cause LESS_6A error</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Standalone EVSE with vehicle response model and 5dA noise</li><li class="step-when"><span class="step-keyword">When</span> 40 cycles run after convergence</li><li class="step-then"><span class="step-keyword">Then</span> No LESS_6A error is triggered and EVSE keeps charging</li></ul></td>
 <td><code>test_vehicle_response_stable_with_noise</code></td>
-<td><span class="file-ref">test_lb_convergence.c:1371</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1588</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-064</span></td>
 <td>Two EVSEs converge with vehicle response model</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Master with 2 EVSEs, both with vehicle response lag</li><li class="step-when"><span class="step-keyword">When</span> 80 regulation cycles with vehicle response simulation</li><li class="step-then"><span class="step-keyword">Then</span> Both EVSEs receive equal current and are above MinCurrent</li></ul></td>
 <td><code>test_two_evse_vehicle_response_converges</code></td>
-<td><span class="file-ref">test_lb_convergence.c:1397</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1614</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-065</span></td>
 <td>Vehicle response model with load step recovers</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Standalone EVSE converged with vehicle model</li><li class="step-when"><span class="step-keyword">When</span> Baseload suddenly increases by 100dA</li><li class="step-then"><span class="step-keyword">Then</span> After 30 cycles with vehicle lag, IsetBalanced settles near new target</li></ul></td>
 <td><code>test_vehicle_response_load_step_recovery</code></td>
-<td><span class="file-ref">test_lb_convergence.c:1420</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1637</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-LB-066</span></td>
 <td>Heavy measurement noise with vehicle lag doesn&#x27;t cause NoCurrent</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Standalone EVSE with vehicle model and 10dA measurement noise</li><li class="step-when"><span class="step-keyword">When</span> 50 regulation cycles run</li><li class="step-then"><span class="step-keyword">Then</span> NoCurrent stays below NoCurrentThreshold (no false LESS_6A errors)</li></ul></td>
 <td><code>test_vehicle_response_noise_no_false_shortage</code></td>
-<td><span class="file-ref">test_lb_convergence.c:1443</span></td>
+<td><span class="file-ref">test_lb_convergence.c:1660</span></td>
 </tr>
 </tbody></table>
 </div>
@@ -4563,7 +4598,7 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">MQTT Command Parsing (35 scenarios)</div>
+<div class="feature-title">MQTT Command Parsing (43 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -4817,10 +4852,66 @@ footer {
 <td><code>test_circuit_meter_negative</code></td>
 <td><span class="file-ref">test_mqtt_parser.c:1229</span></td>
 </tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-040</span></td>
+<td>Set RampRateDivisor to a valid value via MQTT</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/RampRateDivisor with payload &quot;6&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_RAMP_RATE_DIVISOR with value 6</li></ul></td>
+<td><code>test_ramp_rate_divisor_valid</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1291</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-041</span></td>
+<td>Set EmaAlpha to a valid value via MQTT</td>
+<td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EmaAlpha with payload &quot;50&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_EMA_ALPHA with value 50</li></ul></td>
+<td><code>test_ema_alpha_valid</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1327</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-041</span></td>
+<td>EmaAlpha accepts 0 (fully damped) as a valid boundary</td>
+<td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EmaAlpha with payload &quot;0&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_EMA_ALPHA with value 0</li></ul></td>
+<td><code>test_ema_alpha_zero_valid</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1351</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-042</span></td>
+<td>Set SmartDeadBand to a valid value via MQTT</td>
+<td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/SmartDeadBand with payload &quot;5&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_SMART_DEADBAND with value 5</li></ul></td>
+<td><code>test_smart_deadband_valid</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1363</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-043</span></td>
+<td>Set MaxRampRate to a valid value via MQTT</td>
+<td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/MaxRampRate with payload &quot;40&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_MAX_RAMP_RATE with value 40</li></ul></td>
+<td><code>test_max_ramp_rate_valid</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1387</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-043</span></td>
+<td>MaxRampRate accepts 0 (disabled) as a valid boundary</td>
+<td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/MaxRampRate with payload &quot;0&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_MAX_RAMP_RATE with value 0</li></ul></td>
+<td><code>test_max_ramp_rate_zero_valid</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1400</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-044</span></td>
+<td>Set OscillationBoostMax to a valid value via MQTT</td>
+<td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/OscillationBoostMax with payload &quot;3&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_OSCILLATION_BOOST_MAX with value 3</li></ul></td>
+<td><code>test_oscillation_boost_max_valid</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1423</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-045</span></td>
+<td>Set IdiffEmaWeight to a valid value via MQTT</td>
+<td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/IdiffEmaWeight with payload &quot;3&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_IDIFF_EMA_WEIGHT with value 3</li></ul></td>
+<td><code>test_idiff_ema_weight_valid</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1447</span></td>
+</tr>
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">MQTT Input Validation (46 scenarios)</div>
+<div class="feature-title">MQTT Input Validation (54 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -5150,6 +5241,62 @@ footer {
 <td><ul class="scenario-steps"></ul></td>
 <td><code>test_wrong_prefix</code></td>
 <td><span class="file-ref">test_mqtt_parser.c:1280</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-040</span></td>
+<td>Reject RampRateDivisor below minimum (must be &gt;=1)</td>
+<td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/RampRateDivisor with payload &quot;0&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
+<td><code>test_ramp_rate_divisor_below_min</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1305</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-040</span></td>
+<td>Reject RampRateDivisor above maximum (20)</td>
+<td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/RampRateDivisor with payload &quot;21&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
+<td><code>test_ramp_rate_divisor_above_max</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1316</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-041</span></td>
+<td>Reject EmaAlpha above maximum (100)</td>
+<td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EmaAlpha with payload &quot;101&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
+<td><code>test_ema_alpha_above_max</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1340</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-042</span></td>
+<td>Reject SmartDeadBand above maximum (50)</td>
+<td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/SmartDeadBand with payload &quot;51&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
+<td><code>test_smart_deadband_above_max</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1376</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-043</span></td>
+<td>Reject MaxRampRate above maximum (100)</td>
+<td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/MaxRampRate with payload &quot;101&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
+<td><code>test_max_ramp_rate_above_max</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1412</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-044</span></td>
+<td>Reject OscillationBoostMax above maximum (20)</td>
+<td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/OscillationBoostMax with payload &quot;21&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
+<td><code>test_oscillation_boost_max_above_max</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1436</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-045</span></td>
+<td>Reject IdiffEmaWeight below minimum (must be &gt;=1)</td>
+<td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/IdiffEmaWeight with payload &quot;0&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
+<td><code>test_idiff_ema_weight_below_min</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1460</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-045</span></td>
+<td>Reject IdiffEmaWeight above maximum (4)</td>
+<td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/IdiffEmaWeight with payload &quot;5&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
+<td><code>test_idiff_ema_weight_above_max</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1471</span></td>
 </tr>
 </tbody></table>
 </div>

@@ -204,6 +204,12 @@ typedef enum {
 #ifndef MAX_DELTA_PER_CYCLE
 #define MAX_DELTA_PER_CYCLE            30 /* Max 3.0A Balanced[] change per cycle (deciamps) */
 #endif
+#ifndef OSCILLATION_BOOST_MAX_DEFAULT
+#define OSCILLATION_BOOST_MAX_DEFAULT  10 /* Cap on OscillationCount's divisor boost (identical to prior hardcoded limit) */
+#endif
+#ifndef IDIFF_EMA_WEIGHT_DEFAULT
+#define IDIFF_EMA_WEIGHT_DEFAULT        1 /* Weight (out of 4) given to the new sample in the Idifference EMA; 1 = prior hardcoded 25% alpha */
+#endif
 #ifndef RFIDLOCKTIME
 #define RFIDLOCKTIME       60
 #endif
@@ -376,6 +382,8 @@ typedef struct {
     uint8_t  EmaAlpha;              /* EMA weight 0-100: higher = more responsive */
     uint8_t  SmartDeadBand;         /* Dead band for smart mode regulation (deciamps) */
     uint8_t  RampRateDivisor;       /* Symmetric ramp divisor for smart mode (>=1) */
+    uint8_t  OscillationBoostMax;   /* Cap on adaptive divisor boost from OscillationCount */
+    uint8_t  IdiffEmaWeight;        /* Weight (1-4, out of 4) for new sample in Idifference EMA */
 
     // --- Distribution smoothing (Plan 02, Issue #24) ---
     uint16_t BalancedPrev[NR_EVSES]; /* Previous cycle's Balanced[] (for delta clamping) */

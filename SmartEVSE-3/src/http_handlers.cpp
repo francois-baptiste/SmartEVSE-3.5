@@ -69,6 +69,12 @@ extern uint16_t MaxCurrent;
 extern uint16_t MinCurrent;
 extern uint16_t MaxCircuit;
 extern uint16_t MaxCircuitMains;
+extern uint8_t RampRateDivisor;
+extern uint8_t EmaAlpha;
+extern uint8_t SmartDeadBand;
+extern uint8_t MaxRampRate;
+extern uint8_t OscillationBoostMax;
+extern uint8_t IdiffEmaWeight;
 extern struct DelayedTimeStruct DelayedStopTime;
 extern uint8_t DelayedRepeat;
 extern uint8_t RFIDReader;
@@ -458,6 +464,12 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
         doc["settings"]["circuit_meter_type"] = CircuitMeter.Type;
         doc["settings"]["circuit_meter_address"] = CircuitMeter.Address;
         doc["settings"]["max_circuit_mains"] = MaxCircuitMains;
+        doc["settings"]["ramp_rate_divisor"] = RampRateDivisor;
+        doc["settings"]["ema_alpha"] = EmaAlpha;
+        doc["settings"]["smart_deadband"] = SmartDeadBand;
+        doc["settings"]["max_ramp_rate"] = MaxRampRate;
+        doc["settings"]["oscillation_boost_max"] = OscillationBoostMax;
+        doc["settings"]["idiff_ema_weight"] = IdiffEmaWeight;
         doc["settings"]["max_sum_mains_time"] = MaxSumMainsTime;
         doc["settings"]["enable_C2"] = StrEnableC2[EnableC2];
         doc["settings"]["mains_meter"] = EMConfig[MainsMeter.Type].Desc;
@@ -706,6 +718,67 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
             }
         }
         // END PLAN-14
+
+        // Smart-mode regulation tuning (dynamic load shedding / delestage dynamique)
+        if(request->hasParam("ramp_rate_divisor")) {
+            int val = request->getParam("ramp_rate_divisor")->value().toInt();
+            if (val >= 1 && val <= 20) {
+                RampRateDivisor = val;
+                doc["ramp_rate_divisor"] = RampRateDivisor;
+            } else {
+                doc["ramp_rate_divisor"] = "Value not allowed!";
+            }
+        }
+
+        if(request->hasParam("ema_alpha")) {
+            int val = request->getParam("ema_alpha")->value().toInt();
+            if (val >= 0 && val <= 100) {
+                EmaAlpha = val;
+                doc["ema_alpha"] = EmaAlpha;
+            } else {
+                doc["ema_alpha"] = "Value not allowed!";
+            }
+        }
+
+        if(request->hasParam("smart_deadband")) {
+            int val = request->getParam("smart_deadband")->value().toInt();
+            if (val >= 0 && val <= 50) {
+                SmartDeadBand = val;
+                doc["smart_deadband"] = SmartDeadBand;
+            } else {
+                doc["smart_deadband"] = "Value not allowed!";
+            }
+        }
+
+        if(request->hasParam("max_ramp_rate")) {
+            int val = request->getParam("max_ramp_rate")->value().toInt();
+            if (val >= 0 && val <= 100) {
+                MaxRampRate = val;
+                doc["max_ramp_rate"] = MaxRampRate;
+            } else {
+                doc["max_ramp_rate"] = "Value not allowed!";
+            }
+        }
+
+        if(request->hasParam("oscillation_boost_max")) {
+            int val = request->getParam("oscillation_boost_max")->value().toInt();
+            if (val >= 0 && val <= 20) {
+                OscillationBoostMax = val;
+                doc["oscillation_boost_max"] = OscillationBoostMax;
+            } else {
+                doc["oscillation_boost_max"] = "Value not allowed!";
+            }
+        }
+
+        if(request->hasParam("idiff_ema_weight")) {
+            int val = request->getParam("idiff_ema_weight")->value().toInt();
+            if (val >= 1 && val <= 4) {
+                IdiffEmaWeight = val;
+                doc["idiff_ema_weight"] = IdiffEmaWeight;
+            } else {
+                doc["idiff_ema_weight"] = "Value not allowed!";
+            }
+        }
 
         if(request->hasParam("max_sum_mains_timer")) {
             int time = request->getParam("max_sum_mains_timer")->value().toInt();

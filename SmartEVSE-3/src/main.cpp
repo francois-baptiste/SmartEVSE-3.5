@@ -187,6 +187,12 @@ Meter MainsMeter(MAINS_METER, MAINS_METER_ADDRESS, COMM_TIMEOUT);
 Meter EVMeter(EV_METER, EV_METER_ADDRESS, COMM_EVTIMEOUT);
 Meter CircuitMeter(CIRCUIT_METER, CIRCUIT_METER_ADDRESS, COMM_TIMEOUT);
 uint16_t MaxCircuitMains = MAX_CIRCUIT_MAINS;                                  // Max current of the subpanel circuit (A), 0 = disabled
+uint8_t RampRateDivisor = RAMP_RATE_DIVISOR_DEFAULT;                        // Smart mode symmetric ramp divisor (>=1)
+uint8_t EmaAlpha = EMA_ALPHA_DEFAULT;                                       // EMA weight 0-100 for IsetBalanced smoothing; 100 = no smoothing
+uint8_t SmartDeadBand = SMART_DEADBAND_DEFAULT;                             // Dead band for smart mode regulation (deciamps)
+uint8_t MaxRampRate = MAX_RAMP_RATE_DEFAULT;                                // Max deciamps change per cycle for standalone ramp limiter, 0=disabled
+uint8_t OscillationBoostMax = OSCILLATION_BOOST_MAX_DEFAULT;                // Cap on adaptive divisor boost from OscillationCount
+uint8_t IdiffEmaWeight = IDIFF_EMA_WEIGHT_DEFAULT;                          // Weight (1-4) for new sample in Idifference EMA
 uint8_t Nr_Of_Phases_Charging = 3;                                          // Nr of phases we are charging with. Set to 1 or 3, depending on the CONTACT 2 setting, and the MODE we are in.
 Switch_Phase_t Switching_Phases_C2 = NO_SWITCH;                             // Switching between 1P and 3P with the second contactor output, depends on the CONTACT 2 setting, and the MODE.
 

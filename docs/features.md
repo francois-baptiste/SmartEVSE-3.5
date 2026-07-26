@@ -54,6 +54,13 @@ Background — community reports that motivated the work:
   current decay before stopping reduce unnecessary stop/start cycles.
 - **Slow EV compatibility** — settling window and ramp rate limiter for EVs
   like the Renault Zoe that stall on rapid current changes.
+- **Runtime-tunable regulation** — `RampRateDivisor`, `EmaAlpha`, `SmartDeadBand`,
+  `MaxRampRate`, `OscillationBoostMax`, and `IdiffEmaWeight` are all configurable
+  via MQTT/HTTP (all default to the original hardcoded behavior). Standalone
+  installs (`LoadBl=0`) also decay the oscillation-dampening counter twice as
+  fast as multi-node masters, so recovery after load-toggling isn't throttled
+  by a mechanism built for cross-node hunting it doesn't experience. See
+  [Load Balancing Stability](load-balancing-stability.md).
 
 ---
 

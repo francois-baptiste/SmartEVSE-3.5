@@ -1,6 +1,6 @@
 # SmartEVSE-3 Test Specification
 
-**75 features** | **1074 scenarios** | **1074 with requirement IDs**
+**75 features** | **1095 scenarios** | **1095 with requirement IDs**
 
 ---
 
@@ -3360,15 +3360,68 @@
 
 > Test: `test_normal_mode_no_adaptive_gain` in `test_lb_convergence.c:711`
 
+### Standalone EVSE decays OscillationCount twice as fast as a master
+
+**Requirement:** `REQ-LB-180`
+
+- **Given** A standalone EVSE (LoadBl=0) and a master (LoadBl=1, 2 EVSEs), both
+- **When** 3 consecutive stable regulation cycles run on each
+- **Then** The standalone EVSE's OscillationCount reaches 0 (decay=2/cycle)
+
+> Test: `test_standalone_oscillation_decays_faster_than_master` in `test_lb_convergence.c:758`
+
+### Master OscillationCount decay rate is unchanged (non-regression)
+
+**Requirement:** `REQ-LB-181`
+
+- **Given** A master (LoadBl=1, 2 EVSEs) with OscillationCount=5
+- **When** 4 consecutive stable regulation cycles run
+- **Then** OscillationCount decays by exactly 1 per cycle, reaching 1
+
+> Test: `test_master_oscillation_decay_unchanged` in `test_lb_convergence.c:800`
+
+### OscillationBoostMax caps the adaptive divisor boost
+
+**Requirement:** `REQ-LB-182`
+
+- **Given** Standalone EVSE with OscillationBoostMax=2 and repeated sign flips
+- **When** 8 regulation cycles alternate Idifference sign (worst-case hunting)
+- **Then** OscillationCount never exceeds the configured cap of 2 (default is 10)
+
+> Test: `test_oscillation_boost_max_configurable` in `test_lb_convergence.c:825`
+
+### Default IdiffEmaWeight (1) reproduces the prior hardcoded 25% EMA
+
+**Requirement:** `REQ-LB-183`
+
+- **Given** Standalone EVSE with IdiffEmaWeight left at its default (1)
+- **When** A regulation cycle runs with a known Idifference
+- **Then** IdiffFiltered equals the previous hardcoded formula (old*3 + new)/4 exactly
+
+> Test: `test_idiff_ema_weight_default_matches_prior_formula` in `test_lb_convergence.c:852`
+
+### IdiffEmaWeight=4 tracks a step change within a single cycle
+
+**Requirement:** `REQ-LB-184`
+
+- **Given** Standalone EVSE with IdiffEmaWeight=4 (no filtering)
+- **When** A regulation cycle runs with a known Idifference
+- **Then** IdiffFiltered equals the raw Idifference exactly (immediate tracking)
+
+> Test: `test_idiff_ema_weight_four_tracks_immediately` in `test_lb_convergence.c:875`
+
 ### EMA filter smooths Idifference spikes
 
 **Requirement:** `REQ-LB-043`
 
+- **Given** Two identical standalone EVSEs converged at 200dA at the production
 - **Given** Standalone EVSE in Smart mode converged at stable load
+- **When** Both experience 3 on/off load toggles (baseload flips 250<->50,
 - **When** A single large Idifference spike occurs (sudden mains change)
+- **Then** The relaxed configuration has recovered further toward the 200dA
 - **Then** The filtered Idifference used for regulation is less than the raw spike
 
-> Test: `test_ema_filter_smooths_spike` in `test_lb_convergence.c:748`
+> Test: `test_ema_filter_smooths_spike` in `test_lb_convergence.c:897`
 
 ### EMA filter preserves convergence (no regression)
 
@@ -3378,7 +3431,7 @@
 - **When** 30 regulation cycles run
 - **Then** IsetBalanced converges to target within 10 dA (may be slower but still converges)
 
-> Test: `test_ema_filter_still_converges` in `test_lb_convergence.c:779`
+> Test: `test_ema_filter_still_converges` in `test_lb_convergence.c:996`
 
 ### EMA filter reduces peak-to-peak swing under noisy measurements
 
@@ -3388,7 +3441,7 @@
 - **When** 40 cycles with +-30dA measurement noise are simulated
 - **Then** Peak-to-peak IsetBalanced swing is at most 30dA (~50% of raw 60dA noise)
 
-> Test: `test_ema_filter_reduces_noise_swing` in `test_lb_convergence.c:798`
+> Test: `test_ema_filter_reduces_noise_swing` in `test_lb_convergence.c:1015`
 
 ### EMA filter tracks sustained load change within 10 cycles
 
@@ -3398,7 +3451,7 @@
 - **When** Baseload increases permanently by 100dA (10A)
 - **Then** After 10 cycles, IsetBalanced has moved at least 50% toward new target
 
-> Test: `test_ema_filter_tracks_sustained_change` in `test_lb_convergence.c:828`
+> Test: `test_ema_filter_tracks_sustained_change` in `test_lb_convergence.c:1045`
 
 ### Distribution smoothing clamps per-EVSE current change
 
@@ -3408,7 +3461,7 @@
 - **When** IsetBalanced suddenly jumps to 320dA (large headroom increase)
 - **Then** Each EVSE Balanced[] changes by at most MAX_DELTA_PER_CYCLE (30dA) per cycle
 
-> Test: `test_distribution_smoothing_clamps_increase` in `test_lb_convergence.c:859`
+> Test: `test_distribution_smoothing_clamps_increase` in `test_lb_convergence.c:1076`
 
 ### Distribution smoothing clamps per-EVSE current decrease
 
@@ -3418,7 +3471,7 @@
 - **When** IsetBalanced suddenly drops (mains overloaded)
 - **Then** Each EVSE Balanced[] decreases by at most MAX_DELTA_PER_CYCLE per cycle
 
-> Test: `test_distribution_smoothing_clamps_decrease` in `test_lb_convergence.c:889`
+> Test: `test_distribution_smoothing_clamps_decrease` in `test_lb_convergence.c:1106`
 
 ### Distribution smoothing is skipped for mod=1 (new EVSE joining)
 
@@ -3428,7 +3481,7 @@
 - **When** Balanced current is calculated with mod=1
 - **Then** Balanced[] values are NOT clamped (full redistribution allowed)
 
-> Test: `test_distribution_smoothing_skipped_on_mod1` in `test_lb_convergence.c:918`
+> Test: `test_distribution_smoothing_skipped_on_mod1` in `test_lb_convergence.c:1135`
 
 ### Distribution smoothing still converges within 20 cycles
 
@@ -3438,7 +3491,7 @@
 - **When** 20 regulation cycles with distribution smoothing
 - **Then** Both EVSEs converge to fair sharing within 10dA
 
-> Test: `test_distribution_smoothing_still_converges` in `test_lb_convergence.c:952`
+> Test: `test_distribution_smoothing_still_converges` in `test_lb_convergence.c:1169`
 
 ### BalancedPrev tracks previous cycle values
 
@@ -3448,7 +3501,7 @@
 - **When** A second regulation cycle runs
 - **Then** BalancedPrev[] matches the Balanced[] values from the previous cycle
 
-> Test: `test_balanced_prev_tracks_previous` in `test_lb_convergence.c:971`
+> Test: `test_balanced_prev_tracks_previous` in `test_lb_convergence.c:1188`
 
 ### LB diagnostic snapshot populated after regulation cycle
 
@@ -3458,7 +3511,7 @@
 - **When** evse_calc_balanced_current completes
 - **Then** lb_diag contains correct IsetBalanced, ActiveEVSE, and Balanced[] values
 
-> Test: `test_lb_diag_snapshot_populated` in `test_lb_convergence.c:1003`
+> Test: `test_lb_diag_snapshot_populated` in `test_lb_convergence.c:1220`
 
 ### LB diagnostic captures shortage state
 
@@ -3468,7 +3521,7 @@
 - **When** Regulation cycle detects insufficient power
 - **Then** lb_diag.Shortage is true and lb_diag.NoCurrent > 0
 
-> Test: `test_lb_diag_captures_shortage` in `test_lb_convergence.c:1021`
+> Test: `test_lb_diag_captures_shortage` in `test_lb_convergence.c:1238`
 
 ### LB diagnostic captures oscillation count
 
@@ -3478,7 +3531,7 @@
 - **When** Regulation cycle completes
 - **Then** lb_diag.OscillationCount matches ctx.OscillationCount
 
-> Test: `test_lb_diag_captures_oscillation` in `test_lb_convergence.c:1039`
+> Test: `test_lb_diag_captures_oscillation` in `test_lb_convergence.c:1256`
 
 ### LB diagnostic captures delta clamping state
 
@@ -3488,7 +3541,7 @@
 - **When** Large current change triggers clamping
 - **Then** lb_diag.DeltaClamped is true
 
-> Test: `test_lb_diag_captures_delta_clamped` in `test_lb_convergence.c:1061`
+> Test: `test_lb_diag_captures_delta_clamped` in `test_lb_convergence.c:1278`
 
 ### Eight EVSEs in Normal mode receive fair distribution
 
@@ -3498,7 +3551,7 @@
 - **When** Regulation cycles complete
 - **Then** All 8 EVSEs receive equal current (80dA = 8A each)
 
-> Test: `test_eight_evse_normal_fair` in `test_lb_convergence.c:1092`
+> Test: `test_eight_evse_normal_fair` in `test_lb_convergence.c:1309`
 
 ### Eight EVSEs in Smart mode converge with sufficient headroom
 
@@ -3508,7 +3561,7 @@
 - **When** 40 regulation cycles are simulated
 - **Then** All 8 EVSEs receive current within 10dA of each other
 
-> Test: `test_eight_evse_smart_converges` in `test_lb_convergence.c:1133`
+> Test: `test_eight_evse_smart_converges` in `test_lb_convergence.c:1350`
 
 ### Eight EVSEs with varying BalancedMax distribute fairly
 
@@ -3518,7 +3571,7 @@
 - **When** Regulation cycles complete in Normal mode
 - **Then** Each EVSE is capped at its BalancedMax, total equals IsetBalanced
 
-> Test: `test_eight_evse_varying_max` in `test_lb_convergence.c:1159`
+> Test: `test_eight_evse_varying_max` in `test_lb_convergence.c:1376`
 
 ### Eight EVSEs: sequential join cycle
 
@@ -3528,7 +3581,7 @@
 - **When** Each new EVSE joins with mod=1 followed by 5 regulation cycles
 - **Then** After all 8 are active, distribution is fair within 10dA
 
-> Test: `test_eight_evse_sequential_join` in `test_lb_convergence.c:1204`
+> Test: `test_eight_evse_sequential_join` in `test_lb_convergence.c:1421`
 
 ### Eight EVSEs: sequential leave cycle
 
@@ -3538,7 +3591,7 @@
 - **When** EVSEs disconnect one by one (7 down to 2)
 - **Then** Remaining EVSEs get progressively more current
 
-> Test: `test_eight_evse_sequential_leave` in `test_lb_convergence.c:1249`
+> Test: `test_eight_evse_sequential_leave` in `test_lb_convergence.c:1466`
 
 ### Eight EVSEs under tight capacity: priority scheduling
 
@@ -3548,7 +3601,7 @@
 - **When** Regulation cycles run
 - **Then** At most 3 EVSEs are active, others are paused, NoCurrent stays 0
 
-> Test: `test_eight_evse_tight_capacity_priority` in `test_lb_convergence.c:1275`
+> Test: `test_eight_evse_tight_capacity_priority` in `test_lb_convergence.c:1492`
 
 ### EVSE converges with 2-cycle vehicle response delay
 
@@ -3558,7 +3611,7 @@
 - **When** 80 regulation cycles with vehicle response model
 - **Then** IsetBalanced converges to target within 30dA despite lag
 
-> Test: `test_vehicle_response_delay_converges` in `test_lb_convergence.c:1304`
+> Test: `test_vehicle_response_delay_converges` in `test_lb_convergence.c:1521`
 
 ### Vehicle lag with noise does not cause LESS_6A error
 
@@ -3568,7 +3621,7 @@
 - **When** 40 cycles run after convergence
 - **Then** No LESS_6A error is triggered and EVSE keeps charging
 
-> Test: `test_vehicle_response_stable_with_noise` in `test_lb_convergence.c:1371`
+> Test: `test_vehicle_response_stable_with_noise` in `test_lb_convergence.c:1588`
 
 ### Two EVSEs converge with vehicle response model
 
@@ -3578,7 +3631,7 @@
 - **When** 80 regulation cycles with vehicle response simulation
 - **Then** Both EVSEs receive equal current and are above MinCurrent
 
-> Test: `test_two_evse_vehicle_response_converges` in `test_lb_convergence.c:1397`
+> Test: `test_two_evse_vehicle_response_converges` in `test_lb_convergence.c:1614`
 
 ### Vehicle response model with load step recovers
 
@@ -3588,7 +3641,7 @@
 - **When** Baseload suddenly increases by 100dA
 - **Then** After 30 cycles with vehicle lag, IsetBalanced settles near new target
 
-> Test: `test_vehicle_response_load_step_recovery` in `test_lb_convergence.c:1420`
+> Test: `test_vehicle_response_load_step_recovery` in `test_lb_convergence.c:1637`
 
 ### Heavy measurement noise with vehicle lag doesn't cause NoCurrent
 
@@ -3598,7 +3651,7 @@
 - **When** 50 regulation cycles run
 - **Then** NoCurrent stays below NoCurrentThreshold (no false LESS_6A errors)
 
-> Test: `test_vehicle_response_noise_no_false_shortage` in `test_lb_convergence.c:1443`
+> Test: `test_vehicle_response_noise_no_false_shortage` in `test_lb_convergence.c:1660`
 
 ---
 
@@ -6012,6 +6065,79 @@
 
 > Test: `test_circuit_meter_negative` in `test_mqtt_parser.c:1229`
 
+### Set RampRateDivisor to a valid value via MQTT
+
+**Requirement:** `REQ-MQTT-040`
+
+- **Given** A valid MQTT prefix
+- **When** Topic is prefix/Set/RampRateDivisor with payload "6"
+- **Then** Command type is MQTT_CMD_RAMP_RATE_DIVISOR with value 6
+
+> Test: `test_ramp_rate_divisor_valid` in `test_mqtt_parser.c:1291`
+
+### Set EmaAlpha to a valid value via MQTT
+
+**Requirement:** `REQ-MQTT-041`
+
+- **When** Topic is prefix/Set/EmaAlpha with payload "50"
+- **Then** Command type is MQTT_CMD_EMA_ALPHA with value 50
+
+> Test: `test_ema_alpha_valid` in `test_mqtt_parser.c:1327`
+
+### EmaAlpha accepts 0 (fully damped) as a valid boundary
+
+**Requirement:** `REQ-MQTT-041`
+
+- **When** Topic is prefix/Set/EmaAlpha with payload "0"
+- **Then** Command type is MQTT_CMD_EMA_ALPHA with value 0
+
+> Test: `test_ema_alpha_zero_valid` in `test_mqtt_parser.c:1351`
+
+### Set SmartDeadBand to a valid value via MQTT
+
+**Requirement:** `REQ-MQTT-042`
+
+- **When** Topic is prefix/Set/SmartDeadBand with payload "5"
+- **Then** Command type is MQTT_CMD_SMART_DEADBAND with value 5
+
+> Test: `test_smart_deadband_valid` in `test_mqtt_parser.c:1363`
+
+### Set MaxRampRate to a valid value via MQTT
+
+**Requirement:** `REQ-MQTT-043`
+
+- **When** Topic is prefix/Set/MaxRampRate with payload "40"
+- **Then** Command type is MQTT_CMD_MAX_RAMP_RATE with value 40
+
+> Test: `test_max_ramp_rate_valid` in `test_mqtt_parser.c:1387`
+
+### MaxRampRate accepts 0 (disabled) as a valid boundary
+
+**Requirement:** `REQ-MQTT-043`
+
+- **When** Topic is prefix/Set/MaxRampRate with payload "0"
+- **Then** Command type is MQTT_CMD_MAX_RAMP_RATE with value 0
+
+> Test: `test_max_ramp_rate_zero_valid` in `test_mqtt_parser.c:1400`
+
+### Set OscillationBoostMax to a valid value via MQTT
+
+**Requirement:** `REQ-MQTT-044`
+
+- **When** Topic is prefix/Set/OscillationBoostMax with payload "3"
+- **Then** Command type is MQTT_CMD_OSCILLATION_BOOST_MAX with value 3
+
+> Test: `test_oscillation_boost_max_valid` in `test_mqtt_parser.c:1423`
+
+### Set IdiffEmaWeight to a valid value via MQTT
+
+**Requirement:** `REQ-MQTT-045`
+
+- **When** Topic is prefix/Set/IdiffEmaWeight with payload "3"
+- **Then** Command type is MQTT_CMD_IDIFF_EMA_WEIGHT with value 3
+
+> Test: `test_idiff_ema_weight_valid` in `test_mqtt_parser.c:1447`
+
 ---
 
 ## MQTT Input Validation
@@ -6403,6 +6529,78 @@
 
 
 > Test: `test_wrong_prefix` in `test_mqtt_parser.c:1280`
+
+### Reject RampRateDivisor below minimum (must be >=1)
+
+**Requirement:** `REQ-MQTT-040`
+
+- **When** Topic is prefix/Set/RampRateDivisor with payload "0"
+- **Then** Parsing returns false
+
+> Test: `test_ramp_rate_divisor_below_min` in `test_mqtt_parser.c:1305`
+
+### Reject RampRateDivisor above maximum (20)
+
+**Requirement:** `REQ-MQTT-040`
+
+- **When** Topic is prefix/Set/RampRateDivisor with payload "21"
+- **Then** Parsing returns false
+
+> Test: `test_ramp_rate_divisor_above_max` in `test_mqtt_parser.c:1316`
+
+### Reject EmaAlpha above maximum (100)
+
+**Requirement:** `REQ-MQTT-041`
+
+- **When** Topic is prefix/Set/EmaAlpha with payload "101"
+- **Then** Parsing returns false
+
+> Test: `test_ema_alpha_above_max` in `test_mqtt_parser.c:1340`
+
+### Reject SmartDeadBand above maximum (50)
+
+**Requirement:** `REQ-MQTT-042`
+
+- **When** Topic is prefix/Set/SmartDeadBand with payload "51"
+- **Then** Parsing returns false
+
+> Test: `test_smart_deadband_above_max` in `test_mqtt_parser.c:1376`
+
+### Reject MaxRampRate above maximum (100)
+
+**Requirement:** `REQ-MQTT-043`
+
+- **When** Topic is prefix/Set/MaxRampRate with payload "101"
+- **Then** Parsing returns false
+
+> Test: `test_max_ramp_rate_above_max` in `test_mqtt_parser.c:1412`
+
+### Reject OscillationBoostMax above maximum (20)
+
+**Requirement:** `REQ-MQTT-044`
+
+- **When** Topic is prefix/Set/OscillationBoostMax with payload "21"
+- **Then** Parsing returns false
+
+> Test: `test_oscillation_boost_max_above_max` in `test_mqtt_parser.c:1436`
+
+### Reject IdiffEmaWeight below minimum (must be >=1)
+
+**Requirement:** `REQ-MQTT-045`
+
+- **When** Topic is prefix/Set/IdiffEmaWeight with payload "0"
+- **Then** Parsing returns false
+
+> Test: `test_idiff_ema_weight_below_min` in `test_mqtt_parser.c:1460`
+
+### Reject IdiffEmaWeight above maximum (4)
+
+**Requirement:** `REQ-MQTT-045`
+
+- **When** Topic is prefix/Set/IdiffEmaWeight with payload "5"
+- **Then** Parsing returns false
+
+> Test: `test_idiff_ema_weight_above_max` in `test_mqtt_parser.c:1471`
 
 ---
 

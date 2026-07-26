@@ -1286,6 +1286,199 @@ void test_wrong_prefix(void) {
     TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, "OtherDevice/Set/Mode", "Normal", &cmd));
 }
 
+// ---- Smart-mode regulation tuning (dynamic load shedding / delestage dynamique) ----
+
+/*
+ * @feature MQTT Command Parsing
+ * @req REQ-MQTT-040
+ * @scenario Set RampRateDivisor to a valid value via MQTT
+ * @given A valid MQTT prefix
+ * @when Topic is prefix/Set/RampRateDivisor with payload "6"
+ * @then Command type is MQTT_CMD_RAMP_RATE_DIVISOR with value 6
+ */
+void test_ramp_rate_divisor_valid(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/RampRateDivisor", "6", &cmd));
+    TEST_ASSERT_EQUAL_INT(MQTT_CMD_RAMP_RATE_DIVISOR, cmd.cmd);
+    TEST_ASSERT_EQUAL_INT(6, cmd.ramp_rate_divisor);
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-040
+ * @scenario Reject RampRateDivisor below minimum (must be >=1)
+ * @when Topic is prefix/Set/RampRateDivisor with payload "0"
+ * @then Parsing returns false
+ */
+void test_ramp_rate_divisor_below_min(void) {
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/RampRateDivisor", "0", &cmd));
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-040
+ * @scenario Reject RampRateDivisor above maximum (20)
+ * @when Topic is prefix/Set/RampRateDivisor with payload "21"
+ * @then Parsing returns false
+ */
+void test_ramp_rate_divisor_above_max(void) {
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/RampRateDivisor", "21", &cmd));
+}
+
+/*
+ * @feature MQTT Command Parsing
+ * @req REQ-MQTT-041
+ * @scenario Set EmaAlpha to a valid value via MQTT
+ * @when Topic is prefix/Set/EmaAlpha with payload "50"
+ * @then Command type is MQTT_CMD_EMA_ALPHA with value 50
+ */
+void test_ema_alpha_valid(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/EmaAlpha", "50", &cmd));
+    TEST_ASSERT_EQUAL_INT(MQTT_CMD_EMA_ALPHA, cmd.cmd);
+    TEST_ASSERT_EQUAL_INT(50, cmd.ema_alpha);
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-041
+ * @scenario Reject EmaAlpha above maximum (100)
+ * @when Topic is prefix/Set/EmaAlpha with payload "101"
+ * @then Parsing returns false
+ */
+void test_ema_alpha_above_max(void) {
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/EmaAlpha", "101", &cmd));
+}
+
+/*
+ * @feature MQTT Command Parsing
+ * @req REQ-MQTT-041
+ * @scenario EmaAlpha accepts 0 (fully damped) as a valid boundary
+ * @when Topic is prefix/Set/EmaAlpha with payload "0"
+ * @then Command type is MQTT_CMD_EMA_ALPHA with value 0
+ */
+void test_ema_alpha_zero_valid(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/EmaAlpha", "0", &cmd));
+    TEST_ASSERT_EQUAL_INT(0, cmd.ema_alpha);
+}
+
+/*
+ * @feature MQTT Command Parsing
+ * @req REQ-MQTT-042
+ * @scenario Set SmartDeadBand to a valid value via MQTT
+ * @when Topic is prefix/Set/SmartDeadBand with payload "5"
+ * @then Command type is MQTT_CMD_SMART_DEADBAND with value 5
+ */
+void test_smart_deadband_valid(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/SmartDeadBand", "5", &cmd));
+    TEST_ASSERT_EQUAL_INT(MQTT_CMD_SMART_DEADBAND, cmd.cmd);
+    TEST_ASSERT_EQUAL_INT(5, cmd.smart_deadband);
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-042
+ * @scenario Reject SmartDeadBand above maximum (50)
+ * @when Topic is prefix/Set/SmartDeadBand with payload "51"
+ * @then Parsing returns false
+ */
+void test_smart_deadband_above_max(void) {
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/SmartDeadBand", "51", &cmd));
+}
+
+/*
+ * @feature MQTT Command Parsing
+ * @req REQ-MQTT-043
+ * @scenario Set MaxRampRate to a valid value via MQTT
+ * @when Topic is prefix/Set/MaxRampRate with payload "40"
+ * @then Command type is MQTT_CMD_MAX_RAMP_RATE with value 40
+ */
+void test_max_ramp_rate_valid(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/MaxRampRate", "40", &cmd));
+    TEST_ASSERT_EQUAL_INT(MQTT_CMD_MAX_RAMP_RATE, cmd.cmd);
+    TEST_ASSERT_EQUAL_INT(40, cmd.max_ramp_rate);
+}
+
+/*
+ * @feature MQTT Command Parsing
+ * @req REQ-MQTT-043
+ * @scenario MaxRampRate accepts 0 (disabled) as a valid boundary
+ * @when Topic is prefix/Set/MaxRampRate with payload "0"
+ * @then Command type is MQTT_CMD_MAX_RAMP_RATE with value 0
+ */
+void test_max_ramp_rate_zero_valid(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/MaxRampRate", "0", &cmd));
+    TEST_ASSERT_EQUAL_INT(0, cmd.max_ramp_rate);
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-043
+ * @scenario Reject MaxRampRate above maximum (100)
+ * @when Topic is prefix/Set/MaxRampRate with payload "101"
+ * @then Parsing returns false
+ */
+void test_max_ramp_rate_above_max(void) {
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/MaxRampRate", "101", &cmd));
+}
+
+/*
+ * @feature MQTT Command Parsing
+ * @req REQ-MQTT-044
+ * @scenario Set OscillationBoostMax to a valid value via MQTT
+ * @when Topic is prefix/Set/OscillationBoostMax with payload "3"
+ * @then Command type is MQTT_CMD_OSCILLATION_BOOST_MAX with value 3
+ */
+void test_oscillation_boost_max_valid(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/OscillationBoostMax", "3", &cmd));
+    TEST_ASSERT_EQUAL_INT(MQTT_CMD_OSCILLATION_BOOST_MAX, cmd.cmd);
+    TEST_ASSERT_EQUAL_INT(3, cmd.oscillation_boost_max);
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-044
+ * @scenario Reject OscillationBoostMax above maximum (20)
+ * @when Topic is prefix/Set/OscillationBoostMax with payload "21"
+ * @then Parsing returns false
+ */
+void test_oscillation_boost_max_above_max(void) {
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/OscillationBoostMax", "21", &cmd));
+}
+
+/*
+ * @feature MQTT Command Parsing
+ * @req REQ-MQTT-045
+ * @scenario Set IdiffEmaWeight to a valid value via MQTT
+ * @when Topic is prefix/Set/IdiffEmaWeight with payload "3"
+ * @then Command type is MQTT_CMD_IDIFF_EMA_WEIGHT with value 3
+ */
+void test_idiff_ema_weight_valid(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/IdiffEmaWeight", "3", &cmd));
+    TEST_ASSERT_EQUAL_INT(MQTT_CMD_IDIFF_EMA_WEIGHT, cmd.cmd);
+    TEST_ASSERT_EQUAL_INT(3, cmd.idiff_ema_weight);
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-045
+ * @scenario Reject IdiffEmaWeight below minimum (must be >=1)
+ * @when Topic is prefix/Set/IdiffEmaWeight with payload "0"
+ * @then Parsing returns false
+ */
+void test_idiff_ema_weight_below_min(void) {
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/IdiffEmaWeight", "0", &cmd));
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-045
+ * @scenario Reject IdiffEmaWeight above maximum (4)
+ * @when Topic is prefix/Set/IdiffEmaWeight with payload "5"
+ * @then Parsing returns false
+ */
+void test_idiff_ema_weight_above_max(void) {
+    TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/IdiffEmaWeight", "5", &cmd));
+}
+
 int main(void) {
     TEST_SUITE_BEGIN("MQTT Parser");
 
@@ -1440,6 +1633,24 @@ int main(void) {
     // Unrecognized
     RUN_TEST(test_unrecognized_topic);
     RUN_TEST(test_wrong_prefix);
+
+    /* Smart-mode regulation tuning (dynamic load shedding / delestage dynamique) */
+    RUN_TEST(test_ramp_rate_divisor_valid);
+    RUN_TEST(test_ramp_rate_divisor_below_min);
+    RUN_TEST(test_ramp_rate_divisor_above_max);
+    RUN_TEST(test_ema_alpha_valid);
+    RUN_TEST(test_ema_alpha_above_max);
+    RUN_TEST(test_ema_alpha_zero_valid);
+    RUN_TEST(test_smart_deadband_valid);
+    RUN_TEST(test_smart_deadband_above_max);
+    RUN_TEST(test_max_ramp_rate_valid);
+    RUN_TEST(test_max_ramp_rate_zero_valid);
+    RUN_TEST(test_max_ramp_rate_above_max);
+    RUN_TEST(test_oscillation_boost_max_valid);
+    RUN_TEST(test_oscillation_boost_max_above_max);
+    RUN_TEST(test_idiff_ema_weight_valid);
+    RUN_TEST(test_idiff_ema_weight_below_min);
+    RUN_TEST(test_idiff_ema_weight_above_max);
 
     TEST_SUITE_RESULTS();
 }

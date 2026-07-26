@@ -39,6 +39,12 @@ typedef enum {
     MQTT_CMD_CAPACITY_LIMIT,
     MQTT_CMD_MAX_CIRCUIT_MAINS,
     MQTT_CMD_CIRCUIT_METER,
+    MQTT_CMD_RAMP_RATE_DIVISOR,
+    MQTT_CMD_EMA_ALPHA,
+    MQTT_CMD_SMART_DEADBAND,
+    MQTT_CMD_MAX_RAMP_RATE,
+    MQTT_CMD_OSCILLATION_BOOST_MAX,
+    MQTT_CMD_IDIFF_EMA_WEIGHT,
 } mqtt_cmd_type_t;
 
 // Mode values matching firmware MODE_NORMAL/MODE_SMART
@@ -83,6 +89,12 @@ typedef struct {
         uint16_t capacity_limit;                // MQTT_CMD_CAPACITY_LIMIT (0=disabled, max 25000W)
         uint16_t max_circuit_mains;             // MQTT_CMD_MAX_CIRCUIT_MAINS (0-600)
         struct { int32_t L1, L2, L3; } circuit_meter; // MQTT_CMD_CIRCUIT_METER
+        uint8_t ramp_rate_divisor;               // MQTT_CMD_RAMP_RATE_DIVISOR (1-20)
+        uint8_t ema_alpha;                        // MQTT_CMD_EMA_ALPHA (0-100)
+        uint8_t smart_deadband;                   // MQTT_CMD_SMART_DEADBAND (0-50)
+        uint8_t max_ramp_rate;                     // MQTT_CMD_MAX_RAMP_RATE (0-100, 0=disabled)
+        uint8_t oscillation_boost_max;             // MQTT_CMD_OSCILLATION_BOOST_MAX (0-20)
+        uint8_t idiff_ema_weight;                  // MQTT_CMD_IDIFF_EMA_WEIGHT (1-4)
     };
 } mqtt_command_t;
 

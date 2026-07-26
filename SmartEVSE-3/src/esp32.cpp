@@ -157,6 +157,7 @@ struct SettingsCache {
     uint8_t Grid, SB2_WIFImode, RFIDReader;
     uint8_t MainsMeterType, MainsMeterAddress, EVMeterType, EVMeterAddress, CircuitMeterType, CircuitMeterAddress;
     uint16_t MaxCircuitMains;
+    uint8_t RampRateDivisor, EmaAlpha, SmartDeadBand, MaxRampRate, OscillationBoostMax, IdiffEmaWeight;
     uint8_t EMEndianness, EMIDivisor, EMUDivisor, EMPDivisor, EMEDivisor, EMDataType, EMFunction;
     uint16_t EMIRegister, EMURegister, EMPRegister, EMERegister;
     uint8_t WIFImode;
@@ -242,6 +243,12 @@ bool BuzzerPresent = false;
 extern uint16_t MaxMains;
 extern uint16_t MaxCircuitMains;
 extern uint16_t MaxSumMains;
+extern uint8_t RampRateDivisor;
+extern uint8_t EmaAlpha;
+extern uint8_t SmartDeadBand;
+extern uint8_t MaxRampRate;
+extern uint8_t OscillationBoostMax;
+extern uint8_t IdiffEmaWeight;
                                                                             // see https://github.com/serkri/SmartEVSE-3/issues/215
                                                                             // 0 means disabled, allowed value 10 - 600 A
 extern uint8_t MaxSumMainsTime;
@@ -852,6 +859,37 @@ void mqtt_receive_callback(const String topic, const String payload) {
             break;
         // END PLAN-14
 
+        // Smart-mode regulation tuning (dynamic load shedding / delestage dynamique)
+        case MQTT_CMD_RAMP_RATE_DIVISOR:
+            RampRateDivisor = cmd.ramp_rate_divisor;
+            request_write_settings();
+            break;
+
+        case MQTT_CMD_EMA_ALPHA:
+            EmaAlpha = cmd.ema_alpha;
+            request_write_settings();
+            break;
+
+        case MQTT_CMD_SMART_DEADBAND:
+            SmartDeadBand = cmd.smart_deadband;
+            request_write_settings();
+            break;
+
+        case MQTT_CMD_MAX_RAMP_RATE:
+            MaxRampRate = cmd.max_ramp_rate;
+            request_write_settings();
+            break;
+
+        case MQTT_CMD_OSCILLATION_BOOST_MAX:
+            OscillationBoostMax = cmd.oscillation_boost_max;
+            request_write_settings();
+            break;
+
+        case MQTT_CMD_IDIFF_EMA_WEIGHT:
+            IdiffEmaWeight = cmd.idiff_ema_weight;
+            request_write_settings();
+            break;
+
         // BEGIN PLAN-09: HomeWizard manual IP fallback
         case MQTT_CMD_HOMEWIZARD_IP:
             homeWizardManualIP = cmd.homewizard_ip;
@@ -1066,6 +1104,25 @@ void SetupMQTTClient() {
     optional_payload = MQTTclient.jsna("device_class","current") + MQTTclient.jsna("unit_of_measurement","A") + MQTTclient.jsna("command_topic", String(MQTTprefix + "/Set/MaxCircuitMains")) + MQTTclient.jsna("min", "0") + MQTTclient.jsna("max", "600") + MQTTclient.jsna("mode","box");
     MQTTclient.announce("Max Circuit Mains", "number", optional_payload);
     // END PLAN-14
+
+    // Smart-mode regulation tuning entities (dynamic load shedding / delestage dynamique)
+    optional_payload = MQTTclient.jsna("command_topic", String(MQTTprefix + "/Set/RampRateDivisor")) + MQTTclient.jsna("min", "1") + MQTTclient.jsna("max", "20") + MQTTclient.jsna("mode","box");
+    MQTTclient.announce("Ramp Rate Divisor", "number", optional_payload);
+
+    optional_payload = MQTTclient.jsna("command_topic", String(MQTTprefix + "/Set/EmaAlpha")) + MQTTclient.jsna("min", "0") + MQTTclient.jsna("max", "100") + MQTTclient.jsna("mode","box");
+    MQTTclient.announce("Ema Alpha", "number", optional_payload);
+
+    optional_payload = MQTTclient.jsna("command_topic", String(MQTTprefix + "/Set/SmartDeadBand")) + MQTTclient.jsna("min", "0") + MQTTclient.jsna("max", "50") + MQTTclient.jsna("mode","box");
+    MQTTclient.announce("Smart Dead Band", "number", optional_payload);
+
+    optional_payload = MQTTclient.jsna("command_topic", String(MQTTprefix + "/Set/MaxRampRate")) + MQTTclient.jsna("min", "0") + MQTTclient.jsna("max", "100") + MQTTclient.jsna("mode","box");
+    MQTTclient.announce("Max Ramp Rate", "number", optional_payload);
+
+    optional_payload = MQTTclient.jsna("command_topic", String(MQTTprefix + "/Set/OscillationBoostMax")) + MQTTclient.jsna("min", "0") + MQTTclient.jsna("max", "20") + MQTTclient.jsna("mode","box");
+    MQTTclient.announce("Oscillation Boost Max", "number", optional_payload);
+
+    optional_payload = MQTTclient.jsna("command_topic", String(MQTTprefix + "/Set/IdiffEmaWeight")) + MQTTclient.jsna("min", "1") + MQTTclient.jsna("max", "4") + MQTTclient.jsna("mode","box");
+    MQTTclient.announce("Idiff Ema Weight", "number", optional_payload);
 
     //set the parameters for and MQTTclient.announce sensor entities without device_class or unit_of_measurement:
     optional_payload = "";
@@ -1341,6 +1398,12 @@ void mqttPublishData() {
         }
         mqtt_pub_int(MQTT_SLOT_MAX_CIRCUIT_MAINS, "/MaxCircuitMains", MaxCircuitMains, true, now_s);
         // END PLAN-14
+        mqtt_pub_int(MQTT_SLOT_RAMP_RATE_DIVISOR, "/RampRateDivisor", RampRateDivisor, true, now_s);
+        mqtt_pub_int(MQTT_SLOT_EMA_ALPHA, "/EmaAlpha", EmaAlpha, true, now_s);
+        mqtt_pub_int(MQTT_SLOT_SMART_DEADBAND, "/SmartDeadBand", SmartDeadBand, true, now_s);
+        mqtt_pub_int(MQTT_SLOT_MAX_RAMP_RATE, "/MaxRampRate", MaxRampRate, true, now_s);
+        mqtt_pub_int(MQTT_SLOT_OSCILLATION_BOOST_MAX, "/OscillationBoostMax", OscillationBoostMax, true, now_s);
+        mqtt_pub_int(MQTT_SLOT_IDIFF_EMA_WEIGHT, "/IdiffEmaWeight", IdiffEmaWeight, true, now_s);
         mqtt_pub_int(MQTT_SLOT_ESP_TEMP, "/ESPTemp", TempEVSE, false, now_s);
         mqtt_pub_str(MQTT_SLOT_MODE, "/Mode", AccessStatus == OFF ? "Off" : AccessStatus == PAUSE ? "Pause" : Mode > 1 ? "N/A" : StrMode[Mode], true, now_s);
         mqtt_pub_int(MQTT_SLOT_MAX_CURRENT, "/MaxCurrent", MaxCurrent * 10, true, now_s);
@@ -1636,6 +1699,12 @@ void read_settings() {
         CircuitMeter.Type = preferences.getUChar("CircuitMeter", CIRCUIT_METER);
         CircuitMeter.Address = preferences.getUChar("CirMeterAddr", CIRCUIT_METER_ADDRESS);
         MaxCircuitMains = preferences.getUShort("MaxCirMains", MAX_CIRCUIT_MAINS);
+        RampRateDivisor = preferences.getUChar("RampDivisor", RAMP_RATE_DIVISOR_DEFAULT);
+        EmaAlpha = preferences.getUChar("EmaAlpha", EMA_ALPHA_DEFAULT);
+        SmartDeadBand = preferences.getUChar("SmartDeadBand", SMART_DEADBAND_DEFAULT);
+        MaxRampRate = preferences.getUChar("MaxRampRate", MAX_RAMP_RATE_DEFAULT);
+        OscillationBoostMax = preferences.getUChar("OscBoostMax", OSCILLATION_BOOST_MAX_DEFAULT);
+        IdiffEmaWeight = preferences.getUChar("IdiffEmaWt", IDIFF_EMA_WEIGHT_DEFAULT);
         EMConfig[EM_CUSTOM].Endianness = preferences.getUChar("EMEndianness",EMCUSTOM_ENDIANESS);
         EMConfig[EM_CUSTOM].IRegister = preferences.getUShort("EMIRegister",EMCUSTOM_IREGISTER);
         EMConfig[EM_CUSTOM].IDivisor = preferences.getUChar("EMIDivisor",EMCUSTOM_IDIVISOR);
@@ -1719,6 +1788,12 @@ void read_settings() {
         settingsCache.CircuitMeterType = CircuitMeter.Type;
         settingsCache.CircuitMeterAddress = CircuitMeter.Address;
         settingsCache.MaxCircuitMains = MaxCircuitMains;
+        settingsCache.RampRateDivisor = RampRateDivisor;
+        settingsCache.EmaAlpha = EmaAlpha;
+        settingsCache.SmartDeadBand = SmartDeadBand;
+        settingsCache.MaxRampRate = MaxRampRate;
+        settingsCache.OscillationBoostMax = OscillationBoostMax;
+        settingsCache.IdiffEmaWeight = IdiffEmaWeight;
         settingsCache.EMEndianness = EMConfig[EM_CUSTOM].Endianness;
         settingsCache.EMIRegister = EMConfig[EM_CUSTOM].IRegister;
         settingsCache.EMIDivisor = EMConfig[EM_CUSTOM].IDivisor;
@@ -1804,6 +1879,12 @@ void write_settings(void) {
     PREFS_PUT_UCHAR_IF_CHANGED("CircuitMeter", CircuitMeter.Type, CircuitMeterType);
     PREFS_PUT_UCHAR_IF_CHANGED("CirMeterAddr", CircuitMeter.Address, CircuitMeterAddress);
     PREFS_PUT_USHORT_IF_CHANGED("MaxCirMains", MaxCircuitMains, MaxCircuitMains);
+    PREFS_PUT_UCHAR_IF_CHANGED("RampDivisor", RampRateDivisor, RampRateDivisor);
+    PREFS_PUT_UCHAR_IF_CHANGED("EmaAlpha", EmaAlpha, EmaAlpha);
+    PREFS_PUT_UCHAR_IF_CHANGED("SmartDeadBand", SmartDeadBand, SmartDeadBand);
+    PREFS_PUT_UCHAR_IF_CHANGED("MaxRampRate", MaxRampRate, MaxRampRate);
+    PREFS_PUT_UCHAR_IF_CHANGED("OscBoostMax", OscillationBoostMax, OscillationBoostMax);
+    PREFS_PUT_UCHAR_IF_CHANGED("IdiffEmaWt", IdiffEmaWeight, IdiffEmaWeight);
     PREFS_PUT_UCHAR_IF_CHANGED("EMEndianness", EMConfig[EM_CUSTOM].Endianness, EMEndianness);
     PREFS_PUT_USHORT_IF_CHANGED("EMIRegister", EMConfig[EM_CUSTOM].IRegister, EMIRegister);
     PREFS_PUT_UCHAR_IF_CHANGED("EMIDivisor", EMConfig[EM_CUSTOM].IDivisor, EMIDivisor);

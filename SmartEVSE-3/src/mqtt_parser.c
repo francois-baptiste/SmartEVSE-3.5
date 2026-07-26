@@ -364,6 +364,67 @@ bool mqtt_parse_command(const char *prefix, const char *topic,
                                       &out->circuit_meter.L2, &out->circuit_meter.L3);
     }
 
+    /* Smart-mode regulation tuning (dynamic load shedding / delestage dynamique) */
+    if (match_topic(prefix, topic, "/Set/RampRateDivisor")) {
+        out->cmd = MQTT_CMD_RAMP_RATE_DIVISOR;
+        int val = atoi(payload);
+        if (val >= 1 && val <= 20) {
+            out->ramp_rate_divisor = (uint8_t)val;
+            return true;
+        }
+        return false;
+    }
+
+    if (match_topic(prefix, topic, "/Set/EmaAlpha")) {
+        out->cmd = MQTT_CMD_EMA_ALPHA;
+        int val = atoi(payload);
+        if (val >= 0 && val <= 100) {
+            out->ema_alpha = (uint8_t)val;
+            return true;
+        }
+        return false;
+    }
+
+    if (match_topic(prefix, topic, "/Set/SmartDeadBand")) {
+        out->cmd = MQTT_CMD_SMART_DEADBAND;
+        int val = atoi(payload);
+        if (val >= 0 && val <= 50) {
+            out->smart_deadband = (uint8_t)val;
+            return true;
+        }
+        return false;
+    }
+
+    if (match_topic(prefix, topic, "/Set/MaxRampRate")) {
+        out->cmd = MQTT_CMD_MAX_RAMP_RATE;
+        int val = atoi(payload);
+        if (val >= 0 && val <= 100) {
+            out->max_ramp_rate = (uint8_t)val;
+            return true;
+        }
+        return false;
+    }
+
+    if (match_topic(prefix, topic, "/Set/OscillationBoostMax")) {
+        out->cmd = MQTT_CMD_OSCILLATION_BOOST_MAX;
+        int val = atoi(payload);
+        if (val >= 0 && val <= 20) {
+            out->oscillation_boost_max = (uint8_t)val;
+            return true;
+        }
+        return false;
+    }
+
+    if (match_topic(prefix, topic, "/Set/IdiffEmaWeight")) {
+        out->cmd = MQTT_CMD_IDIFF_EMA_WEIGHT;
+        int val = atoi(payload);
+        if (val >= 1 && val <= 4) {
+            out->idiff_ema_weight = (uint8_t)val;
+            return true;
+        }
+        return false;
+    }
+
     if (match_topic(prefix, topic, "/Set/DiagProfile")) {
         out->cmd = MQTT_CMD_DIAG_PROFILE;
         if (strcmp(payload, "off") == 0 || strcmp(payload, "0") == 0) {

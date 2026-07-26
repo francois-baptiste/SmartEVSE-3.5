@@ -180,6 +180,8 @@ void evse_init(evse_ctx_t *ctx, evse_hal_t *hal) {
     ctx->EmaAlpha = EMA_ALPHA_DEFAULT;
     ctx->SmartDeadBand = SMART_DEADBAND_DEFAULT;
     ctx->RampRateDivisor = RAMP_RATE_DIVISOR_DEFAULT;
+    ctx->OscillationBoostMax = OSCILLATION_BOOST_MAX_DEFAULT;
+    ctx->IdiffEmaWeight = IDIFF_EMA_WEIGHT_DEFAULT;
 
     // Safety
     ctx->TempEVSE = 25;
@@ -735,11 +737,19 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
                     bool sign_flip = (ctx->IdiffPrev > 0 && Idifference < 0) ||
                                      (ctx->IdiffPrev < 0 && Idifference > 0);
                     if (sign_flip) {
-                        if (ctx->OscillationCount < 10)
+                        if (ctx->OscillationCount < ctx->OscillationBoostMax)
                             ctx->OscillationCount++;
                     } else {
-                        if (ctx->OscillationCount > 0)
-                            ctx->OscillationCount--;
+                        /* Standalone EVSEs (LoadBl==0) don't share a mains
+                         * connection with other nodes, so the cross-node
+                         * hunting risk this dampener guards against (#316)
+                         * doesn't apply. Decay twice as fast once stable so
+                         * a burst of load-toggling doesn't leave a
+                         * standalone install sluggish for 10-20+ seconds
+                         * afterward. Multi-node (LoadBl>=1) keeps -1/cycle. */
+                        uint8_t decay = (ctx->LoadBl == 0) ? 2 : 1;
+                        ctx->OscillationCount = (ctx->OscillationCount > decay)
+                            ? ctx->OscillationCount - decay : 0;
                     }
                 }
                 ctx->IdiffPrev = Idifference;
@@ -747,10 +757,16 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
                 // Issue #22: Adaptive gain — boost divisor by OscillationCount
                 divisor += ctx->OscillationCount;
 
-                // Issue #23: EMA filter on Idifference (alpha=25%)
-                // Smooth measurement noise before applying gain.
-                // new = old*3/4 + raw/4
-                ctx->IdiffFiltered = (ctx->IdiffFiltered * 3 + Idifference) / 4;
+                // Issue #23: EMA filter on Idifference. Weight (out of 4) given
+                // to the new sample is configurable via IdiffEmaWeight (1-4);
+                // default 1 reproduces the original hardcoded 25% alpha
+                // (new = old*3/4 + raw/4) exactly. 4 = no filtering (immediate).
+                {
+                    uint8_t w = ctx->IdiffEmaWeight;
+                    if (w < 1) w = 1;
+                    if (w > 4) w = 4;
+                    ctx->IdiffFiltered = (ctx->IdiffFiltered * (4 - w) + Idifference * w) / 4;
+                }
                 int32_t filteredIdiff = ctx->IdiffFiltered;
                 int32_t absFiltered = filteredIdiff < 0 ? -filteredIdiff : filteredIdiff;
 
