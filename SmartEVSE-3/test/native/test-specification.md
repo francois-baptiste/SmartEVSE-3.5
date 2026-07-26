@@ -1,6 +1,6 @@
 # SmartEVSE-3 Test Specification
 
-**79 features** | **1218 scenarios** | **1218 with requirement IDs**
+**75 features** | **1074 scenarios** | **1074 with requirement IDs**
 
 ---
 
@@ -46,45 +46,41 @@
 38. [Modbus Frame Decoding](#modbus-frame-decoding)
 39. [Modbus Frame Logging](#modbus-frame-logging)
 40. [Operating Modes](#operating-modes)
-41. [Mode Synchronization](#mode-synchronization)
-42. [Modem / ISO15118 Negotiation](#modem--iso15118-negotiation)
-43. [MQTT Command Parsing](#mqtt-command-parsing)
-44. [MQTT Input Validation](#mqtt-input-validation)
-45. [MQTT Meter Parsing](#mqtt-meter-parsing)
-46. [MQTT Color Parsing](#mqtt-color-parsing)
-47. [Solar Debug Telemetry](#solar-debug-telemetry)
-48. [Capacity Tariff MQTT](#capacity-tariff-mqtt)
-49. [MQTT Change-Only Publishing](#mqtt-change-only-publishing)
-50. [MQTT SoC Parsing](#mqtt-soc-parsing)
-51. [MQTT SoC Input Validation](#mqtt-soc-input-validation)
-52. [Multi-Node Load Balancing](#multi-node-load-balancing)
-53. [Multi-Node Solar Charging](#multi-node-solar-charging)
-54. [OCPP Current Limiting](#ocpp-current-limiting)
-55. [OCPP Authorization](#ocpp-authorization)
-56. [OCPP Connector State](#ocpp-connector-state)
-57. [OCPP Connector Lock](#ocpp-connector-lock)
-58. [OCPP IEC 61851 Status Mapping](#ocpp-iec-61851-status-mapping)
-59. [OCPP Load Balancing Exclusivity](#ocpp-load-balancing-exclusivity)
-60. [OCPP Silence Detection](#ocpp-silence-detection)
-61. [OCPP RFID Formatting](#ocpp-rfid-formatting)
-62. [OCPP Settings Validation](#ocpp-settings-validation)
-63. [OCPP Telemetry](#ocpp-telemetry)
-64. [P1 Meter Parsing](#p1-meter-parsing)
-65. [Phase Switching](#phase-switching)
-66. [PIN Rate Limit](#pin-rate-limit)
-67. [Power Availability](#power-availability)
-68. [Reconnect backoff](#reconnect-backoff)
-69. [Priority-Based Power Scheduling](#priority-based-power-scheduling)
-70. [Serial Message Parsing](#serial-message-parsing)
-71. [Serial Input Validation](#serial-input-validation)
-72. [Battery Current Calculation](#battery-current-calculation)
-73. [Current Sum Calculation](#current-sum-calculation)
-74. [Charge Session Logging](#charge-session-logging)
-75. [Charge Session JSON Export](#charge-session-json-export)
-76. [Solar Balancing](#solar-balancing)
-77. [IEC 61851-1 State Transitions](#iec-61851-1-state-transitions)
-78. [10ms Tick Processing](#10ms-tick-processing)
-79. [1-Second Tick Processing](#1-second-tick-processing)
+41. [Modem / ISO15118 Negotiation](#modem--iso15118-negotiation)
+42. [MQTT Command Parsing](#mqtt-command-parsing)
+43. [MQTT Input Validation](#mqtt-input-validation)
+44. [MQTT Meter Parsing](#mqtt-meter-parsing)
+45. [MQTT Color Parsing](#mqtt-color-parsing)
+46. [Capacity Tariff MQTT](#capacity-tariff-mqtt)
+47. [MQTT Change-Only Publishing](#mqtt-change-only-publishing)
+48. [MQTT SoC Parsing](#mqtt-soc-parsing)
+49. [MQTT SoC Input Validation](#mqtt-soc-input-validation)
+50. [Multi-Node Load Balancing](#multi-node-load-balancing)
+51. [OCPP Current Limiting](#ocpp-current-limiting)
+52. [OCPP Authorization](#ocpp-authorization)
+53. [OCPP Connector State](#ocpp-connector-state)
+54. [OCPP Connector Lock](#ocpp-connector-lock)
+55. [OCPP IEC 61851 Status Mapping](#ocpp-iec-61851-status-mapping)
+56. [OCPP Load Balancing Exclusivity](#ocpp-load-balancing-exclusivity)
+57. [OCPP Silence Detection](#ocpp-silence-detection)
+58. [OCPP RFID Formatting](#ocpp-rfid-formatting)
+59. [OCPP Settings Validation](#ocpp-settings-validation)
+60. [OCPP Telemetry](#ocpp-telemetry)
+61. [P1 Meter Parsing](#p1-meter-parsing)
+62. [Phase Switching](#phase-switching)
+63. [PIN Rate Limit](#pin-rate-limit)
+64. [Power Availability](#power-availability)
+65. [Reconnect backoff](#reconnect-backoff)
+66. [Priority-Based Power Scheduling](#priority-based-power-scheduling)
+67. [Serial Message Parsing](#serial-message-parsing)
+68. [Serial Input Validation](#serial-input-validation)
+69. [Battery Current Calculation](#battery-current-calculation)
+70. [Current Sum Calculation](#current-sum-calculation)
+71. [Charge Session Logging](#charge-session-logging)
+72. [Charge Session JSON Export](#charge-session-json-export)
+73. [IEC 61851-1 State Transitions](#iec-61851-1-state-transitions)
+74. [10ms Tick Processing](#10ms-tick-processing)
+75. [1-Second Tick Processing](#1-second-tick-processing)
 
 ## API Mains Staleness Detection
 
@@ -1057,9 +1053,9 @@
 - **When** Snapshots are replayed in sequence
 - **Then** Each snapshot's state matches the expected transition
 
-> Test: `test_replay_state_transitions` in `test_diag_replay.c:180`
+> Test: `test_replay_state_transitions` in `test_diag_replay.c:178`
 
-### Advisory replay detects solar current oscillation pattern
+### Advisory replay detects current oscillation pattern
 
 **Requirement:** `REQ-E2E-051`
 
@@ -1067,7 +1063,7 @@
 - **When** Snapshots are analyzed for oscillation
 - **Then** The oscillation is detected (>2 zero-crossings in the window)
 
-> Test: `test_replay_solar_oscillation_detection` in `test_diag_replay.c:207`
+> Test: `test_replay_solar_oscillation_detection` in `test_diag_replay.c:205`
 
 ### Round-trip: serialize ring → load → compare snapshots
 
@@ -1077,7 +1073,7 @@
 - **When** The binary is loaded back via diag_load_buffer
 - **Then** All snapshot fields match the originals exactly
 
-> Test: `test_roundtrip_serialize_load` in `test_diag_replay.c:239`
+> Test: `test_roundtrip_serialize_load` in `test_diag_replay.c:237`
 
 ### Ring buffer initializes with zero entries
 
@@ -1259,13 +1255,13 @@
 
 > Test: `test_tick_off_profile` in `test_diag_telemetry.c:449`
 
-### diag_snapshot_t is exactly 64 bytes
+### diag_snapshot_t is exactly 58 bytes (Solar fields removed)
 
 **Requirement:** `REQ-E2E-040`
 
 - **Given** The diag_snapshot_t struct definition
 - **When** sizeof is checked
-- **Then** The size is exactly 64 bytes
+- **Then** The size is exactly 58 bytes
 
 > Test: `test_snapshot_size` in `test_diag_telemetry.c:469`
 
@@ -1377,17 +1373,17 @@
 - **When** Topic is prefix/Set/DiagProfile with payload "general"
 - **Then** The parser returns true with diag_profile = 1
 
-> Test: `test_diag_profile_general` in `test_mqtt_parser.c:948`
+> Test: `test_diag_profile_general` in `test_mqtt_parser.c:902`
 
-### DiagProfile set to solar via MQTT
+### DiagProfile "solar" name is no longer recognized (Solar mode removed)
 
 **Requirement:** `REQ-E2E-048`
 
 - **Given** A valid MQTT prefix
 - **When** Topic is prefix/Set/DiagProfile with payload "solar"
-- **Then** The parser returns true with diag_profile = 2
+- **Then** The parser returns false
 
-> Test: `test_diag_profile_solar` in `test_mqtt_parser.c:962`
+> Test: `test_diag_profile_solar` in `test_mqtt_parser.c:916`
 
 ### DiagProfile set to off via MQTT
 
@@ -1397,7 +1393,7 @@
 - **When** Topic is prefix/Set/DiagProfile with payload "off"
 - **Then** The parser returns true with diag_profile = 0
 
-> Test: `test_diag_profile_off` in `test_mqtt_parser.c:976`
+> Test: `test_diag_profile_off` in `test_mqtt_parser.c:928`
 
 ### DiagProfile set via numeric value
 
@@ -1407,7 +1403,7 @@
 - **When** Topic is prefix/Set/DiagProfile with payload "5"
 - **Then** The parser returns true with diag_profile = 5 (FAST)
 
-> Test: `test_diag_profile_numeric` in `test_mqtt_parser.c:990`
+> Test: `test_diag_profile_numeric` in `test_mqtt_parser.c:942`
 
 ### DiagProfile rejects invalid payload
 
@@ -1417,7 +1413,7 @@
 - **When** Topic is prefix/Set/DiagProfile with payload "invalid"
 - **Then** The parser returns false
 
-> Test: `test_diag_profile_invalid` in `test_mqtt_parser.c:1004`
+> Test: `test_diag_profile_invalid` in `test_mqtt_parser.c:956`
 
 ---
 
@@ -1543,26 +1539,6 @@
 
 > Test: `test_s5_smart_overload_decreases` in `test_dual_evse.c:321`
 
-### Solar mode: both EVSEs in startup get MinCurrent
-
-**Requirement:** `REQ-DUAL-S6A`
-
-- **Given** MODE_SOLAR, both in STATE_C with IntTimer < SOLARSTARTTIME
-- **When** evse_calc_balanced_current
-- **Then** Both receive exactly MinCurrent * 10 = 60
-
-> Test: `test_s6_solar_both_in_startup` in `test_dual_evse.c:348`
-
-### Solar mode: insufficient solar starts SolarStopTimer
-
-**Requirement:** `REQ-DUAL-S6B`
-
-- **Given** MODE_SOLAR, high grid import, past startup
-- **When** evse_calc_balanced_current
-- **Then** SolarStopTimer is set
-
-> Test: `test_s6_solar_insufficient_starts_timer` in `test_dual_evse.c:376`
-
 ### Zero available power pauses all EVSEs via priority scheduling
 
 **Requirement:** `REQ-DUAL-S7A`
@@ -1571,7 +1547,7 @@
 - **When** evse_calc_balanced_current
 - **Then** Both EVSEs paused (Balanced=0), NoCurrent increments (true hard shortage)
 
-> Test: `test_s7_mincurrent_violation` in `test_dual_evse.c:412`
+> Test: `test_s7_mincurrent_violation` in `test_dual_evse.c:348`
 
 ### Exactly 2 * MinCurrent — no shortage
 
@@ -1581,7 +1557,7 @@
 - **When** evse_calc_balanced_current
 - **Then** Each gets 60, NoCurrent stays 0
 
-> Test: `test_s7_barely_enough` in `test_dual_evse.c:440`
+> Test: `test_s7_barely_enough` in `test_dual_evse.c:376`
 
 ### Slave error → master absorbs capacity
 
@@ -1591,7 +1567,7 @@
 - **When** Recalculation
 - **Then** Master gets 160 (capped by BalancedMax)
 
-> Test: `test_s8_slave_error_master_absorbs` in `test_dual_evse.c:465`
+> Test: `test_s8_slave_error_master_absorbs` in `test_dual_evse.c:401`
 
 ### Slave recovers, current redistributed
 
@@ -1601,7 +1577,7 @@
 - **When** evse_calc_balanced_current(mod=1)
 - **Then** Both get equal share
 
-> Test: `test_s8_slave_recovers` in `test_dual_evse.c:488`
+> Test: `test_s8_slave_recovers` in `test_dual_evse.c:424`
 
 ### MaxSumMains overridden Idifference limits IsetBalanced
 
@@ -1611,7 +1587,7 @@
 - **When** evse_calc_balanced_current(mod=0)
 - **Then** IsetBalanced constrained by MaxSumMains
 
-> Test: `test_s9_maxsummains_limits` in `test_dual_evse.c:520`
+> Test: `test_s9_maxsummains_limits` in `test_dual_evse.c:456`
 
 ### MaxSumMains timer expiry stops charging
 
@@ -1621,7 +1597,7 @@
 - **When** evse_tick_1s (timer expires)
 - **Then** C → C1, LESS_6A set
 
-> Test: `test_s9_maxsummains_timer_expiry` in `test_dual_evse.c:550`
+> Test: `test_s9_maxsummains_timer_expiry` in `test_dual_evse.c:486`
 
 ### Normal mode forces 3P when currently on 1P
 
@@ -1631,7 +1607,7 @@
 - **When** evse_calc_balanced_current
 - **Then** Switching_Phases_C2 = GOING_TO_SWITCH_3P
 
-> Test: `test_s10_normal_forces_3p` in `test_dual_evse.c:582`
+> Test: `test_s10_normal_forces_3p` in `test_dual_evse.c:518`
 
 ### STATE_C entry applies 1P switch
 
@@ -1641,7 +1617,7 @@
 - **When** evse_set_state(STATE_C)
 - **Then** Nr_Of_Phases_Charging=1, contactor2 off
 
-> Test: `test_s10_state_c_applies_1p` in `test_dual_evse.c:601`
+> Test: `test_s10_state_c_applies_1p` in `test_dual_evse.c:537`
 
 ### Smart mode with AUTO forces back to 3P
 
@@ -1651,7 +1627,7 @@
 - **When** evse_check_switching_phases
 - **Then** Switching_Phases_C2 = GOING_TO_SWITCH_3P
 
-> Test: `test_s10_smart_auto_forces_3p` in `test_dual_evse.c:621`
+> Test: `test_s10_smart_auto_forces_3p` in `test_dual_evse.c:557`
 
 ---
 
@@ -2381,47 +2357,19 @@
 
 > Test: `test_max_sum_mains_slave` in `test_http_api.c:233`
 
-### Stop timer above 60 is rejected
-
-**Requirement:** `REQ-API-007`
-
-
-> Test: `test_stop_timer_too_high` in `test_http_api.c:262`
-
-### Negative stop timer is rejected
-
-**Requirement:** `REQ-API-007`
-
-
-> Test: `test_stop_timer_negative` in `test_http_api.c:271`
-
-### Solar start current above 48 is rejected
-
-**Requirement:** `REQ-API-008`
-
-
-> Test: `test_solar_start_too_high` in `test_http_api.c:300`
-
-### Solar max import above 48 is rejected
-
-**Requirement:** `REQ-API-009`
-
-
-> Test: `test_solar_import_too_high` in `test_http_api.c:320`
-
 ### PrioStrategy value 3 is rejected
 
 **Requirement:** `REQ-API-011`
 
 
-> Test: `test_prio_strategy_too_high` in `test_http_api.c:361`
+> Test: `test_prio_strategy_too_high` in `test_http_api.c:274`
 
 ### PrioStrategy negative value is rejected
 
 **Requirement:** `REQ-API-011`
 
 
-> Test: `test_prio_strategy_negative` in `test_http_api.c:370`
+> Test: `test_prio_strategy_negative` in `test_http_api.c:283`
 
 ### PrioStrategy on slave is rejected
 
@@ -2431,49 +2379,49 @@
 - **When** prio_strategy is 0 (valid value)
 - **Then** Validation fails because slaves cannot set scheduling
 
-> Test: `test_prio_strategy_slave` in `test_http_api.c:379`
+> Test: `test_prio_strategy_slave` in `test_http_api.c:292`
 
 ### RotationInterval in gap (1-29) is rejected
 
 **Requirement:** `REQ-API-012`
 
 
-> Test: `test_rotation_interval_gap` in `test_http_api.c:423`
+> Test: `test_rotation_interval_gap` in `test_http_api.c:336`
 
 ### RotationInterval above maximum is rejected
 
 **Requirement:** `REQ-API-012`
 
 
-> Test: `test_rotation_interval_too_high` in `test_http_api.c:432`
+> Test: `test_rotation_interval_too_high` in `test_http_api.c:345`
 
 ### RotationInterval on slave is rejected
 
 **Requirement:** `REQ-API-012`
 
 
-> Test: `test_rotation_interval_slave` in `test_http_api.c:441`
+> Test: `test_rotation_interval_slave` in `test_http_api.c:354`
 
 ### IdleTimeout below minimum (29) is rejected
 
 **Requirement:** `REQ-API-013`
 
 
-> Test: `test_idle_timeout_too_low` in `test_http_api.c:482`
+> Test: `test_idle_timeout_too_low` in `test_http_api.c:395`
 
 ### IdleTimeout above maximum (301) is rejected
 
 **Requirement:** `REQ-API-013`
 
 
-> Test: `test_idle_timeout_too_high` in `test_http_api.c:491`
+> Test: `test_idle_timeout_too_high` in `test_http_api.c:404`
 
 ### IdleTimeout on slave is rejected
 
 **Requirement:** `REQ-API-013`
 
 
-> Test: `test_idle_timeout_slave` in `test_http_api.c:500`
+> Test: `test_idle_timeout_slave` in `test_http_api.c:413`
 
 ---
 
@@ -2542,41 +2490,6 @@
 
 > Test: `test_max_sum_mains_max` in `test_http_api.c:206`
 
-### Stop timer at zero is valid
-
-**Requirement:** `REQ-API-007`
-
-
-> Test: `test_stop_timer_zero` in `test_http_api.c:244`
-
-### Stop timer at max (60) is valid
-
-**Requirement:** `REQ-API-007`
-
-
-> Test: `test_stop_timer_max` in `test_http_api.c:253`
-
-### Solar start current at 0 is valid
-
-**Requirement:** `REQ-API-008`
-
-
-> Test: `test_solar_start_zero` in `test_http_api.c:282`
-
-### Solar start current at 48 is valid
-
-**Requirement:** `REQ-API-008`
-
-
-> Test: `test_solar_start_max` in `test_http_api.c:291`
-
-### Solar max import at 0 is valid
-
-**Requirement:** `REQ-API-009`
-
-
-> Test: `test_solar_import_zero` in `test_http_api.c:311`
-
 ### PrioStrategy MODBUS_ADDR (0) is valid on master
 
 **Requirement:** `REQ-API-011`
@@ -2585,21 +2498,21 @@
 - **When** prio_strategy is 0
 - **Then** Validation passes
 
-> Test: `test_prio_strategy_valid_0` in `test_http_api.c:331`
+> Test: `test_prio_strategy_valid_0` in `test_http_api.c:244`
 
 ### PrioStrategy FIRST_CONNECTED (1) is valid
 
 **Requirement:** `REQ-API-011`
 
 
-> Test: `test_prio_strategy_valid_1` in `test_http_api.c:343`
+> Test: `test_prio_strategy_valid_1` in `test_http_api.c:256`
 
 ### PrioStrategy LAST_CONNECTED (2) is valid
 
 **Requirement:** `REQ-API-011`
 
 
-> Test: `test_prio_strategy_valid_2` in `test_http_api.c:352`
+> Test: `test_prio_strategy_valid_2` in `test_http_api.c:265`
 
 ### RotationInterval 0 (disabled) is valid
 
@@ -2609,21 +2522,21 @@
 - **When** rotation_interval is 0
 - **Then** Validation passes
 
-> Test: `test_rotation_interval_zero` in `test_http_api.c:393`
+> Test: `test_rotation_interval_zero` in `test_http_api.c:306`
 
 ### RotationInterval at minimum (30) is valid
 
 **Requirement:** `REQ-API-012`
 
 
-> Test: `test_rotation_interval_min` in `test_http_api.c:405`
+> Test: `test_rotation_interval_min` in `test_http_api.c:318`
 
 ### RotationInterval at maximum (1440) is valid
 
 **Requirement:** `REQ-API-012`
 
 
-> Test: `test_rotation_interval_max` in `test_http_api.c:414`
+> Test: `test_rotation_interval_max` in `test_http_api.c:327`
 
 ### IdleTimeout at minimum (30) is valid
 
@@ -2633,21 +2546,21 @@
 - **When** idle_timeout is 30
 - **Then** Validation passes
 
-> Test: `test_idle_timeout_min` in `test_http_api.c:452`
+> Test: `test_idle_timeout_min` in `test_http_api.c:365`
 
 ### IdleTimeout at default (60) is valid
 
 **Requirement:** `REQ-API-013`
 
 
-> Test: `test_idle_timeout_default` in `test_http_api.c:464`
+> Test: `test_idle_timeout_default` in `test_http_api.c:377`
 
 ### IdleTimeout at maximum (300) is valid
 
 **Requirement:** `REQ-API-013`
 
 
-> Test: `test_idle_timeout_max` in `test_http_api.c:473`
+> Test: `test_idle_timeout_max` in `test_http_api.c:386`
 
 ---
 
@@ -2661,35 +2574,35 @@
 - **When** Validated against current limits
 - **Then** No errors are returned
 
-> Test: `test_validate_settings_valid` in `test_http_api.c:511`
+> Test: `test_validate_settings_valid` in `test_http_api.c:424`
 
 ### Invalid current_min in combined request
 
 **Requirement:** `REQ-API-010`
 
 
-> Test: `test_validate_settings_invalid_min` in `test_http_api.c:532`
+> Test: `test_validate_settings_invalid_min` in `test_http_api.c:445`
 
 ### Multiple invalid fields
 
 **Requirement:** `REQ-API-010`
 
 
-> Test: `test_validate_settings_multiple_errors` in `test_http_api.c:549`
+> Test: `test_validate_settings_multiple_errors` in `test_http_api.c:462`
 
 ### Empty request passes validation
 
 **Requirement:** `REQ-API-010`
 
 
-> Test: `test_validate_settings_empty` in `test_http_api.c:567`
+> Test: `test_validate_settings_empty` in `test_http_api.c:480`
 
 ### Slave restrictions applied
 
 **Requirement:** `REQ-API-010`
 
 
-> Test: `test_validate_settings_slave_restrictions` in `test_http_api.c:581`
+> Test: `test_validate_settings_slave_restrictions` in `test_http_api.c:494`
 
 ### Valid scheduling settings in combined request
 
@@ -2699,7 +2612,7 @@
 - **When** Validated on master (load_bl=1)
 - **Then** No errors are returned
 
-> Test: `test_validate_settings_scheduling_valid` in `test_http_api.c:597`
+> Test: `test_validate_settings_scheduling_valid` in `test_http_api.c:510`
 
 ### Invalid scheduling settings on slave
 
@@ -2709,7 +2622,7 @@
 - **When** Validated on slave (load_bl=2)
 - **Then** All three scheduling fields produce errors
 
-> Test: `test_validate_settings_scheduling_slave` in `test_http_api.c:620`
+> Test: `test_validate_settings_scheduling_slave` in `test_http_api.c:533`
 
 ---
 
@@ -2723,7 +2636,7 @@
 - **When** evse_state_to_iec61851 is called
 - **Then** It returns 'A'
 
-> Test: `test_iec61851_state_a` in `test_http_api.c:645`
+> Test: `test_iec61851_state_a` in `test_http_api.c:558`
 
 ### STATE_B maps to IEC 61851 state B (vehicle detected)
 
@@ -2733,7 +2646,7 @@
 - **When** evse_state_to_iec61851 is called
 - **Then** It returns 'B'
 
-> Test: `test_iec61851_state_b` in `test_http_api.c:657`
+> Test: `test_iec61851_state_b` in `test_http_api.c:570`
 
 ### STATE_C maps to IEC 61851 state C (charging)
 
@@ -2743,7 +2656,7 @@
 - **When** evse_state_to_iec61851 is called
 - **Then** It returns 'C'
 
-> Test: `test_iec61851_state_c` in `test_http_api.c:669`
+> Test: `test_iec61851_state_c` in `test_http_api.c:582`
 
 ### STATE_D maps to IEC 61851 state D (ventilation required)
 
@@ -2753,7 +2666,7 @@
 - **When** evse_state_to_iec61851 is called
 - **Then** It returns 'D'
 
-> Test: `test_iec61851_state_d` in `test_http_api.c:681`
+> Test: `test_iec61851_state_d` in `test_http_api.c:594`
 
 ### STATE_B1 maps to IEC 61851 state B (connected, EVSE not ready)
 
@@ -2763,7 +2676,7 @@
 - **When** evse_state_to_iec61851 is called
 - **Then** It returns 'B' because the vehicle is connected
 
-> Test: `test_iec61851_state_b1` in `test_http_api.c:693`
+> Test: `test_iec61851_state_b1` in `test_http_api.c:606`
 
 ### STATE_C1 maps to IEC 61851 state C (charge stopping)
 
@@ -2773,7 +2686,7 @@
 - **When** evse_state_to_iec61851 is called
 - **Then** It returns 'C' because charging session is still active
 
-> Test: `test_iec61851_state_c1` in `test_http_api.c:705`
+> Test: `test_iec61851_state_c1` in `test_http_api.c:618`
 
 ### Communication and modem states map to B (connected)
 
@@ -2783,7 +2696,7 @@
 - **When** evse_state_to_iec61851 is called for each
 - **Then** All return 'B' because the vehicle is connected but not yet charging
 
-> Test: `test_iec61851_comm_modem_states` in `test_http_api.c:717`
+> Test: `test_iec61851_comm_modem_states` in `test_http_api.c:630`
 
 ### Modem denied maps to E (error)
 
@@ -2793,7 +2706,7 @@
 - **When** evse_state_to_iec61851 is called
 - **Then** It returns 'E' because access was denied
 
-> Test: `test_iec61851_modem_denied` in `test_http_api.c:736`
+> Test: `test_iec61851_modem_denied` in `test_http_api.c:649`
 
 ### Hard error flags override state to E (error)
 
@@ -2803,17 +2716,17 @@
 - **When** evse_state_to_iec61851 is called
 - **Then** It returns 'E' because a hard error takes priority
 
-> Test: `test_iec61851_hard_error_overrides_state` in `test_http_api.c:748`
+> Test: `test_iec61851_hard_error_overrides_state` in `test_http_api.c:661`
 
-### Soft errors (LESS_6A, NO_SUN) do NOT override state
+### Soft errors (LESS_6A) do NOT override state
 
 **Requirement:** `REQ-API-022`
 
-- **Given** The EVSE is in STATE_C with LESS_6A or STATE_A with NO_SUN
+- **Given** The EVSE is in STATE_C with LESS_6A
 - **When** evse_state_to_iec61851 is called
 - **Then** It returns the state-based letter, not 'E'
 
-> Test: `test_iec61851_soft_errors_no_override` in `test_http_api.c:763`
+> Test: `test_iec61851_soft_errors_no_override` in `test_http_api.c:676`
 
 ### NOSTATE and unknown values map to F (not available)
 
@@ -2823,7 +2736,7 @@
 - **When** evse_state_to_iec61851 is called
 - **Then** It returns 'F' indicating EVSE not available
 
-> Test: `test_iec61851_nostate_and_unknown` in `test_http_api.c:777`
+> Test: `test_iec61851_nostate_and_unknown` in `test_http_api.c:689`
 
 ### B/C substates are refined with the PWM digit for display
 
@@ -2833,7 +2746,7 @@
 - **When** evse_state_to_iec61851_substate is called
 - **Then** It returns "B1", "B2", "C1", "C2" respectively
 
-> Test: `test_iec61851_substate_b_c` in `test_http_api.c:934`
+> Test: `test_iec61851_substate_b_c` in `test_http_api.c:846`
 
 ### Non-substate states fall back to the plain IEC 61851 letter
 
@@ -2843,7 +2756,7 @@
 - **When** evse_state_to_iec61851_substate is called
 - **Then** It returns the same letter evse_state_to_iec61851 would ("A", "E")
 
-> Test: `test_iec61851_substate_fallback` in `test_http_api.c:950`
+> Test: `test_iec61851_substate_fallback` in `test_http_api.c:862`
 
 ---
 
@@ -2857,7 +2770,7 @@
 - **When** evse_charging_enabled is called
 - **Then** It returns true
 
-> Test: `test_charging_enabled_state_c` in `test_http_api.c:792`
+> Test: `test_charging_enabled_state_c` in `test_http_api.c:704`
 
 ### STATE_C1 means charging is enabled (stopping phase)
 
@@ -2867,7 +2780,7 @@
 - **When** evse_charging_enabled is called
 - **Then** It returns true because energy is still being delivered
 
-> Test: `test_charging_enabled_state_c1` in `test_http_api.c:804`
+> Test: `test_charging_enabled_state_c1` in `test_http_api.c:716`
 
 ### Non-charging states return false
 
@@ -2877,7 +2790,7 @@
 - **When** evse_charging_enabled is called
 - **Then** It returns false
 
-> Test: `test_charging_enabled_non_charging_states` in `test_http_api.c:816`
+> Test: `test_charging_enabled_non_charging_states` in `test_http_api.c:728`
 
 ---
 
@@ -2891,7 +2804,7 @@
 - **When** A phase switch to 1 phase is requested
 - **Then** Validation passes (returns NULL)
 
-> Test: `test_phase_switch_valid_1p` in `test_http_api.c:838`
+> Test: `test_phase_switch_valid_1p` in `test_http_api.c:750`
 
 ### Valid 3-phase switch request on master with C2 contactor
 
@@ -2901,7 +2814,7 @@
 - **When** A phase switch to 3 phases is requested
 - **Then** Validation passes (returns NULL)
 
-> Test: `test_phase_switch_valid_3p` in `test_http_api.c:851`
+> Test: `test_phase_switch_valid_3p` in `test_http_api.c:763`
 
 ### Invalid phase count (2) is rejected
 
@@ -2911,7 +2824,7 @@
 - **When** A phase switch to 2 phases is requested
 - **Then** Validation fails with error message
 
-> Test: `test_phase_switch_invalid_phase_count` in `test_http_api.c:864`
+> Test: `test_phase_switch_invalid_phase_count` in `test_http_api.c:776`
 
 ### Phase switch rejected when C2 contactor not present
 
@@ -2921,7 +2834,7 @@
 - **When** A phase switch to 1 phase is requested
 - **Then** Validation fails because hardware cannot switch phases
 
-> Test: `test_phase_switch_no_c2_hardware` in `test_http_api.c:877`
+> Test: `test_phase_switch_no_c2_hardware` in `test_http_api.c:789`
 
 ### Phase switch rejected on slave node
 
@@ -2931,7 +2844,7 @@
 - **When** A phase switch to 3 phases is requested
 - **Then** Validation fails because slaves cannot initiate phase switching
 
-> Test: `test_phase_switch_slave_rejected` in `test_http_api.c:890`
+> Test: `test_phase_switch_slave_rejected` in `test_http_api.c:802`
 
 ### Phase switch with zero phases is rejected
 
@@ -2941,17 +2854,17 @@
 - **When** A phase switch to 0 phases is requested
 - **Then** Validation fails
 
-> Test: `test_phase_switch_zero_phases` in `test_http_api.c:903`
+> Test: `test_phase_switch_zero_phases` in `test_http_api.c:815`
 
 ### Phase switch valid with all non-NOT_PRESENT EnableC2 values
 
 **Requirement:** `REQ-API-024`
 
-- **Given** A standalone EVSE with various EnableC2 settings (ALWAYS_OFF, SOLAR_OFF, ALWAYS_ON, AUTO)
+- **Given** A standalone EVSE with various EnableC2 settings (ALWAYS_OFF, RESERVED_C2_2, ALWAYS_ON, AUTO)
 - **When** A phase switch to 1 phase is requested
 - **Then** Validation passes for all C2 configurations that have hardware present
 
-> Test: `test_phase_switch_all_c2_configs` in `test_http_api.c:916`
+> Test: `test_phase_switch_all_c2_configs` in `test_http_api.c:828`
 
 ---
 
@@ -2965,7 +2878,7 @@
 - **When** /update receives an unsigned firmware.bin
 - **Then** http_api_allow_unsigned_upload returns true unconditionally
 
-> Test: `test_unsigned_upload_always_allowed` in `test_http_api.c:971`
+> Test: `test_unsigned_upload_always_allowed` in `test_http_api.c:883`
 
 ---
 
@@ -2979,7 +2892,7 @@
 - **When** http_api_phase_key is called
 - **Then** buf contains "L1"
 
-> Test: `test_phase_key_l1` in `test_http_api.c:997`
+> Test: `test_phase_key_l1` in `test_http_api.c:909`
 
 ### Phase index 1 with prefix "L" builds "L2"
 
@@ -2989,7 +2902,7 @@
 - **When** http_api_phase_key is called
 - **Then** buf contains "L2" (not "" as the old "L" + x pointer arithmetic produced)
 
-> Test: `test_phase_key_l2` in `test_http_api.c:1011`
+> Test: `test_phase_key_l2` in `test_http_api.c:923`
 
 ### Phase index 2 with prefix "L" builds "L3"
 
@@ -2999,7 +2912,7 @@
 - **When** http_api_phase_key is called
 - **Then** buf contains "L3" (not an out-of-bounds read like "LINKY")
 
-> Test: `test_phase_key_l3` in `test_http_api.c:1025`
+> Test: `test_phase_key_l3` in `test_http_api.c:937`
 
 ### A custom prefix is concatenated correctly
 
@@ -3009,7 +2922,7 @@
 - **When** http_api_phase_key is called
 - **Then** buf contains "circuit_L1"
 
-> Test: `test_phase_key_custom_prefix` in `test_http_api.c:1039`
+> Test: `test_phase_key_custom_prefix` in `test_http_api.c:951`
 
 ### A buffer too small to hold the full key is truncated, not overrun
 
@@ -3019,7 +2932,7 @@
 - **When** http_api_phase_key is called
 - **Then** buf is truncated to 3 chars + NUL and stays within bounds
 
-> Test: `test_phase_key_truncates_safely` in `test_http_api.c:1053`
+> Test: `test_phase_key_truncates_safely` in `test_http_api.c:965`
 
 ### A zero-length buffer is a no-op, not a write
 
@@ -3029,7 +2942,7 @@
 - **When** http_api_phase_key is called
 - **Then** No write occurs (guarded before touching buf[0])
 
-> Test: `test_phase_key_zero_buflen_noop` in `test_http_api.c:1067`
+> Test: `test_phase_key_zero_buflen_noop` in `test_http_api.c:979`
 
 ---
 
@@ -3255,7 +3168,7 @@
 - **When** 10 regulation cycles are simulated
 - **Then** IsetBalanced increases each cycle (monotonic convergence upward)
 
-> Test: `test_smart_standalone_monotonic_increase` in `test_lb_convergence.c:166`
+> Test: `test_smart_standalone_monotonic_increase` in `test_lb_convergence.c:153`
 
 ### Smart mode recovers when mains load increases mid-session
 
@@ -3265,7 +3178,7 @@
 - **When** Baseload suddenly increases by 100dA (10A) reducing available capacity
 - **Then** After 20 more cycles, IsetBalanced settles near the new target (100dA)
 
-> Test: `test_smart_standalone_recovers_from_load_increase` in `test_lb_convergence.c:199`
+> Test: `test_smart_standalone_recovers_from_load_increase` in `test_lb_convergence.c:186`
 
 ### Smart mode recovers when mains load decreases mid-session
 
@@ -3275,7 +3188,7 @@
 - **When** Baseload drops by 100dA (10A) increasing available capacity
 - **Then** After 20 more cycles, IsetBalanced settles near the new higher target
 
-> Test: `test_smart_standalone_recovers_from_load_decrease` in `test_lb_convergence.c:221`
+> Test: `test_smart_standalone_recovers_from_load_decrease` in `test_lb_convergence.c:208`
 
 ### Two EVSEs in Normal mode converge to equal distribution
 
@@ -3285,7 +3198,7 @@
 - **When** 5 regulation cycles are simulated
 - **Then** Both EVSEs receive equal current within 1 deciamp
 
-> Test: `test_two_evse_normal_converges_equal` in `test_lb_convergence.c:246`
+> Test: `test_two_evse_normal_converges_equal` in `test_lb_convergence.c:233`
 
 ### Two EVSEs in Smart mode converge to fair sharing
 
@@ -3295,7 +3208,7 @@
 - **When** 20 regulation cycles are simulated with meter feedback
 - **Then** Both EVSEs receive current within 5dA of each other
 
-> Test: `test_two_evse_smart_converges_fair` in `test_lb_convergence.c:294`
+> Test: `test_two_evse_smart_converges_fair` in `test_lb_convergence.c:281`
 
 ### Four EVSEs in Smart mode converge with sufficient headroom
 
@@ -3305,7 +3218,7 @@
 - **When** 30 regulation cycles are simulated with meter feedback
 - **Then** All 4 EVSEs receive current within 10dA of each other
 
-> Test: `test_four_evse_smart_converges` in `test_lb_convergence.c:316`
+> Test: `test_four_evse_smart_converges` in `test_lb_convergence.c:303`
 
 ### Third EVSE joining mid-session causes redistribution
 
@@ -3315,7 +3228,7 @@
 - **When** A third EVSE starts charging (mod=1) and 20 more cycles run
 - **Then** All 3 EVSEs converge to fair sharing within 10dA
 
-> Test: `test_third_evse_joining_reconverges` in `test_lb_convergence.c:343`
+> Test: `test_third_evse_joining_reconverges` in `test_lb_convergence.c:330`
 
 ### EVSE disconnecting causes fair redistribution to remaining
 
@@ -3325,7 +3238,7 @@
 - **When** EVSE 2 disconnects and 20 more cycles run
 - **Then** Remaining 2 EVSEs converge to fair sharing, each getting more than before
 
-> Test: `test_evse_disconnect_reconverges` in `test_lb_convergence.c:382`
+> Test: `test_evse_disconnect_reconverges` in `test_lb_convergence.c:369`
 
 ### MaxMains limits total EVSE allocation in Smart mode
 
@@ -3335,7 +3248,7 @@
 - **When** 20 regulation cycles are simulated
 - **Then** IsetBalanced converges to MinCurrent (60dA) since available (50dA) < MinCurrent
 
-> Test: `test_maxmains_caps_convergence` in `test_lb_convergence.c:414`
+> Test: `test_maxmains_caps_convergence` in `test_lb_convergence.c:401`
 
 ### Tight capacity with 4 EVSEs triggers priority scheduling
 
@@ -3345,7 +3258,7 @@
 - **When** 10 regulation cycles are simulated
 - **Then** NoCurrent stays at 0 (priority scheduling handles shortage gracefully)
 
-> Test: `test_tight_capacity_four_evse_priority` in `test_lb_convergence.c:436`
+> Test: `test_tight_capacity_four_evse_priority` in `test_lb_convergence.c:423`
 
 ### Hard shortage with single EVSE triggers NoCurrent
 
@@ -3355,7 +3268,7 @@
 - **When** Multiple regulation cycles are simulated with baseload exceeding MaxMains
 - **Then** NoCurrent counter increments indicating sustained shortage
 
-> Test: `test_hard_shortage_standalone_triggers_nocurrent` in `test_lb_convergence.c:463`
+> Test: `test_hard_shortage_standalone_triggers_nocurrent` in `test_lb_convergence.c:450`
 
 ### MaxCircuit limits per-EVSE allocation independently of MaxMains
 
@@ -3365,7 +3278,7 @@
 - **When** 20 regulation cycles are simulated
 - **Then** Balanced[0] does not exceed MaxCircuit*10 (100dA)
 
-> Test: `test_maxcircuit_limits_convergence` in `test_lb_convergence.c:481`
+> Test: `test_maxcircuit_limits_convergence` in `test_lb_convergence.c:468`
 
 ### MaxSumMains limit overrides MaxMains when configured
 
@@ -3375,27 +3288,7 @@
 - **When** 20 regulation cycles are simulated with Isum near the limit
 - **Then** IsetBalanced is constrained by MaxSumMains, not just MaxMains
 
-> Test: `test_maxsummains_constrains_convergence` in `test_lb_convergence.c:499`
-
-### Solar mode converges to export surplus
-
-**Requirement:** `REQ-LB-034`
-
-- **Given** Standalone EVSE in Solar mode, large export (Isum negative)
-- **When** 30 regulation cycles are simulated with meter feedback
-- **Then** IsetBalanced increases to absorb available solar surplus
-
-> Test: `test_solar_standalone_converges_to_surplus` in `test_lb_convergence.c:522`
-
-### Solar mode with ImportCurrent allows partial grid import
-
-**Requirement:** `REQ-LB-035`
-
-- **Given** Standalone EVSE in Solar mode with ImportCurrent=6A
-- **When** 30 regulation cycles run with modest solar export
-- **Then** EVSE charges above pure-solar level due to allowed import
-
-> Test: `test_solar_import_current_allows_grid_use` in `test_lb_convergence.c:541`
+> Test: `test_maxsummains_constrains_convergence` in `test_lb_convergence.c:486`
 
 ### Converged Smart mode EVSE remains stable (no oscillation)
 
@@ -3405,7 +3298,7 @@
 - **When** 20 additional regulation cycles run with constant conditions
 - **Then** IsetBalanced varies by no more than 5dA across all cycles
 
-> Test: `test_smart_stability_no_oscillation` in `test_lb_convergence.c:564`
+> Test: `test_smart_stability_no_oscillation` in `test_lb_convergence.c:509`
 
 ### Two-EVSE Smart mode remains stable after convergence
 
@@ -3415,7 +3308,7 @@
 - **When** 20 additional regulation cycles run with constant conditions
 - **Then** Balanced[0] and Balanced[1] each vary by no more than 5dA
 
-> Test: `test_two_evse_stability_no_oscillation` in `test_lb_convergence.c:595`
+> Test: `test_two_evse_stability_no_oscillation` in `test_lb_convergence.c:540`
 
 ### Oscillation detection increments OscillationCount on sign flip
 
@@ -3425,7 +3318,7 @@
 - **When** Regulation cycles produce sign flips in Idifference
 - **Then** OscillationCount increments, indicating detected oscillation
 
-> Test: `test_oscillation_detected_on_sign_flip` in `test_lb_convergence.c:632`
+> Test: `test_oscillation_detected_on_sign_flip` in `test_lb_convergence.c:577`
 
 ### Adaptive gain increases effective divisor during oscillation
 
@@ -3435,7 +3328,7 @@
 - **When** Regulation cycle runs with positive Idifference
 - **Then** IsetBalanced increases by less than Idifference/RampRateDivisor
 
-> Test: `test_adaptive_gain_reduces_step_during_oscillation` in `test_lb_convergence.c:669`
+> Test: `test_adaptive_gain_reduces_step_during_oscillation` in `test_lb_convergence.c:614`
 
 ### OscillationCount decays when no sign flip occurs
 
@@ -3445,7 +3338,7 @@
 - **When** Multiple consecutive regulation cycles have same-sign Idifference
 - **Then** OscillationCount decays back toward 0
 
-> Test: `test_oscillation_count_decays_when_stable` in `test_lb_convergence.c:703`
+> Test: `test_oscillation_count_decays_when_stable` in `test_lb_convergence.c:648`
 
 ### Adaptive gain improves convergence under alternating load
 
@@ -3455,7 +3348,7 @@
 - **When** 40 regulation cycles are simulated with alternating +-20dA baseload noise
 - **Then** IsetBalanced peak-to-peak oscillation is less than 30dA (dampened)
 
-> Test: `test_adaptive_gain_dampens_noisy_load` in `test_lb_convergence.c:732`
+> Test: `test_adaptive_gain_dampens_noisy_load` in `test_lb_convergence.c:677`
 
 ### Normal mode is unaffected by adaptive gain
 
@@ -3463,9 +3356,9 @@
 
 - **Given** Standalone EVSE in Normal mode
 - **When** Regulation cycles run
-- **Then** OscillationCount remains 0 (adaptive gain only applies to Smart/Solar)
+- **Then** OscillationCount remains 0 (adaptive gain only applies to Smart mode)
 
-> Test: `test_normal_mode_no_adaptive_gain` in `test_lb_convergence.c:766`
+> Test: `test_normal_mode_no_adaptive_gain` in `test_lb_convergence.c:711`
 
 ### EMA filter smooths Idifference spikes
 
@@ -3475,7 +3368,7 @@
 - **When** A single large Idifference spike occurs (sudden mains change)
 - **Then** The filtered Idifference used for regulation is less than the raw spike
 
-> Test: `test_ema_filter_smooths_spike` in `test_lb_convergence.c:803`
+> Test: `test_ema_filter_smooths_spike` in `test_lb_convergence.c:748`
 
 ### EMA filter preserves convergence (no regression)
 
@@ -3485,7 +3378,7 @@
 - **When** 30 regulation cycles run
 - **Then** IsetBalanced converges to target within 10 dA (may be slower but still converges)
 
-> Test: `test_ema_filter_still_converges` in `test_lb_convergence.c:834`
+> Test: `test_ema_filter_still_converges` in `test_lb_convergence.c:779`
 
 ### EMA filter reduces peak-to-peak swing under noisy measurements
 
@@ -3495,7 +3388,7 @@
 - **When** 40 cycles with +-30dA measurement noise are simulated
 - **Then** Peak-to-peak IsetBalanced swing is at most 30dA (~50% of raw 60dA noise)
 
-> Test: `test_ema_filter_reduces_noise_swing` in `test_lb_convergence.c:853`
+> Test: `test_ema_filter_reduces_noise_swing` in `test_lb_convergence.c:798`
 
 ### EMA filter tracks sustained load change within 10 cycles
 
@@ -3505,7 +3398,7 @@
 - **When** Baseload increases permanently by 100dA (10A)
 - **Then** After 10 cycles, IsetBalanced has moved at least 50% toward new target
 
-> Test: `test_ema_filter_tracks_sustained_change` in `test_lb_convergence.c:883`
+> Test: `test_ema_filter_tracks_sustained_change` in `test_lb_convergence.c:828`
 
 ### Distribution smoothing clamps per-EVSE current change
 
@@ -3515,7 +3408,7 @@
 - **When** IsetBalanced suddenly jumps to 320dA (large headroom increase)
 - **Then** Each EVSE Balanced[] changes by at most MAX_DELTA_PER_CYCLE (30dA) per cycle
 
-> Test: `test_distribution_smoothing_clamps_increase` in `test_lb_convergence.c:914`
+> Test: `test_distribution_smoothing_clamps_increase` in `test_lb_convergence.c:859`
 
 ### Distribution smoothing clamps per-EVSE current decrease
 
@@ -3525,7 +3418,7 @@
 - **When** IsetBalanced suddenly drops (mains overloaded)
 - **Then** Each EVSE Balanced[] decreases by at most MAX_DELTA_PER_CYCLE per cycle
 
-> Test: `test_distribution_smoothing_clamps_decrease` in `test_lb_convergence.c:944`
+> Test: `test_distribution_smoothing_clamps_decrease` in `test_lb_convergence.c:889`
 
 ### Distribution smoothing is skipped for mod=1 (new EVSE joining)
 
@@ -3535,7 +3428,7 @@
 - **When** Balanced current is calculated with mod=1
 - **Then** Balanced[] values are NOT clamped (full redistribution allowed)
 
-> Test: `test_distribution_smoothing_skipped_on_mod1` in `test_lb_convergence.c:973`
+> Test: `test_distribution_smoothing_skipped_on_mod1` in `test_lb_convergence.c:918`
 
 ### Distribution smoothing still converges within 20 cycles
 
@@ -3545,7 +3438,7 @@
 - **When** 20 regulation cycles with distribution smoothing
 - **Then** Both EVSEs converge to fair sharing within 10dA
 
-> Test: `test_distribution_smoothing_still_converges` in `test_lb_convergence.c:1007`
+> Test: `test_distribution_smoothing_still_converges` in `test_lb_convergence.c:952`
 
 ### BalancedPrev tracks previous cycle values
 
@@ -3555,7 +3448,7 @@
 - **When** A second regulation cycle runs
 - **Then** BalancedPrev[] matches the Balanced[] values from the previous cycle
 
-> Test: `test_balanced_prev_tracks_previous` in `test_lb_convergence.c:1026`
+> Test: `test_balanced_prev_tracks_previous` in `test_lb_convergence.c:971`
 
 ### LB diagnostic snapshot populated after regulation cycle
 
@@ -3565,7 +3458,7 @@
 - **When** evse_calc_balanced_current completes
 - **Then** lb_diag contains correct IsetBalanced, ActiveEVSE, and Balanced[] values
 
-> Test: `test_lb_diag_snapshot_populated` in `test_lb_convergence.c:1058`
+> Test: `test_lb_diag_snapshot_populated` in `test_lb_convergence.c:1003`
 
 ### LB diagnostic captures shortage state
 
@@ -3575,7 +3468,7 @@
 - **When** Regulation cycle detects insufficient power
 - **Then** lb_diag.Shortage is true and lb_diag.NoCurrent > 0
 
-> Test: `test_lb_diag_captures_shortage` in `test_lb_convergence.c:1076`
+> Test: `test_lb_diag_captures_shortage` in `test_lb_convergence.c:1021`
 
 ### LB diagnostic captures oscillation count
 
@@ -3585,7 +3478,7 @@
 - **When** Regulation cycle completes
 - **Then** lb_diag.OscillationCount matches ctx.OscillationCount
 
-> Test: `test_lb_diag_captures_oscillation` in `test_lb_convergence.c:1094`
+> Test: `test_lb_diag_captures_oscillation` in `test_lb_convergence.c:1039`
 
 ### LB diagnostic captures delta clamping state
 
@@ -3595,7 +3488,7 @@
 - **When** Large current change triggers clamping
 - **Then** lb_diag.DeltaClamped is true
 
-> Test: `test_lb_diag_captures_delta_clamped` in `test_lb_convergence.c:1116`
+> Test: `test_lb_diag_captures_delta_clamped` in `test_lb_convergence.c:1061`
 
 ### Eight EVSEs in Normal mode receive fair distribution
 
@@ -3605,7 +3498,7 @@
 - **When** Regulation cycles complete
 - **Then** All 8 EVSEs receive equal current (80dA = 8A each)
 
-> Test: `test_eight_evse_normal_fair` in `test_lb_convergence.c:1147`
+> Test: `test_eight_evse_normal_fair` in `test_lb_convergence.c:1092`
 
 ### Eight EVSEs in Smart mode converge with sufficient headroom
 
@@ -3615,7 +3508,7 @@
 - **When** 40 regulation cycles are simulated
 - **Then** All 8 EVSEs receive current within 10dA of each other
 
-> Test: `test_eight_evse_smart_converges` in `test_lb_convergence.c:1188`
+> Test: `test_eight_evse_smart_converges` in `test_lb_convergence.c:1133`
 
 ### Eight EVSEs with varying BalancedMax distribute fairly
 
@@ -3625,7 +3518,7 @@
 - **When** Regulation cycles complete in Normal mode
 - **Then** Each EVSE is capped at its BalancedMax, total equals IsetBalanced
 
-> Test: `test_eight_evse_varying_max` in `test_lb_convergence.c:1214`
+> Test: `test_eight_evse_varying_max` in `test_lb_convergence.c:1159`
 
 ### Eight EVSEs: sequential join cycle
 
@@ -3635,7 +3528,7 @@
 - **When** Each new EVSE joins with mod=1 followed by 5 regulation cycles
 - **Then** After all 8 are active, distribution is fair within 10dA
 
-> Test: `test_eight_evse_sequential_join` in `test_lb_convergence.c:1259`
+> Test: `test_eight_evse_sequential_join` in `test_lb_convergence.c:1204`
 
 ### Eight EVSEs: sequential leave cycle
 
@@ -3645,7 +3538,7 @@
 - **When** EVSEs disconnect one by one (7 down to 2)
 - **Then** Remaining EVSEs get progressively more current
 
-> Test: `test_eight_evse_sequential_leave` in `test_lb_convergence.c:1304`
+> Test: `test_eight_evse_sequential_leave` in `test_lb_convergence.c:1249`
 
 ### Eight EVSEs under tight capacity: priority scheduling
 
@@ -3655,7 +3548,7 @@
 - **When** Regulation cycles run
 - **Then** At most 3 EVSEs are active, others are paused, NoCurrent stays 0
 
-> Test: `test_eight_evse_tight_capacity_priority` in `test_lb_convergence.c:1330`
+> Test: `test_eight_evse_tight_capacity_priority` in `test_lb_convergence.c:1275`
 
 ### EVSE converges with 2-cycle vehicle response delay
 
@@ -3665,7 +3558,7 @@
 - **When** 80 regulation cycles with vehicle response model
 - **Then** IsetBalanced converges to target within 30dA despite lag
 
-> Test: `test_vehicle_response_delay_converges` in `test_lb_convergence.c:1359`
+> Test: `test_vehicle_response_delay_converges` in `test_lb_convergence.c:1304`
 
 ### Vehicle lag with noise does not cause LESS_6A error
 
@@ -3675,7 +3568,7 @@
 - **When** 40 cycles run after convergence
 - **Then** No LESS_6A error is triggered and EVSE keeps charging
 
-> Test: `test_vehicle_response_stable_with_noise` in `test_lb_convergence.c:1426`
+> Test: `test_vehicle_response_stable_with_noise` in `test_lb_convergence.c:1371`
 
 ### Two EVSEs converge with vehicle response model
 
@@ -3685,7 +3578,7 @@
 - **When** 80 regulation cycles with vehicle response simulation
 - **Then** Both EVSEs receive equal current and are above MinCurrent
 
-> Test: `test_two_evse_vehicle_response_converges` in `test_lb_convergence.c:1452`
+> Test: `test_two_evse_vehicle_response_converges` in `test_lb_convergence.c:1397`
 
 ### Vehicle response model with load step recovers
 
@@ -3695,7 +3588,7 @@
 - **When** Baseload suddenly increases by 100dA
 - **Then** After 30 cycles with vehicle lag, IsetBalanced settles near new target
 
-> Test: `test_vehicle_response_load_step_recovery` in `test_lb_convergence.c:1475`
+> Test: `test_vehicle_response_load_step_recovery` in `test_lb_convergence.c:1420`
 
 ### Heavy measurement noise with vehicle lag doesn't cause NoCurrent
 
@@ -3705,7 +3598,7 @@
 - **When** 50 regulation cycles run
 - **Then** NoCurrent stays below NoCurrentThreshold (no false LESS_6A errors)
 
-> Test: `test_vehicle_response_noise_no_false_shortage` in `test_lb_convergence.c:1498`
+> Test: `test_vehicle_response_noise_no_false_shortage` in `test_lb_convergence.c:1443`
 
 ---
 
@@ -3729,7 +3622,7 @@
 - **When** led_compute_color is called multiple times
 - **Then** LED flashes red
 
-> Test: `test_error_ct_nocomm` in `test_led_color.c:82`
+> Test: `test_error_ct_nocomm` in `test_led_color.c:79`
 
 ### TEMP_HIGH error shows red flashing
 
@@ -3739,7 +3632,7 @@
 - **When** led_compute_color is called
 - **Then** LED flashes red
 
-> Test: `test_error_temp_high` in `test_led_color.c:105`
+> Test: `test_error_temp_high` in `test_led_color.c:102`
 
 ### CH32 RCM mismatch with no test counter shows error
 
@@ -3749,7 +3642,7 @@
 - **When** led_compute_color is called
 - **Then** LED shows red (error condition)
 
-> Test: `test_error_ch32_rcm_mismatch` in `test_led_color.c:126`
+> Test: `test_error_ch32_rcm_mismatch` in `test_led_color.c:123`
 
 ### CH32 RCM test in progress does not show error flash
 
@@ -3759,7 +3652,7 @@
 - **When** led_compute_color is called
 - **Then** LED does NOT show rapid red error flash (enters waiting blink instead)
 
-> Test: `test_no_error_ch32_rcm_test_active` in `test_led_color.c:149`
+> Test: `test_no_error_ch32_rcm_test_active` in `test_led_color.c:146`
 
 ### Access OFF shows off color
 
@@ -3769,7 +3662,7 @@
 - **When** led_compute_color is called
 - **Then** LED shows ColorOff values
 
-> Test: `test_access_off_default` in `test_led_color.c:181`
+> Test: `test_access_off_default` in `test_led_color.c:178`
 
 ### MODEM_DENIED state shows off color
 
@@ -3779,17 +3672,17 @@
 - **When** led_compute_color is called
 - **Then** LED shows ColorOff values (same as access OFF)
 
-> Test: `test_modem_denied_shows_off` in `test_led_color.c:224`
+> Test: `test_modem_denied_shows_off` in `test_led_color.c:221`
 
-### Solar mode with charge delay shows slow blink
+### Smart mode with charge delay shows slow blink
 
 **Requirement:** `REQ-LED-003`
 
-- **Given** Solar mode, ChargeDelay > 0, no errors
+- **Given** Smart mode, ChargeDelay > 0, no errors
 - **When** led_compute_color is called repeatedly
-- **Then** LED blinks with solar color (orange)
+- **Then** LED blinks with smart color
 
-> Test: `test_waiting_solar_blink` in `test_led_color.c:247`
+> Test: `test_waiting_smart_blink` in `test_led_color.c:244`
 
 ### Smart mode waiting shows smart color blink
 
@@ -3799,7 +3692,7 @@
 - **When** led_compute_color is called when LED is on
 - **Then** Color matches ColorSmart
 
-> Test: `test_waiting_smart_color` in `test_led_color.c:271`
+> Test: `test_waiting_smart_color` in `test_led_color.c:268`
 
 ### State A shows dimmed LED
 
@@ -3809,7 +3702,7 @@
 - **When** led_compute_color is called
 - **Then** LED shows dimmed green (STATE_A_LED_BRIGHTNESS)
 
-> Test: `test_state_a_dimmed` in `test_led_color.c:320`
+> Test: `test_state_a_dimmed` in `test_led_color.c:317`
 
 ### State B shows full brightness LED
 
@@ -3819,7 +3712,7 @@
 - **When** led_compute_color is called
 - **Then** LED shows full brightness green
 
-> Test: `test_state_b_full_brightness` in `test_led_color.c:340`
+> Test: `test_state_b_full_brightness` in `test_led_color.c:337`
 
 ### State B1 shows full brightness (same as B)
 
@@ -3829,7 +3722,7 @@
 - **When** led_compute_color is called
 - **Then** LED shows full brightness green
 
-> Test: `test_state_b1_full_brightness` in `test_led_color.c:359`
+> Test: `test_state_b1_full_brightness` in `test_led_color.c:356`
 
 ### State B sets led_count to 128 for smooth C transition
 
@@ -3839,7 +3732,7 @@
 - **When** led_compute_color is called
 - **Then** led_count is set to 128
 
-> Test: `test_state_b_sets_count_128` in `test_led_color.c:378`
+> Test: `test_state_b_sets_count_128` in `test_led_color.c:375`
 
 ### State C shows breathing animation
 
@@ -3849,17 +3742,7 @@
 - **When** led_compute_color is called multiple times
 - **Then** LED brightness varies (breathing effect)
 
-> Test: `test_state_c_breathing` in `test_led_color.c:395`
-
-### State C Solar mode has slower breathing
-
-**Requirement:** `REQ-LED-006`
-
-- **Given** State C, Solar mode
-- **When** led_compute_color is called
-- **Then** led_count increments by 1 per call (vs 2 for other modes)
-
-> Test: `test_state_c_solar_slower` in `test_led_color.c:418`
+> Test: `test_state_c_breathing` in `test_led_color.c:392`
 
 ---
 
@@ -3873,7 +3756,7 @@
 - **When** led_compute_color is called
 - **Then** LED shows ColorCustom values
 
-> Test: `test_access_off_custom_button` in `test_led_color.c:204`
+> Test: `test_access_off_custom_button` in `test_led_color.c:201`
 
 ### Custom button waiting shows custom color
 
@@ -3883,17 +3766,17 @@
 - **When** led_compute_color is called when LED is on
 - **Then** Color matches ColorCustom
 
-> Test: `test_waiting_custom_button` in `test_led_color.c:294`
+> Test: `test_waiting_custom_button` in `test_led_color.c:291`
 
-### Solar mode State A shows solar orange (dimmed)
+### Smart mode State A shows smart color (dimmed)
 
 **Requirement:** `REQ-LED-004`
 
-- **Given** State A, Solar mode
+- **Given** State A, Smart mode
 - **When** led_compute_color is called
-- **Then** LED shows orange tint at STATE_A brightness
+- **Then** LED shows smart color tint at STATE_A brightness
 
-> Test: `test_state_a_solar_color` in `test_led_color.c:445`
+> Test: `test_state_a_smart_color` in `test_led_color.c:419`
 
 ### Custom button overrides mode color in State B
 
@@ -3903,7 +3786,7 @@
 - **When** led_compute_color is called
 - **Then** LED shows custom blue at full brightness
 
-> Test: `test_state_b_custom_override` in `test_led_color.c:466`
+> Test: `test_state_b_custom_override` in `test_led_color.c:440`
 
 ---
 
@@ -3917,7 +3800,7 @@
 - **When** led_public_compute is called
 - **Then** Returns grey (128,128,128) — highest priority in the decision tree
 
-> Test: `test_public_rfid_flash_priority` in `test_led_color.c:498`
+> Test: `test_public_rfid_flash_priority` in `test_led_color.c:472`
 
 ### Authorized-grant green flash
 
@@ -3927,7 +3810,7 @@
 - **When** led_public_compute is called
 - **Then** Returns green (0,255,0)
 
-> Test: `test_public_tx_authorized_green` in `test_led_color.c:518`
+> Test: `test_public_tx_authorized_green` in `test_led_color.c:492`
 
 ### Authorization-rejected red flash
 
@@ -3937,7 +3820,7 @@
 - **When** led_public_compute is called
 - **Then** Returns red (255,0,0)
 
-> Test: `test_public_tx_rejected_red` in `test_led_color.c:536`
+> Test: `test_public_tx_rejected_red` in `test_led_color.c:510`
 
 ### Auth-timeout red flash
 
@@ -3947,7 +3830,7 @@
 - **When** led_public_compute is called
 - **Then** Returns red (255,0,0)
 
-> Test: `test_public_tx_timeout_red` in `test_led_color.c:554`
+> Test: `test_public_tx_timeout_red` in `test_led_color.c:528`
 
 ### Reserved ChargePoint status → orange
 
@@ -3957,7 +3840,7 @@
 - **When** led_public_compute is called
 - **Then** Returns orange (255,128,0)
 
-> Test: `test_public_reserved_orange` in `test_led_color.c:572`
+> Test: `test_public_reserved_orange` in `test_led_color.c:546`
 
 ### Unavailable ChargePoint status → red
 
@@ -3967,7 +3850,7 @@
 - **When** led_public_compute is called
 - **Then** Returns red (255,0,0)
 
-> Test: `test_public_unavailable_red` in `test_led_color.c:590`
+> Test: `test_public_unavailable_red` in `test_led_color.c:564`
 
 ### Faulted ChargePoint status → red
 
@@ -3977,7 +3860,7 @@
 - **When** led_public_compute is called
 - **Then** Returns red (255,0,0)
 
-> Test: `test_public_faulted_red` in `test_led_color.c:608`
+> Test: `test_public_faulted_red` in `test_led_color.c:582`
 
 ### Waiting / ChargeDelay → slow orange blink (bright phase)
 
@@ -3987,7 +3870,7 @@
 - **When** led_public_compute is called
 - **Then** Returns orange at waiting brightness (R=WAITING_LED_BRIGHTNESS, G=R/2, B=0)
 
-> Test: `test_public_waiting_orange_bright` in `test_led_color.c:626`
+> Test: `test_public_waiting_orange_bright` in `test_led_color.c:600`
 
 ### Waiting / ChargeDelay → slow orange blink (dark phase)
 
@@ -3997,7 +3880,7 @@
 - **When** led_public_compute is called
 - **Then** Returns (0,0,0) — dark part of the blink
 
-> Test: `test_public_waiting_orange_dark` in `test_led_color.c:644`
+> Test: `test_public_waiting_orange_dark` in `test_led_color.c:618`
 
 ### STATE_A → green (dimmed) = Available
 
@@ -4007,7 +3890,7 @@
 - **When** led_public_compute is called
 - **Then** Returns (0, STATE_A_LED_BRIGHTNESS, 0)
 
-> Test: `test_public_state_a_green_dim` in `test_led_color.c:662`
+> Test: `test_public_state_a_green_dim` in `test_led_color.c:636`
 
 ### STATE_B → blue static = EV connected
 
@@ -4017,7 +3900,7 @@
 - **When** led_public_compute is called
 - **Then** Returns (0, 0, STATE_B_LED_BRIGHTNESS) and seeds led_count=128
 
-> Test: `test_public_state_b_blue_static` in `test_led_color.c:680`
+> Test: `test_public_state_b_blue_static` in `test_led_color.c:654`
 
 ### STATE_B1 and STATE_MODEM_* also → blue static
 
@@ -4027,7 +3910,7 @@
 - **When** led_public_compute is called
 - **Then** Returns (0, 0, STATE_B_LED_BRIGHTNESS)
 
-> Test: `test_public_state_b1_blue_static` in `test_led_color.c:699`
+> Test: `test_public_state_b1_blue_static` in `test_led_color.c:673`
 
 ### STATE_C → blue fading (animation advances)
 
@@ -4037,7 +3920,7 @@
 - **When** led_public_compute is called twice
 - **Then** Both outputs have R=0, G=0, B>0 and led_count advances
 
-> Test: `test_public_state_c_blue_fading` in `test_led_color.c:717`
+> Test: `test_public_state_c_blue_fading` in `test_led_color.c:691`
 
 ### Default/unknown state with no signals → all off
 
@@ -4047,7 +3930,7 @@
 - **When** led_public_compute is called
 - **Then** Returns (0,0,0) — falls off the decision tree
 
-> Test: `test_public_unknown_state_off` in `test_led_color.c:739`
+> Test: `test_public_unknown_state_off` in `test_led_color.c:713`
 
 ---
 
@@ -4101,7 +3984,7 @@
 - **Given** Two EVSEs are charging with MinCurrent=6A and limited total capacity
 - **When** evse_calc_balanced_current is called
 - **When** evse_calc_balanced_current is called
-- **Then** NoCurrent and SolarStopTimer are reset to 0
+- **Then** NoCurrent is reset to 0
 - **Then** Each charging EVSE with non-zero allocation gets at least MinCurrent*10
 
 > Test: `test_minimum_current_enforced` in `test_load_balancing.c:121`
@@ -4114,7 +3997,7 @@
 - **When** evse_calc_balanced_current is called with mod=1 (new EVSE joining)
 - **Then** IsetBalanced is recalculated from scratch (different from previous value)
 
-> Test: `test_mod1_new_evse_recalculates` in `test_load_balancing.c:167`
+> Test: `test_mod1_new_evse_recalculates` in `test_load_balancing.c:165`
 
 ### OCPP current limit reduces ChargeCurrent below MaxCurrent
 
@@ -4124,7 +4007,7 @@
 - **When** evse_calc_balanced_current is called
 - **Then** ChargeCurrent is capped at 100 (10A in tenths) or below
 
-> Test: `test_ocpp_limit_reduces_charge_current` in `test_load_balancing.c:189`
+> Test: `test_ocpp_limit_reduces_charge_current` in `test_load_balancing.c:187`
 
 ### OCPP current limit below MinCurrent zeros out ChargeCurrent
 
@@ -4134,7 +4017,7 @@
 - **When** evse_calc_balanced_current is called
 - **Then** ChargeCurrent is set to 0 (below minimum, cannot charge)
 
-> Test: `test_ocpp_limit_below_min_zeros_current` in `test_load_balancing.c:215`
+> Test: `test_ocpp_limit_below_min_zeros_current` in `test_load_balancing.c:213`
 
 ### OverrideCurrent takes precedence over calculated ChargeCurrent
 
@@ -4144,7 +4027,7 @@
 - **When** evse_calc_balanced_current is called
 - **Then** ChargeCurrent is set to 80 (override value)
 
-> Test: `test_override_current_takes_precedence` in `test_load_balancing.c:242`
+> Test: `test_override_current_takes_precedence` in `test_load_balancing.c:240`
 
 ### Current shortage increments NoCurrent counter
 
@@ -4154,7 +4037,7 @@
 - **When** evse_calc_balanced_current is called with insufficient capacity
 - **Then** NoCurrent counter is incremented above 0
 
-> Test: `test_shortage_increments_nocurrent` in `test_load_balancing.c:269`
+> Test: `test_shortage_increments_nocurrent` in `test_load_balancing.c:267`
 
 ### No current shortage decays NoCurrent counter
 
@@ -4164,7 +4047,7 @@
 - **When** evse_calc_balanced_current is called with sufficient capacity
 - **Then** NoCurrent counter decays by 1 (gradual recovery)
 
-> Test: `test_no_shortage_clears_nocurrent` in `test_load_balancing.c:293`
+> Test: `test_no_shortage_clears_nocurrent` in `test_load_balancing.c:291`
 
 ### Open grid relay caps IsetBalanced at GridRelayMaxSumMains per phase
 
@@ -4174,7 +4057,7 @@
 - **When** evse_calc_balanced_current is called
 - **Then** IsetBalanced is capped at GridRelayMaxSumMains*10/3
 
-> Test: `test_grid_relay_limits_current` in `test_load_balancing.c:317`
+> Test: `test_grid_relay_limits_current` in `test_load_balancing.c:315`
 
 ### Node EVSE requests COMM_C instead of transitioning directly to STATE_C
 
@@ -4184,7 +4067,7 @@
 - **When** A 6V pilot signal is sustained for 500ms (vehicle requests charge)
 - **Then** The state transitions to STATE_COMM_C (requesting master permission to charge)
 
-> Test: `test_node_requests_comm_c` in `test_load_balancing.c:353`
+> Test: `test_node_requests_comm_c` in `test_load_balancing.c:351`
 
 ### Socket mode (Config=0) caps ChargeCurrent by MaxCapacity
 
@@ -4194,7 +4077,7 @@
 - **When** evse_calc_balanced_current is called
 - **Then** ChargeCurrent is capped at 160 (MaxCapacity * 10)
 
-> Test: `test_config_socket_caps_by_maxcapacity` in `test_load_balancing.c:381`
+> Test: `test_config_socket_caps_by_maxcapacity` in `test_load_balancing.c:379`
 
 ### Fixed Cable mode (Config=1) does NOT cap by MaxCapacity
 
@@ -4204,7 +4087,7 @@
 - **When** evse_calc_balanced_current is called
 - **Then** ChargeCurrent is 250 (MaxCurrent * 10), not capped by MaxCapacity
 
-> Test: `test_config_fixed_cable_no_maxcapacity_cap` in `test_load_balancing.c:408`
+> Test: `test_config_fixed_cable_no_maxcapacity_cap` in `test_load_balancing.c:406`
 
 ### Surplus handout with zero uncapped EVSEs does not crash
 
@@ -4214,7 +4097,7 @@
 - **When** evse_calc_balanced_current triggers priority scheduling with surplus
 - **Then** No division by zero occurs and function completes safely
 
-> Test: `test_handout_surplus_zero_uncapped_no_crash` in `test_load_balancing.c:437`
+> Test: `test_handout_surplus_zero_uncapped_no_crash` in `test_load_balancing.c:435`
 
 ### Balanced current with zero active EVSEs does not divide by zero
 
@@ -4224,7 +4107,7 @@
 - **When** evse_calc_balanced_current is called
 - **Then** No division by zero occurs; Balanced[] values remain at zero
 
-> Test: `test_balanced_current_zero_active_no_crash` in `test_load_balancing.c:479`
+> Test: `test_balanced_current_zero_active_no_crash` in `test_load_balancing.c:475`
 
 ### NoCurrent counter saturates at 255 instead of wrapping to 0
 
@@ -4234,7 +4117,7 @@
 - **When** evse_calc_balanced_current detects shortage twice
 - **Then** NoCurrent reaches 255 and stays there (does not wrap to 0)
 
-> Test: `test_nocurrent_saturates_at_255` in `test_load_balancing.c:516`
+> Test: `test_nocurrent_saturates_at_255` in `test_load_balancing.c:512`
 
 ---
 
@@ -5304,25 +5187,15 @@
 
 > Test: `test_normal_always_allowed` in `test_mode_policy.c:1`
 
-### Solar mode rejected when disabled
-
-**Requirement:** `REQ-MODE-031`
-
-- **Given** ModesDisabled has the Solar bit set
-- **When** a switch to MODE_SOLAR is checked
-- **Then** the switch is rejected while MODE_SMART stays allowed
-
-> Test: `test_solar_disabled_rejected` in `test_mode_policy.c:29`
-
 ### Smart mode rejected when disabled
 
 **Requirement:** `REQ-MODE-032`
 
 - **Given** ModesDisabled has the Smart bit set
 - **When** a switch to MODE_SMART is checked
-- **Then** the switch is rejected while MODE_SOLAR stays allowed
+- **Then** the switch is rejected
 
-> Test: `test_smart_disabled_rejected` in `test_mode_policy.c:42`
+> Test: `test_smart_disabled_rejected` in `test_mode_policy.c:29`
 
 ### All modes allowed with empty mask
 
@@ -5330,59 +5203,39 @@
 
 - **Given** ModesDisabled is 0
 - **When** switches to every mode are checked
-- **Then** Normal, Smart and Solar are all allowed and unknown modes rejected
+- **Then** Normal and Smart are allowed and unknown modes rejected
 
-> Test: `test_empty_mask_allows_all` in `test_mode_policy.c:55`
+> Test: `test_empty_mask_allows_all` in `test_mode_policy.c:41`
 
-### ModesDisabled setting accepts only Smart/Solar bit combinations
+### ModesDisabled setting accepts only the Smart bit
 
 **Requirement:** `REQ-MODE-034`
 
 - **Given** values from HTTP POST /settings modes_disabled
 - **When** the mask is validated
-- **Then** 0, 2, 4, 6 are valid; odd values, >6 and negatives are rejected
+- **Then** 0 and 2 are valid; odd values, >2 and negatives are rejected
 
-> Test: `test_mask_validation` in `test_mode_policy.c:73`
+> Test: `test_mask_validation` in `test_mode_policy.c:58`
 
 ### Active mode falls back to Normal when it becomes disabled
 
 **Requirement:** `REQ-MODE-035`
 
-- **Given** the EVSE is in Solar mode
-- **When** the user disables Solar mode
+- **Given** the EVSE is in Smart mode
+- **When** the user disables Smart mode
 - **Then** the sanitized mode is MODE_NORMAL
 
-> Test: `test_sanitize_falls_back_to_normal` in `test_mode_policy.c:97`
+> Test: `test_sanitize_falls_back_to_normal` in `test_mode_policy.c:79`
 
 ### Active mode preserved when still allowed
 
 **Requirement:** `REQ-MODE-036`
 
 - **Given** the EVSE is in Smart mode
-- **When** the user disables only Solar mode
+- **When** no modes are disabled
 - **Then** the sanitized mode remains MODE_SMART
 
-> Test: `test_sanitize_keeps_allowed_mode` in `test_mode_policy.c:112`
-
-### LCD short-press toggles between Smart and Solar
-
-**Requirement:** `REQ-MODE-037`
-
-- **Given** no modes are disabled
-- **When** the '<' button toggle is evaluated
-- **Then** Smart becomes Solar and Solar becomes Smart; Normal is unchanged
-
-> Test: `test_toggle_smart_solar` in `test_mode_policy.c:130`
-
-### LCD toggle does not enter a disabled mode
-
-**Requirement:** `REQ-MODE-038`
-
-- **Given** Solar mode is disabled and the EVSE is in Smart mode
-- **When** the '<' button toggle is evaluated
-- **Then** the mode stays MODE_SMART (toggle target rejected)
-
-> Test: `test_toggle_respects_disabled` in `test_mode_policy.c:147`
+> Test: `test_sanitize_keeps_allowed_mode` in `test_mode_policy.c:92`
 
 ### LCD shows the active mode name explicitly
 
@@ -5390,9 +5243,9 @@
 
 - **Given** access is ON
 - **When** the status text is built for each mode
-- **Then** it reads NORMAL, SMART or SOLAR
+- **Then** it reads NORMAL or SMART
 
-> Test: `test_status_text_mode_names` in `test_mode_policy.c:164`
+> Test: `test_status_text_mode_names` in `test_mode_policy.c:108`
 
 ### LCD shows PAUSED next to the mode when charging is paused
 
@@ -5402,7 +5255,7 @@
 - **When** the status text is built
 - **Then** the mode name is suffixed with PAUSED
 
-> Test: `test_status_text_paused` in `test_mode_policy.c:182`
+> Test: `test_status_text_paused` in `test_mode_policy.c:124`
 
 ### LCD shows OFF next to the mode when access is switched off
 
@@ -5412,17 +5265,17 @@
 - **When** the status text is built
 - **Then** the mode name is suffixed with OFF
 
-> Test: `test_status_text_off` in `test_mode_policy.c:198`
+> Test: `test_status_text_off` in `test_mode_policy.c:140`
 
 ### Status text never overflows a small buffer
 
 **Requirement:** `REQ-MODE-042`
 
 - **Given** a 7-byte destination buffer
-- **When** a paused Solar status text is built
+- **When** a paused Smart status text is built
 - **Then** the output is truncated and NUL-terminated
 
-> Test: `test_status_text_truncation` in `test_mode_policy.c:212`
+> Test: `test_status_text_truncation` in `test_mode_policy.c:154`
 
 ### Normal mode sets IsetBalanced to MaxCurrent
 
@@ -5484,56 +5337,6 @@
 
 > Test: `test_smart_mode_fast_decrease` in `test_operating_modes.c:123`
 
-### Solar mode requires surplus power to make current available
-
-**Requirement:** `REQ-MODE-007`
-
-- **Given** EVSE is in Solar mode with StartCurrent=6A and Isum=0 (no surplus)
-- **When** evse_is_current_available is called
-- **Then** Returns 0 (unavailable) because there is no solar surplus for charging
-
-> Test: `test_solar_current_available_requires_surplus` in `test_operating_modes.c:146`
-
-### Solar mode allows charging when sufficient surplus is available
-
-**Requirement:** `REQ-MODE-008`
-
-- **Given** EVSE is in Solar mode with StartCurrent=6A and Isum=-80 (8A export surplus)
-- **When** evse_is_current_available is called
-- **Then** Returns 1 (available) because export surplus exceeds StartCurrent threshold
-
-> Test: `test_solar_current_available_with_surplus` in `test_operating_modes.c:165`
-
-### Solar mode increases current in small steps when surplus is available
-
-**Requirement:** `REQ-MODE-009`
-
-- **Given** EVSE is standalone in STATE_C in Solar mode with 2A export surplus and past solar startup phase
-- **When** Balanced current is calculated
-- **Then** IsetBalanced increases from its initial 100 value in fine-grained solar increments
-
-> Test: `test_solar_fine_grained_increase` in `test_operating_modes.c:185`
-
-### Solar mode decreases current rapidly when importing from grid
-
-**Requirement:** `REQ-MODE-010`
-
-- **Given** EVSE is standalone in STATE_C in Solar mode with Isum=50 (5A import) and IsetBalanced=100
-- **When** Balanced current is calculated with grid import detected
-- **Then** IsetBalanced decreases below 100 to reduce grid import quickly
-
-> Test: `test_solar_rapid_decrease_on_import` in `test_operating_modes.c:209`
-
-### Solar mode ImportCurrent offset allows controlled grid import
-
-**Requirement:** `REQ-MODE-011`
-
-- **Given** EVSE is in Solar mode with ImportCurrent=3A allowance and Isum=20 (2A import within allowance)
-- **When** Balanced current is calculated with import within the allowed offset
-- **Then** IsetBalanced increases because IsumImport (20 - 30 = -10) indicates effective surplus
-
-> Test: `test_solar_import_current_offset` in `test_operating_modes.c:233`
-
 ### EnableC2=NOT_PRESENT does not force single phase
 
 **Requirement:** `REQ-MODE-012`
@@ -5542,7 +5345,7 @@
 - **When** evse_force_single_phase is called
 - **Then** Returns 0 because the phase switching hardware is not present
 
-> Test: `test_force_single_phase_not_present` in `test_operating_modes.c:259`
+> Test: `test_force_single_phase_not_present` in `test_operating_modes.c:146`
 
 ### EnableC2=ALWAYS_OFF forces single phase operation
 
@@ -5552,27 +5355,17 @@
 - **When** evse_force_single_phase is called
 - **Then** Returns 1 because the EVSE is configured to always operate in single phase
 
-> Test: `test_force_single_phase_always_off` in `test_operating_modes.c:273`
+> Test: `test_force_single_phase_always_off` in `test_operating_modes.c:160`
 
-### EnableC2=SOLAR_OFF forces single phase when in Solar mode
+### EnableC2=RESERVED_C2_2 (formerly SOLAR_OFF) never forces single phase
 
 **Requirement:** `REQ-MODE-014`
 
-- **Given** EVSE has EnableC2 set to SOLAR_OFF and Mode is MODE_SOLAR
-- **When** evse_force_single_phase is called
-- **Then** Returns 1 because SOLAR_OFF disables contactor 2 in solar mode
+- **Given** EVSE has EnableC2 set to RESERVED_C2_2, Solar mode removed
+- **When** evse_force_single_phase is called in either Normal or Smart mode
+- **Then** Always returns 0 (Solar mode was the only mode this value affected)
 
-> Test: `test_force_single_phase_solar_off_in_solar_mode` in `test_operating_modes.c:287`
-
-### EnableC2=SOLAR_OFF does not force single phase in Smart mode
-
-**Requirement:** `REQ-MODE-015`
-
-- **Given** EVSE has EnableC2 set to SOLAR_OFF and Mode is MODE_SMART
-- **When** evse_force_single_phase is called
-- **Then** Returns 0 because SOLAR_OFF only applies in Solar mode, not Smart mode
-
-> Test: `test_force_single_phase_solar_off_in_smart_mode` in `test_operating_modes.c:302`
+> Test: `test_force_single_phase_reserved_c2_2` in `test_operating_modes.c:174`
 
 ### EnableC2=AUTO forces single phase when charging on 1 phase
 
@@ -5582,7 +5375,7 @@
 - **When** evse_force_single_phase is called
 - **Then** Returns 1 because AUTO mode follows the current phase count
 
-> Test: `test_force_single_phase_auto_c2_1p` in `test_operating_modes.c:317`
+> Test: `test_force_single_phase_auto_c2_1p` in `test_operating_modes.c:192`
 
 ### EnableC2=AUTO does not force single phase when charging on 3 phases
 
@@ -5592,7 +5385,7 @@
 - **When** evse_force_single_phase is called
 - **Then** Returns 0 because AUTO mode allows 3-phase operation when already on 3 phases
 
-> Test: `test_force_single_phase_auto_c2_3p` in `test_operating_modes.c:332`
+> Test: `test_force_single_phase_auto_c2_3p` in `test_operating_modes.c:207`
 
 ### EnableC2=ALWAYS_ON does not force single phase
 
@@ -5602,7 +5395,7 @@
 - **When** evse_force_single_phase is called
 - **Then** Returns 0 because the EVSE is configured to always operate in three phase
 
-> Test: `test_force_single_phase_always_on` in `test_operating_modes.c:347`
+> Test: `test_force_single_phase_always_on` in `test_operating_modes.c:222`
 
 ### STATE_C entry with single phase disables contactor 2
 
@@ -5612,7 +5405,7 @@
 - **When** EVSE transitions to STATE_C
 - **Then** Contactor 1 is on, contactor 2 is off, and Nr_Of_Phases_Charging is 1
 
-> Test: `test_state_C_contactor2_off_when_single_phase` in `test_operating_modes.c:361`
+> Test: `test_state_C_contactor2_off_when_single_phase` in `test_operating_modes.c:236`
 
 ### STATE_C entry with three phase enables both contactors
 
@@ -5622,7 +5415,7 @@
 - **When** EVSE transitions to STATE_C
 - **Then** Both contactor 1 and contactor 2 are on and Nr_Of_Phases_Charging is 3
 
-> Test: `test_state_C_contactor2_on_when_three_phase` in `test_operating_modes.c:378`
+> Test: `test_state_C_contactor2_on_when_three_phase` in `test_operating_modes.c:253`
 
 ### Phase switch from 3P to 1P completes on STATE_C entry
 
@@ -5632,91 +5425,7 @@
 - **When** EVSE transitions to STATE_C
 - **Then** Nr_Of_Phases_Charging is set to 1 and Switching_Phases_C2 is cleared to NO_SWITCH
 
-> Test: `test_phase_switch_going_to_1p` in `test_operating_modes.c:395`
-
----
-
-## Mode Synchronization
-
-### SOLAR_OFF: switching to Solar requires single-phase (evse_force_single_phase)
-
-**Requirement:** `REQ-MODE-SYNC-001`
-
-- **Given** EVSE in Smart mode charging on 3 phases, EnableC2=SOLAR_OFF
-- **When** Mode is set to Solar and evse_check_switching_phases is called
-- **Then** evse_force_single_phase returns true (C2 must be off in Solar mode)
-
-> Test: `test_solar_off_forces_single_phase_in_solar` in `test_mode_sync.c:1`
-
-### SOLAR_OFF: Smart mode allows three-phase
-
-**Requirement:** `REQ-MODE-SYNC-002`
-
-- **Given** EVSE with EnableC2=SOLAR_OFF in Smart mode
-- **When** evse_force_single_phase is checked
-- **Then** Returns false (C2 allowed in non-Solar modes with SOLAR_OFF)
-
-> Test: `test_solar_off_allows_3p_in_smart` in `test_mode_sync.c:72`
-
-### State C entry with SOLAR_OFF in Solar mode opens C2 contactor
-
-**Requirement:** `REQ-MODE-SYNC-003`
-
-- **Given** EVSE with EnableC2=SOLAR_OFF, Mode=Solar, entering STATE_C
-- **When** evse_set_state(ctx, STATE_C) is called
-- **Then** contactor2 is off (single-phase charging)
-
-> Test: `test_state_c_entry_solar_off_opens_c2` in `test_mode_sync.c:89`
-
-### Clearing LESS_6A on switch to Smart (via evse_clear_error_flags)
-
-**Requirement:** `REQ-MODE-SYNC-004`
-
-- **Given** EVSE with LESS_6A error set from solar shortage
-- **When** evse_clear_error_flags clears LESS_6A (as setMode does for Smart)
-- **Then** ErrorFlags no longer has LESS_6A set
-
-> Test: `test_clear_less6a_on_mode_switch` in `test_mode_sync.c:118`
-
-### SolarStopTimer persists if mode switch misses setMode
-
-**Requirement:** `REQ-MODE-SYNC-005`
-
-- **Given** EVSE with SolarStopTimer=300, mode changes to Smart
-- **When** Only Mode variable is assigned (simulating SETITEM bug)
-- **Then** SolarStopTimer remains at 300 (stale — not cleared)
-
-> Test: `test_raw_mode_assign_leaves_timer_stale` in `test_mode_sync.c:136`
-
-### SolarStopTimer cleared when setMode side effects applied
-
-**Requirement:** `REQ-MODE-SYNC-006`
-
-- **Given** EVSE with SolarStopTimer=300, mode changes to Smart
-- **When** setMode side effects are applied (timer reset to 0)
-- **Then** SolarStopTimer is 0
-
-> Test: `test_setmode_clears_timer` in `test_mode_sync.c:157`
-
-### Smart→Solar mid-charge: regulation switches to solar algorithm
-
-**Requirement:** `REQ-MODE-SYNC-007`
-
-- **Given** EVSE charging in Smart mode with mains headroom available
-- **When** Mode is changed to Solar and evse_calc_balanced_current is called
-- **Then** Solar fine regulation is applied (IsetBalanced changes differently)
-
-> Test: `test_mid_charge_smart_to_solar` in `test_mode_sync.c:187`
-
-### Solar→Normal mid-charge: all EVSEs get full current
-
-**Requirement:** `REQ-MODE-SYNC-008`
-
-- **Given** Master with 2 EVSEs in Solar mode with shortage
-- **When** Mode is changed to Normal
-- **Then** Both EVSEs get full current (Normal ignores solar/mains constraints)
-
-> Test: `test_mid_charge_solar_to_normal` in `test_mode_sync.c:225`
+> Test: `test_phase_switch_going_to_1p` in `test_operating_modes.c:270`
 
 ---
 
@@ -6032,7 +5741,7 @@
 
 > Test: `test_mode_normal` in `test_mqtt_parser.c:1`
 
-### Set mode to Solar via MQTT
+### Setting mode to Solar via MQTT is rejected (Solar mode removed)
 
 **Requirement:** `REQ-MQTT-001`
 
@@ -6044,112 +5753,112 @@
 **Requirement:** `REQ-MQTT-001`
 
 
-> Test: `test_mode_smart` in `test_mqtt_parser.c:43`
+> Test: `test_mode_smart` in `test_mqtt_parser.c:41`
 
 ### Set mode to Off via MQTT
 
 **Requirement:** `REQ-MQTT-001`
 
 
-> Test: `test_mode_off` in `test_mqtt_parser.c:54`
+> Test: `test_mode_off` in `test_mqtt_parser.c:52`
 
 ### Set mode to Pause via MQTT
 
 **Requirement:** `REQ-MQTT-001`
 
 
-> Test: `test_mode_pause` in `test_mqtt_parser.c:65`
+> Test: `test_mode_pause` in `test_mqtt_parser.c:63`
 
 ### CustomButton set to On
 
 **Requirement:** `REQ-MQTT-003`
 
 
-> Test: `test_custom_button_on` in `test_mqtt_parser.c:90`
+> Test: `test_custom_button_on` in `test_mqtt_parser.c:88`
 
 ### CustomButton set to Off
 
 **Requirement:** `REQ-MQTT-003`
 
 
-> Test: `test_custom_button_off` in `test_mqtt_parser.c:101`
+> Test: `test_custom_button_off` in `test_mqtt_parser.c:99`
 
 ### CP PWM override normal mode (-1)
 
 **Requirement:** `REQ-MQTT-006`
 
 
-> Test: `test_cp_pwm_normal` in `test_mqtt_parser.c:192`
+> Test: `test_cp_pwm_normal` in `test_mqtt_parser.c:190`
 
 ### CP PWM override disconnect (0)
 
 **Requirement:** `REQ-MQTT-006`
 
 
-> Test: `test_cp_pwm_disconnect` in `test_mqtt_parser.c:203`
+> Test: `test_cp_pwm_disconnect` in `test_mqtt_parser.c:201`
 
 ### CP PWM override max value (1024)
 
 **Requirement:** `REQ-MQTT-006`
 
 
-> Test: `test_cp_pwm_max` in `test_mqtt_parser.c:213`
+> Test: `test_cp_pwm_max` in `test_mqtt_parser.c:211`
 
 ### Home battery current set
 
 **Requirement:** `REQ-MQTT-009`
 
 
-> Test: `test_home_battery_current` in `test_mqtt_parser.c:370`
+> Test: `test_home_battery_current` in `test_mqtt_parser.c:368`
 
 ### Home battery current negative (discharging)
 
 **Requirement:** `REQ-MQTT-009`
 
 
-> Test: `test_home_battery_current_negative` in `test_mqtt_parser.c:381`
+> Test: `test_home_battery_current_negative` in `test_mqtt_parser.c:379`
 
 ### Cable lock enabled
 
 **Requirement:** `REQ-MQTT-011`
 
 
-> Test: `test_cable_lock_enable` in `test_mqtt_parser.c:473`
+> Test: `test_cable_lock_enable` in `test_mqtt_parser.c:469`
 
 ### Cable lock disabled
 
 **Requirement:** `REQ-MQTT-011`
 
 
-> Test: `test_cable_lock_disable` in `test_mqtt_parser.c:484`
+> Test: `test_cable_lock_disable` in `test_mqtt_parser.c:480`
 
 ### Cable lock any non-"1" disables
 
 **Requirement:** `REQ-MQTT-011`
 
 
-> Test: `test_cable_lock_any_other` in `test_mqtt_parser.c:494`
+> Test: `test_cable_lock_any_other` in `test_mqtt_parser.c:490`
 
 ### EnableC2 numeric value
 
 **Requirement:** `REQ-MQTT-012`
 
 
-> Test: `test_enable_c2_numeric` in `test_mqtt_parser.c:506`
+> Test: `test_enable_c2_numeric` in `test_mqtt_parser.c:502`
 
 ### EnableC2 string value
 
 **Requirement:** `REQ-MQTT-012`
 
 
-> Test: `test_enable_c2_string` in `test_mqtt_parser.c:517`
+> Test: `test_enable_c2_string` in `test_mqtt_parser.c:513`
 
 ### RequiredEVCCID set
 
 **Requirement:** `REQ-MQTT-013`
 
 
-> Test: `test_required_evccid` in `test_mqtt_parser.c:547`
+> Test: `test_required_evccid` in `test_mqtt_parser.c:543`
 
 ### PrioStrategy set to MODBUS_ADDR (0) via MQTT
 
@@ -6159,21 +5868,21 @@
 - **When** Topic is prefix/Set/PrioStrategy with payload "0"
 - **Then** Command type is MQTT_CMD_PRIO_STRATEGY with value 0
 
-> Test: `test_prio_strategy_modbus_addr` in `test_mqtt_parser.c:570`
+> Test: `test_prio_strategy_modbus_addr` in `test_mqtt_parser.c:566`
 
 ### PrioStrategy set to FIRST_CONNECTED (1)
 
 **Requirement:** `REQ-MQTT-015`
 
 
-> Test: `test_prio_strategy_first_connected` in `test_mqtt_parser.c:584`
+> Test: `test_prio_strategy_first_connected` in `test_mqtt_parser.c:580`
 
 ### PrioStrategy set to LAST_CONNECTED (2)
 
 **Requirement:** `REQ-MQTT-015`
 
 
-> Test: `test_prio_strategy_last_connected` in `test_mqtt_parser.c:594`
+> Test: `test_prio_strategy_last_connected` in `test_mqtt_parser.c:590`
 
 ### RotationInterval set to 0 (disabled) via MQTT
 
@@ -6183,21 +5892,21 @@
 - **When** Topic is prefix/Set/RotationInterval with payload "0"
 - **Then** Command type is MQTT_CMD_ROTATION_INTERVAL with value 0
 
-> Test: `test_rotation_interval_zero` in `test_mqtt_parser.c:627`
+> Test: `test_rotation_interval_zero` in `test_mqtt_parser.c:623`
 
 ### RotationInterval set to minimum (30 minutes)
 
 **Requirement:** `REQ-MQTT-016`
 
 
-> Test: `test_rotation_interval_min` in `test_mqtt_parser.c:641`
+> Test: `test_rotation_interval_min` in `test_mqtt_parser.c:637`
 
 ### RotationInterval set to maximum (1440 minutes = 24h)
 
 **Requirement:** `REQ-MQTT-016`
 
 
-> Test: `test_rotation_interval_max` in `test_mqtt_parser.c:651`
+> Test: `test_rotation_interval_max` in `test_mqtt_parser.c:647`
 
 ### IdleTimeout set to minimum (30 seconds) via MQTT
 
@@ -6207,21 +5916,21 @@
 - **When** Topic is prefix/Set/IdleTimeout with payload "30"
 - **Then** Command type is MQTT_CMD_IDLE_TIMEOUT with value 30
 
-> Test: `test_idle_timeout_min` in `test_mqtt_parser.c:684`
+> Test: `test_idle_timeout_min` in `test_mqtt_parser.c:680`
 
 ### IdleTimeout set to default (60 seconds)
 
 **Requirement:** `REQ-MQTT-017`
 
 
-> Test: `test_idle_timeout_default` in `test_mqtt_parser.c:698`
+> Test: `test_idle_timeout_default` in `test_mqtt_parser.c:694`
 
 ### IdleTimeout set to maximum (300 seconds)
 
 **Requirement:** `REQ-MQTT-017`
 
 
-> Test: `test_idle_timeout_max` in `test_mqtt_parser.c:708`
+> Test: `test_idle_timeout_max` in `test_mqtt_parser.c:704`
 
 ### MQTTHeartbeat set to valid value via MQTT
 
@@ -6231,7 +5940,7 @@
 - **When** Topic is prefix/Set/MQTTHeartbeat with payload "60"
 - **Then** Command type is MQTT_CMD_MQTT_HEARTBEAT with mqtt_heartbeat = 60
 
-> Test: `test_mqtt_heartbeat_valid` in `test_mqtt_parser.c:824`
+> Test: `test_mqtt_heartbeat_valid` in `test_mqtt_parser.c:820`
 
 ### MQTTChangeOnly enabled via MQTT with payload "1"
 
@@ -6241,7 +5950,7 @@
 - **When** Topic is prefix/Set/MQTTChangeOnly with payload "1"
 - **Then** Command type is MQTT_CMD_MQTT_CHANGE_ONLY with mqtt_change_only = true
 
-> Test: `test_mqtt_change_only_enable` in `test_mqtt_parser.c:864`
+> Test: `test_mqtt_change_only_enable` in `test_mqtt_parser.c:860`
 
 ### MQTTChangeOnly disabled via MQTT with payload "0"
 
@@ -6251,7 +5960,7 @@
 - **When** Topic is prefix/Set/MQTTChangeOnly with payload "0"
 - **Then** Command type is MQTT_CMD_MQTT_CHANGE_ONLY with mqtt_change_only = false
 
-> Test: `test_mqtt_change_only_disable` in `test_mqtt_parser.c:878`
+> Test: `test_mqtt_change_only_disable` in `test_mqtt_parser.c:874`
 
 ### Set MaxCircuitMains to valid value via MQTT
 
@@ -6261,7 +5970,7 @@
 - **When** Topic is prefix/Set/MaxCircuitMains with payload "25"
 - **Then** Command type is MQTT_CMD_MAX_CIRCUIT_MAINS with value 25
 
-> Test: `test_max_circuit_mains_valid` in `test_mqtt_parser.c:1193`
+> Test: `test_max_circuit_mains_valid` in `test_mqtt_parser.c:1145`
 
 ### Set MaxCircuitMains to zero (disable) via MQTT
 
@@ -6271,7 +5980,7 @@
 - **When** Topic is prefix/Set/MaxCircuitMains with payload "0"
 - **Then** Command type is MQTT_CMD_MAX_CIRCUIT_MAINS with value 0
 
-> Test: `test_max_circuit_mains_zero` in `test_mqtt_parser.c:1207`
+> Test: `test_max_circuit_mains_zero` in `test_mqtt_parser.c:1159`
 
 ### Set MaxCircuitMains to boundary max (600) via MQTT
 
@@ -6281,7 +5990,7 @@
 - **When** Topic is prefix/Set/MaxCircuitMains with payload "600"
 - **Then** Command type is MQTT_CMD_MAX_CIRCUIT_MAINS with value 600
 
-> Test: `test_max_circuit_mains_max` in `test_mqtt_parser.c:1221`
+> Test: `test_max_circuit_mains_max` in `test_mqtt_parser.c:1173`
 
 ### Set CircuitMeter API feed via MQTT with L1:L2:L3 format
 
@@ -6291,7 +6000,7 @@
 - **When** Topic is prefix/Set/CircuitMeter with payload "100:200:150"
 - **Then** Command type is MQTT_CMD_CIRCUIT_METER with parsed phase currents
 
-> Test: `test_circuit_meter_valid` in `test_mqtt_parser.c:1261`
+> Test: `test_circuit_meter_valid` in `test_mqtt_parser.c:1213`
 
 ### CircuitMeter API feed with negative values (export)
 
@@ -6301,7 +6010,7 @@
 - **When** Topic is prefix/Set/CircuitMeter with payload "-50:100:-25"
 - **Then** Command type is MQTT_CMD_CIRCUIT_METER with correct phase currents
 
-> Test: `test_circuit_meter_negative` in `test_mqtt_parser.c:1277`
+> Test: `test_circuit_meter_negative` in `test_mqtt_parser.c:1229`
 
 ---
 
@@ -6315,7 +6024,7 @@
 - **When** Topic is prefix/Set/Mode with payload "Invalid"
 - **Then** The parser returns false
 
-> Test: `test_mode_invalid` in `test_mqtt_parser.c:76`
+> Test: `test_mode_invalid` in `test_mqtt_parser.c:74`
 
 ### Current override with valid value
 
@@ -6325,133 +6034,133 @@
 - **When** Topic is prefix/Set/CurrentOverride with payload "100"
 - **Then** Command has current_override = 100
 
-> Test: `test_current_override_valid` in `test_mqtt_parser.c:114`
+> Test: `test_current_override_valid` in `test_mqtt_parser.c:112`
 
 ### Current override zero resets override
 
 **Requirement:** `REQ-MQTT-004`
 
 
-> Test: `test_current_override_zero` in `test_mqtt_parser.c:128`
+> Test: `test_current_override_zero` in `test_mqtt_parser.c:126`
 
 ### Current override with max value
 
 **Requirement:** `REQ-MQTT-004`
 
 
-> Test: `test_current_override_max` in `test_mqtt_parser.c:139`
+> Test: `test_current_override_max` in `test_mqtt_parser.c:137`
 
 ### Max sum mains valid value
 
 **Requirement:** `REQ-MQTT-005`
 
 
-> Test: `test_max_sum_mains_valid` in `test_mqtt_parser.c:151`
+> Test: `test_max_sum_mains_valid` in `test_mqtt_parser.c:149`
 
 ### Max sum mains zero disables
 
 **Requirement:** `REQ-MQTT-005`
 
 
-> Test: `test_max_sum_mains_zero` in `test_mqtt_parser.c:162`
+> Test: `test_max_sum_mains_zero` in `test_mqtt_parser.c:160`
 
 ### Max sum mains below minimum rejected
 
 **Requirement:** `REQ-MQTT-005`
 
 
-> Test: `test_max_sum_mains_below_min` in `test_mqtt_parser.c:172`
+> Test: `test_max_sum_mains_below_min` in `test_mqtt_parser.c:170`
 
 ### Max sum mains above maximum rejected
 
 **Requirement:** `REQ-MQTT-005`
 
 
-> Test: `test_max_sum_mains_above_max` in `test_mqtt_parser.c:181`
+> Test: `test_max_sum_mains_above_max` in `test_mqtt_parser.c:179`
 
 ### CP PWM override out of range rejected
 
 **Requirement:** `REQ-MQTT-006`
 
 
-> Test: `test_cp_pwm_out_of_range` in `test_mqtt_parser.c:223`
+> Test: `test_cp_pwm_out_of_range` in `test_mqtt_parser.c:221`
 
 ### CP PWM override below -1 rejected
 
 **Requirement:** `REQ-MQTT-006`
 
 
-> Test: `test_cp_pwm_below_neg1` in `test_mqtt_parser.c:232`
+> Test: `test_cp_pwm_below_neg1` in `test_mqtt_parser.c:230`
 
 ### Mains meter out of range rejected (>2000)
 
 **Requirement:** `REQ-MQTT-007`
 
 
-> Test: `test_mains_meter_out_of_range` in `test_mqtt_parser.c:272`
+> Test: `test_mains_meter_out_of_range` in `test_mqtt_parser.c:270`
 
 ### Mains meter out of range rejected (<-2000)
 
 **Requirement:** `REQ-MQTT-007`
 
 
-> Test: `test_mains_meter_out_of_range_neg` in `test_mqtt_parser.c:282`
+> Test: `test_mains_meter_out_of_range_neg` in `test_mqtt_parser.c:280`
 
 ### Mains meter missing fields rejected
 
 **Requirement:** `REQ-MQTT-007`
 
 
-> Test: `test_mains_meter_missing_fields` in `test_mqtt_parser.c:292`
+> Test: `test_mains_meter_missing_fields` in `test_mqtt_parser.c:290`
 
 ### EV meter partial data rejected
 
 **Requirement:** `REQ-MQTT-008`
 
 
-> Test: `test_ev_meter_partial` in `test_mqtt_parser.c:345`
+> Test: `test_ev_meter_partial` in `test_mqtt_parser.c:343`
 
 ### RGB color out of range rejected
 
 **Requirement:** `REQ-MQTT-010`
 
 
-> Test: `test_rgb_out_of_range` in `test_mqtt_parser.c:406`
+> Test: `test_rgb_out_of_range` in `test_mqtt_parser.c:404`
 
 ### RGB color negative rejected
 
 **Requirement:** `REQ-MQTT-010`
 
 
-> Test: `test_rgb_negative` in `test_mqtt_parser.c:416`
+> Test: `test_rgb_negative` in `test_mqtt_parser.c:414`
 
 ### RGB color missing component rejected
 
 **Requirement:** `REQ-MQTT-010`
 
 
-> Test: `test_rgb_missing` in `test_mqtt_parser.c:426`
+> Test: `test_rgb_missing` in `test_mqtt_parser.c:424`
 
 ### EnableC2 out of range rejected
 
 **Requirement:** `REQ-MQTT-012`
 
 
-> Test: `test_enable_c2_out_of_range` in `test_mqtt_parser.c:527`
+> Test: `test_enable_c2_out_of_range` in `test_mqtt_parser.c:523`
 
 ### EnableC2 invalid string rejected
 
 **Requirement:** `REQ-MQTT-012`
 
 
-> Test: `test_enable_c2_invalid_string` in `test_mqtt_parser.c:536`
+> Test: `test_enable_c2_invalid_string` in `test_mqtt_parser.c:532`
 
 ### RequiredEVCCID too long rejected
 
 **Requirement:** `REQ-MQTT-013`
 
 
-> Test: `test_required_evccid_too_long` in `test_mqtt_parser.c:558`
+> Test: `test_required_evccid_too_long` in `test_mqtt_parser.c:554`
 
 ### PrioStrategy value 3 is rejected (out of range)
 
@@ -6461,14 +6170,14 @@
 - **When** Topic is prefix/Set/PrioStrategy with payload "3"
 - **Then** The parser returns false
 
-> Test: `test_prio_strategy_out_of_range` in `test_mqtt_parser.c:604`
+> Test: `test_prio_strategy_out_of_range` in `test_mqtt_parser.c:600`
 
 ### PrioStrategy negative value is rejected
 
 **Requirement:** `REQ-MQTT-015`
 
 
-> Test: `test_prio_strategy_negative` in `test_mqtt_parser.c:616`
+> Test: `test_prio_strategy_negative` in `test_mqtt_parser.c:612`
 
 ### RotationInterval in gap (1-29) is rejected
 
@@ -6478,14 +6187,14 @@
 - **When** Topic is prefix/Set/RotationInterval with payload "15"
 - **Then** The parser returns false
 
-> Test: `test_rotation_interval_gap` in `test_mqtt_parser.c:661`
+> Test: `test_rotation_interval_gap` in `test_mqtt_parser.c:657`
 
 ### RotationInterval above maximum is rejected
 
 **Requirement:** `REQ-MQTT-016`
 
 
-> Test: `test_rotation_interval_too_high` in `test_mqtt_parser.c:673`
+> Test: `test_rotation_interval_too_high` in `test_mqtt_parser.c:669`
 
 ### IdleTimeout below minimum (29) is rejected
 
@@ -6495,21 +6204,21 @@
 - **When** Topic is prefix/Set/IdleTimeout with payload "29"
 - **Then** The parser returns false
 
-> Test: `test_idle_timeout_too_low` in `test_mqtt_parser.c:718`
+> Test: `test_idle_timeout_too_low` in `test_mqtt_parser.c:714`
 
 ### IdleTimeout above maximum (301) is rejected
 
 **Requirement:** `REQ-MQTT-017`
 
 
-> Test: `test_idle_timeout_too_high` in `test_mqtt_parser.c:730`
+> Test: `test_idle_timeout_too_high` in `test_mqtt_parser.c:726`
 
 ### IdleTimeout zero is rejected (minimum is 30)
 
 **Requirement:** `REQ-MQTT-017`
 
 
-> Test: `test_idle_timeout_zero` in `test_mqtt_parser.c:739`
+> Test: `test_idle_timeout_zero` in `test_mqtt_parser.c:735`
 
 ### Max sum mains at lower boundary (10) is accepted
 
@@ -6519,7 +6228,7 @@
 - **When** Topic is prefix/Set/CurrentMaxSumMains with payload "10"
 - **Then** Command is accepted with max_sum_mains = 10
 
-> Test: `test_max_sum_mains_boundary_10` in `test_mqtt_parser.c:750`
+> Test: `test_max_sum_mains_boundary_10` in `test_mqtt_parser.c:746`
 
 ### Max sum mains at upper boundary (600) is accepted
 
@@ -6529,7 +6238,7 @@
 - **When** Topic is prefix/Set/CurrentMaxSumMains with payload "600"
 - **Then** Command is accepted with max_sum_mains = 600
 
-> Test: `test_max_sum_mains_boundary_600` in `test_mqtt_parser.c:764`
+> Test: `test_max_sum_mains_boundary_600` in `test_mqtt_parser.c:760`
 
 ### Negative current override is accepted (atoi converts, no range check)
 
@@ -6539,7 +6248,7 @@
 - **When** Topic is prefix/Set/CurrentOverride with payload "-10"
 - **Then** Command is accepted (parser does not reject; dispatch layer validates)
 
-> Test: `test_current_override_negative` in `test_mqtt_parser.c:778`
+> Test: `test_current_override_negative` in `test_mqtt_parser.c:774`
 
 ### Empty payload is rejected for Mode command
 
@@ -6549,7 +6258,7 @@
 - **When** Topic is prefix/Set/Mode with empty payload ""
 - **Then** The parser returns false
 
-> Test: `test_empty_payload_mode_rejected` in `test_mqtt_parser.c:810`
+> Test: `test_empty_payload_mode_rejected` in `test_mqtt_parser.c:806`
 
 ### MQTTHeartbeat below minimum (9) is rejected
 
@@ -6559,7 +6268,7 @@
 - **When** Topic is prefix/Set/MQTTHeartbeat with payload "9"
 - **Then** The parser returns false
 
-> Test: `test_mqtt_heartbeat_too_low` in `test_mqtt_parser.c:838`
+> Test: `test_mqtt_heartbeat_too_low` in `test_mqtt_parser.c:834`
 
 ### MQTTHeartbeat above maximum (301) is rejected
 
@@ -6569,7 +6278,7 @@
 - **When** Topic is prefix/Set/MQTTHeartbeat with payload "301"
 - **Then** The parser returns false
 
-> Test: `test_mqtt_heartbeat_too_high` in `test_mqtt_parser.c:850`
+> Test: `test_mqtt_heartbeat_too_high` in `test_mqtt_parser.c:846`
 
 ### MQTTChangeOnly rejects invalid payload
 
@@ -6579,7 +6288,7 @@
 - **When** Topic is prefix/Set/MQTTChangeOnly with payload "2"
 - **Then** The parser returns false
 
-> Test: `test_mqtt_change_only_invalid` in `test_mqtt_parser.c:892`
+> Test: `test_mqtt_change_only_invalid` in `test_mqtt_parser.c:888`
 
 ### Mains meter boundary value +2000 (200A exactly) is accepted
 
@@ -6589,7 +6298,7 @@
 - **When** mqtt_parse_mains_meter is called
 - **Then** Returns true with L1=2000
 
-> Test: `test_mains_meter_boundary_positive` in `test_mqtt_parser.c:1018`
+> Test: `test_mains_meter_boundary_positive` in `test_mqtt_parser.c:970`
 
 ### Mains meter boundary value -2000 (-200A exactly) is accepted
 
@@ -6599,7 +6308,7 @@
 - **When** mqtt_parse_mains_meter is called
 - **Then** Returns true with L1=-2000
 
-> Test: `test_mains_meter_boundary_negative` in `test_mqtt_parser.c:1032`
+> Test: `test_mains_meter_boundary_negative` in `test_mqtt_parser.c:984`
 
 ### EV meter power exceeding 100kW is rejected
 
@@ -6609,7 +6318,7 @@
 - **When** mqtt_parse_ev_meter is called
 - **Then** Returns false
 
-> Test: `test_ev_meter_power_too_high` in `test_mqtt_parser.c:1046`
+> Test: `test_ev_meter_power_too_high` in `test_mqtt_parser.c:998`
 
 ### EV meter negative power exceeding -100kW is rejected
 
@@ -6619,7 +6328,7 @@
 - **When** mqtt_parse_ev_meter is called
 - **Then** Returns false
 
-> Test: `test_ev_meter_power_too_low` in `test_mqtt_parser.c:1059`
+> Test: `test_ev_meter_power_too_low` in `test_mqtt_parser.c:1011`
 
 ### EV meter energy exceeding 1TWh is rejected
 
@@ -6629,7 +6338,7 @@
 - **When** mqtt_parse_ev_meter is called
 - **Then** Returns false
 
-> Test: `test_ev_meter_energy_too_high` in `test_mqtt_parser.c:1072`
+> Test: `test_ev_meter_energy_too_high` in `test_mqtt_parser.c:1024`
 
 ### EV meter power at boundary 100000W (100kW) is accepted
 
@@ -6639,7 +6348,7 @@
 - **When** mqtt_parse_ev_meter is called
 - **Then** Returns true
 
-> Test: `test_ev_meter_power_boundary_accepted` in `test_mqtt_parser.c:1085`
+> Test: `test_ev_meter_power_boundary_accepted` in `test_mqtt_parser.c:1037`
 
 ### Reject MaxCircuitMains below minimum (1-9 range)
 
@@ -6649,7 +6358,7 @@
 - **When** Topic is prefix/Set/MaxCircuitMains with payload "5"
 - **Then** Parsing returns false (gap between 0 and 10)
 
-> Test: `test_max_circuit_mains_below_min` in `test_mqtt_parser.c:1235`
+> Test: `test_max_circuit_mains_below_min` in `test_mqtt_parser.c:1187`
 
 ### Reject MaxCircuitMains above maximum
 
@@ -6659,7 +6368,7 @@
 - **When** Topic is prefix/Set/MaxCircuitMains with payload "601"
 - **Then** Parsing returns false
 
-> Test: `test_max_circuit_mains_above_max` in `test_mqtt_parser.c:1247`
+> Test: `test_max_circuit_mains_above_max` in `test_mqtt_parser.c:1199`
 
 ### Reject CircuitMeter with out of range values
 
@@ -6669,7 +6378,7 @@
 - **When** Topic is prefix/Set/CircuitMeter with payload "2001:0:0"
 - **Then** Parsing returns false (exceeds +/-2000 dA range)
 
-> Test: `test_circuit_meter_out_of_range` in `test_mqtt_parser.c:1293`
+> Test: `test_circuit_meter_out_of_range` in `test_mqtt_parser.c:1245`
 
 ### Reject CircuitMeter with missing fields
 
@@ -6679,21 +6388,21 @@
 - **When** Topic is prefix/Set/CircuitMeter with payload "100:200"
 - **Then** Parsing returns false (needs 3 fields)
 
-> Test: `test_circuit_meter_missing_fields` in `test_mqtt_parser.c:1305`
+> Test: `test_circuit_meter_missing_fields` in `test_mqtt_parser.c:1257`
 
 ### Unrecognized topic returns false
 
 **Requirement:** `REQ-MQTT-014`
 
 
-> Test: `test_unrecognized_topic` in `test_mqtt_parser.c:1319`
+> Test: `test_unrecognized_topic` in `test_mqtt_parser.c:1271`
 
 ### Wrong prefix returns false
 
 **Requirement:** `REQ-MQTT-014`
 
 
-> Test: `test_wrong_prefix` in `test_mqtt_parser.c:1328`
+> Test: `test_wrong_prefix` in `test_mqtt_parser.c:1280`
 
 ---
 
@@ -6707,42 +6416,42 @@
 - **When** Payload is "100:200:300"
 - **Then** L1=100, L2=200, L3=300
 
-> Test: `test_mains_meter_valid` in `test_mqtt_parser.c:243`
+> Test: `test_mains_meter_valid` in `test_mqtt_parser.c:241`
 
 ### Mains meter with negative values
 
 **Requirement:** `REQ-MQTT-007`
 
 
-> Test: `test_mains_meter_negative` in `test_mqtt_parser.c:259`
+> Test: `test_mains_meter_negative` in `test_mqtt_parser.c:257`
 
 ### Mains meter via full command parse
 
 **Requirement:** `REQ-MQTT-007`
 
 
-> Test: `test_mains_meter_command` in `test_mqtt_parser.c:302`
+> Test: `test_mains_meter_command` in `test_mqtt_parser.c:300`
 
 ### EV meter format L1:L2:L3:W:WH is parsed correctly
 
 **Requirement:** `REQ-MQTT-008`
 
 
-> Test: `test_ev_meter_valid` in `test_mqtt_parser.c:317`
+> Test: `test_ev_meter_valid` in `test_mqtt_parser.c:315`
 
 ### EV meter with unknown values (-1)
 
 **Requirement:** `REQ-MQTT-008`
 
 
-> Test: `test_ev_meter_unknown_values` in `test_mqtt_parser.c:332`
+> Test: `test_ev_meter_unknown_values` in `test_mqtt_parser.c:330`
 
 ### EV meter via full command parse
 
 **Requirement:** `REQ-MQTT-008`
 
 
-> Test: `test_ev_meter_command` in `test_mqtt_parser.c:355`
+> Test: `test_ev_meter_command` in `test_mqtt_parser.c:353`
 
 ### Mains meter with extra trailing fields after L1:L2:L3 is accepted
 
@@ -6752,7 +6461,7 @@
 - **When** Payload is "100:200:300:extra"
 - **Then** L1=100, L2=200, L3=300 (extra data ignored by sscanf)
 
-> Test: `test_mains_meter_extra_fields_ignored` in `test_mqtt_parser.c:794`
+> Test: `test_mains_meter_extra_fields_ignored` in `test_mqtt_parser.c:790`
 
 ---
 
@@ -6763,132 +6472,28 @@
 **Requirement:** `REQ-MQTT-010`
 
 
-> Test: `test_rgb_valid` in `test_mqtt_parser.c:393`
+> Test: `test_rgb_valid` in `test_mqtt_parser.c:391`
 
 ### ColorOff topic parsed correctly
 
 **Requirement:** `REQ-MQTT-010`
 
 
-> Test: `test_color_off_command` in `test_mqtt_parser.c:436`
+> Test: `test_color_off_command` in `test_mqtt_parser.c:434`
 
-### ColorSolar topic parsed correctly
+### ColorSolar topic is no longer recognized (Solar mode removed)
 
 **Requirement:** `REQ-MQTT-010`
 
 
-> Test: `test_color_solar_command` in `test_mqtt_parser.c:450`
+> Test: `test_color_solar_command` in `test_mqtt_parser.c:448`
 
 ### ColorCustom topic parsed correctly
 
 **Requirement:** `REQ-MQTT-010`
 
 
-> Test: `test_color_custom_command` in `test_mqtt_parser.c:461`
-
----
-
-## Solar Debug Telemetry
-
-### SolarDebug enable via MQTT
-
-**Requirement:** `REQ-SOL-020`
-
-- **Given** A valid MQTT prefix
-- **When** Topic is prefix/Set/SolarDebug with payload "1"
-- **Then** The parser returns true with solar_debug = true
-
-> Test: `test_solar_debug_enable` in `test_mqtt_parser.c:906`
-
-### SolarDebug disable via MQTT
-
-**Requirement:** `REQ-SOL-020`
-
-- **Given** A valid MQTT prefix
-- **When** Topic is prefix/Set/SolarDebug with payload "0"
-- **Then** The parser returns true with solar_debug = false
-
-> Test: `test_solar_debug_disable` in `test_mqtt_parser.c:920`
-
-### SolarDebug rejects invalid payload
-
-**Requirement:** `REQ-SOL-020`
-
-- **Given** A valid MQTT prefix
-- **When** Topic is prefix/Set/SolarDebug with payload "2"
-- **Then** The parser returns false
-
-> Test: `test_solar_debug_invalid` in `test_mqtt_parser.c:934`
-
-### Format solar debug snapshot as JSON with all fields
-
-**Requirement:** `REQ-SOL-020`
-
-- **Given** A solar debug snapshot with known values
-- **When** solar_debug_to_json is called with a sufficiently large buffer
-- **Then** All 14 fields appear in the JSON output with correct values
-
-> Test: `test_solar_debug_to_json_all_fields` in `test_solar_debug_json.c:1`
-
-### JSON output starts with { and ends with }
-
-**Requirement:** `REQ-SOL-020`
-
-- **Given** A solar debug snapshot
-- **When** solar_debug_to_json is called
-- **Then** The output is valid JSON object framing
-
-> Test: `test_solar_debug_to_json_valid_framing` in `test_solar_debug_json.c:56`
-
-### Buffer too small for JSON output
-
-**Requirement:** `REQ-SOL-020`
-
-- **Given** A solar debug snapshot
-- **When** solar_debug_to_json is called with a buffer that is too small
-- **Then** The function returns -1
-
-> Test: `test_solar_debug_to_json_buffer_too_small` in `test_solar_debug_json.c:75`
-
-### Null pointer arguments
-
-**Requirement:** `REQ-SOL-020`
-
-- **Given** NULL snap or buf pointer
-- **When** solar_debug_to_json is called
-- **Then** The function returns -1
-
-> Test: `test_solar_debug_to_json_null_args` in `test_solar_debug_json.c:92`
-
-### Zero-initialized snapshot produces valid JSON
-
-**Requirement:** `REQ-SOL-020`
-
-- **Given** A zero-initialized solar debug snapshot
-- **When** solar_debug_to_json is called
-- **Then** All fields are zero in the output
-
-> Test: `test_solar_debug_to_json_zeroed` in `test_solar_debug_json.c:110`
-
-### Negative values are correctly represented
-
-**Requirement:** `REQ-SOL-020`
-
-- **Given** A snapshot with negative Isum and IsetBalanced
-- **When** solar_debug_to_json is called
-- **Then** Negative values appear with minus sign
-
-> Test: `test_solar_debug_to_json_negative_values` in `test_solar_debug_json.c:129`
-
-### Return value matches actual string length
-
-**Requirement:** `REQ-SOL-020`
-
-- **Given** A solar debug snapshot
-- **When** solar_debug_to_json is called
-- **Then** The return value equals strlen of the output
-
-> Test: `test_solar_debug_to_json_return_value_matches_strlen` in `test_solar_debug_json.c:151`
+> Test: `test_color_custom_command` in `test_mqtt_parser.c:457`
 
 ---
 
@@ -6902,7 +6507,7 @@
 - **When** Topic is prefix/Set/CapacityLimit with payload "5000"
 - **Then** Command type is MQTT_CMD_CAPACITY_LIMIT with capacity_limit 5000
 
-> Test: `test_capacity_limit_valid` in `test_mqtt_parser.c:1101`
+> Test: `test_capacity_limit_valid` in `test_mqtt_parser.c:1053`
 
 ### Set capacity limit to zero (disabled) via MQTT
 
@@ -6912,7 +6517,7 @@
 - **When** Topic is prefix/Set/CapacityLimit with payload "0"
 - **Then** Command type is MQTT_CMD_CAPACITY_LIMIT with capacity_limit 0
 
-> Test: `test_capacity_limit_zero_disables` in `test_mqtt_parser.c:1115`
+> Test: `test_capacity_limit_zero_disables` in `test_mqtt_parser.c:1067`
 
 ### Set capacity limit to maximum allowed value
 
@@ -6922,7 +6527,7 @@
 - **When** Topic is prefix/Set/CapacityLimit with payload "25000"
 - **Then** Command type is MQTT_CMD_CAPACITY_LIMIT with capacity_limit 25000
 
-> Test: `test_capacity_limit_max` in `test_mqtt_parser.c:1129`
+> Test: `test_capacity_limit_max` in `test_mqtt_parser.c:1081`
 
 ### Reject capacity limit above maximum
 
@@ -6932,7 +6537,7 @@
 - **When** Topic is prefix/Set/CapacityLimit with payload "25001"
 - **Then** Parsing returns false
 
-> Test: `test_capacity_limit_over_max` in `test_mqtt_parser.c:1143`
+> Test: `test_capacity_limit_over_max` in `test_mqtt_parser.c:1095`
 
 ### Reject negative capacity limit
 
@@ -6942,7 +6547,7 @@
 - **When** Topic is prefix/Set/CapacityLimit with payload "-1"
 - **Then** Parsing returns false
 
-> Test: `test_capacity_limit_negative` in `test_mqtt_parser.c:1155`
+> Test: `test_capacity_limit_negative` in `test_mqtt_parser.c:1107`
 
 ### Reject empty payload for capacity limit
 
@@ -6952,7 +6557,7 @@
 - **When** Topic is prefix/Set/CapacityLimit with empty payload
 - **Then** Parsing returns false
 
-> Test: `test_capacity_limit_empty` in `test_mqtt_parser.c:1167`
+> Test: `test_capacity_limit_empty` in `test_mqtt_parser.c:1119`
 
 ### Reject non-numeric payload for capacity limit
 
@@ -6962,7 +6567,7 @@
 - **When** Topic is prefix/Set/CapacityLimit with payload "abc"
 - **Then** Parsing returns false
 
-> Test: `test_capacity_limit_non_numeric` in `test_mqtt_parser.c:1179`
+> Test: `test_capacity_limit_non_numeric` in `test_mqtt_parser.c:1131`
 
 ---
 
@@ -7482,250 +7087,6 @@
 
 ---
 
-## Multi-Node Solar Charging
-
-### Two nodes solar shortage: SolarStopTimer starts when Isum exceeds threshold
-
-**Requirement:** `REQ-MULTI-SOL-001`
-
-- **Given** Master with 2 EVSEs in STATE_C, solar mode, grid importing above threshold
-- **When** evse_calc_balanced_current is called with Isum above (ActiveEVSE*MinCurrent*Phases - StartCurrent)*10
-- **Then** SolarStopTimer starts counting down from StopTime * 60
-
-> Test: `test_solar_multi_node_shortage_starts_timer` in `test_multi_node_solar.c:1`
-
-### Two nodes solar shortage with moderate import starts SolarStopTimer
-
-**Requirement:** `REQ-MULTI-SOL-001B`
-
-- **Given** Master with 2 EVSEs in STATE_C, solar mode, grid importing 20A (no surplus)
-- **When** evse_calc_balanced_current is called
-- **Then** SolarStopTimer starts because Isum (200) > single-EVSE threshold (140)
-
-> Test: `test_solar_multi_node_shortage_timer_moderate_import` in `test_multi_node_solar.c:81`
-
-### Two nodes solar shortage: priority scheduling pauses lower-priority node
-
-**Requirement:** `REQ-MULTI-SOL-002`
-
-- **Given** Master with 2 EVSEs in STATE_C, solar mode, grid importing heavily (Isum=300)
-- **When** evse_calc_balanced_current is called with very low actual available power
-- **Then** At least one EVSE gets Balanced=0 (paused via priority scheduling)
-
-> Test: `test_solar_multi_node_pauses_with_no_sun` in `test_multi_node_solar.c:107`
-
-### Four nodes solar: Isum above threshold starts timer and pauses nodes
-
-**Requirement:** `REQ-MULTI-SOL-003`
-
-- **Given** Master with 4 EVSEs in STATE_C, solar mode, Isum above 4-node threshold
-- **When** evse_calc_balanced_current is called
-- **Then** SolarStopTimer is started and at least some EVSEs are paused
-
-> Test: `test_solar_four_nodes_above_threshold` in `test_multi_node_solar.c:140`
-
-### Four nodes solar with 40A import starts SolarStopTimer
-
-**Requirement:** `REQ-MULTI-SOL-003B`
-
-- **Given** Master with 4 EVSEs in STATE_C, solar mode, grid importing 40A
-- **When** evse_calc_balanced_current is called
-- **Then** SolarStopTimer starts because Isum (400) > single-EVSE threshold (140)
-
-> Test: `test_solar_four_nodes_no_surplus_starts_timer` in `test_multi_node_solar.c:169`
-
-### Two nodes with sufficient solar surplus: both charge
-
-**Requirement:** `REQ-MULTI-SOL-004`
-
-- **Given** Master with 2 EVSEs in STATE_C, solar mode, grid exporting 15A (surplus)
-- **When** evse_calc_balanced_current is called
-- **Then** Both EVSEs receive current >= MinCurrent and SolarStopTimer stays 0
-
-> Test: `test_solar_multi_node_surplus_both_charge` in `test_multi_node_solar.c:197`
-
-### Two nodes with marginal surplus: enough for one, not both
-
-**Requirement:** `REQ-MULTI-SOL-005`
-
-- **Given** Master with 2 EVSEs in STATE_C, solar mode, surplus of ~8A (enough for 1 at 6A, not 2)
-- **When** evse_calc_balanced_current is called
-- **Then** Priority EVSE gets current, other is paused with NO_SUN
-
-> Test: `test_solar_multi_node_marginal_surplus` in `test_multi_node_solar.c:221`
-
-### SolarStopTimer does not restart when already running
-
-**Requirement:** `REQ-MULTI-SOL-006`
-
-- **Given** Master with 2 EVSEs in solar mode, SolarStopTimer already at 300
-- **When** evse_calc_balanced_current is called again with shortage
-- **Then** SolarStopTimer retains its existing value (not reset to StopTime*60)
-
-> Test: `test_solar_multi_node_timer_no_restart` in `test_multi_node_solar.c:250`
-
-### Solar surplus returns: SolarStopTimer clears
-
-**Requirement:** `REQ-MULTI-SOL-007`
-
-- **Given** Master with 2 EVSEs in solar mode, SolarStopTimer running at 300
-- **When** surplus returns (no shortage) and evse_calc_balanced_current is called
-- **Then** SolarStopTimer is reset to 0
-
-> Test: `test_solar_multi_node_surplus_clears_timer` in `test_multi_node_solar.c:272`
-
-### SolarStopTimer suppressed during startup settling
-
-**Requirement:** `REQ-MULTI-SOL-008`
-
-- **Given** Master with 2 EVSEs, Node[0].IntTimer < SOLARSTARTTIME (in startup)
-- **When** evse_calc_balanced_current is called with shortage
-- **Then** SolarStopTimer remains 0 (suppressed during startup)
-
-> Test: `test_solar_multi_node_timer_suppressed_startup` in `test_multi_node_solar.c:295`
-
-### SolarStopTimer threshold is per-EVSE: just below threshold, timer does not start
-
-**Requirement:** `REQ-MULTI-SOL-008B`
-
-- **Given** Master with 2 EVSEs in solar mode, Isum just below single-EVSE threshold
-- **When** evse_calc_balanced_current is called
-- **Then** SolarStopTimer stays 0 (stopping last car would cause immediate restart)
-
-> Test: `test_solar_multi_node_timer_below_threshold_no_start` in `test_multi_node_solar.c:317`
-
-### SolarStopTimer threshold is per-EVSE: just above threshold, timer starts
-
-**Requirement:** `REQ-MULTI-SOL-008C`
-
-- **Given** Master with 2 EVSEs in solar mode, Isum just above single-EVSE threshold
-- **When** evse_calc_balanced_current is called
-- **Then** SolarStopTimer starts (not enough solar for even one car)
-
-> Test: `test_solar_multi_node_timer_above_threshold_starts` in `test_multi_node_solar.c:342`
-
-### Solar mode produces different distribution than Normal mode
-
-**Requirement:** `REQ-MULTI-SOL-009`
-
-- **Given** Master with 2 EVSEs in STATE_C, same grid conditions
-- **When** evse_calc_balanced_current is called in Normal mode vs Solar mode
-- **Then** Solar mode distributes based on surplus; Normal mode distributes based on MaxCircuit
-
-> Test: `test_solar_vs_normal_distribution_differs` in `test_multi_node_solar.c:371`
-
-### Smart mode produces different distribution than Solar mode under same conditions
-
-**Requirement:** `REQ-MULTI-SOL-010`
-
-- **Given** Master with 2 EVSEs in STATE_C, grid importing 10A
-- **When** evse_calc_balanced_current is called in Smart mode vs Solar mode
-- **Then** Smart mode uses MaxMains regulation; Solar mode uses surplus regulation
-
-> Test: `test_solar_vs_smart_distribution_differs` in `test_multi_node_solar.c:410`
-
-### Node goes offline during solar shortage
-
-**Requirement:** `REQ-MULTI-SOL-011`
-
-- **Given** Master with 3 EVSEs in solar mode with shortage, SolarStopTimer running
-- **When** Node 2 goes offline (STATE_A) and current is recalculated
-- **Then** Fewer active EVSEs means less MinCurrent demand; may resolve shortage
-
-> Test: `test_solar_multi_node_offline_during_shortage` in `test_multi_node_solar.c:452`
-
-### Solar mode with ImportCurrent allows some grid import
-
-**Requirement:** `REQ-MULTI-SOL-012`
-
-- **Given** Master with 2 EVSEs in solar mode, ImportCurrent=6A, grid importing 5A
-- **When** evse_calc_balanced_current is called
-- **Then** ImportCurrent tolerance means 5A import is acceptable; no shortage
-
-> Test: `test_solar_multi_node_import_current_tolerance` in `test_multi_node_solar.c:489`
-
-### NoCurrent threshold eventually triggers LESS_6A in multi-node solar
-
-**Requirement:** `REQ-MULTI-SOL-013`
-
-- **Given** Master with 2 EVSEs in solar mode, repeated hard shortage cycles
-- **When** evse_calc_balanced_current is called multiple times with NoCurrent accumulating
-- **Then** After NoCurrent reaches threshold, LESS_6A error flag is set
-
-> Test: `test_solar_multi_node_nocurrent_threshold` in `test_multi_node_solar.c:514`
-
-### Sufficient solar but tight capacity headroom forces shortage
-
-**Requirement:** `REQ-MULTI-SOL-014`
-
-- **Given** Master with 2 EVSEs in solar mode, grid exporting (solar surplus),
-- **When** evse_calc_balanced_current is called
-- **Then** IsetBalanced is capped by headroom, shortage detected, priority scheduling runs
-
-> Test: `test_solar_capacity_surplus_but_headroom_tight` in `test_multi_node_solar.c:551`
-
-### No solar AND tight capacity: both constraints active
-
-**Requirement:** `REQ-MULTI-SOL-015`
-
-- **Given** Master with 2 EVSEs in solar mode, grid importing 20A,
-- **When** evse_calc_balanced_current is called
-- **Then** Shortage detected via both solar regulation AND capacity headroom
-
-> Test: `test_solar_capacity_no_surplus_tight_headroom` in `test_multi_node_solar.c:587`
-
-### Capacity headroom disabled (0) has no effect on solar logic
-
-**Requirement:** `REQ-MULTI-SOL-016`
-
-- **Given** Master with 2 EVSEs in solar mode, CapacityHeadroom_da = INT16_MAX (disabled)
-- **When** evse_calc_balanced_current is called with solar surplus
-- **Then** Capacity does not constrain charging; both EVSEs charge normally
-
-> Test: `test_solar_capacity_disabled_no_effect` in `test_multi_node_solar.c:614`
-
-### Capacity headroom negative: power budget exceeded, forces immediate shortage
-
-**Requirement:** `REQ-MULTI-SOL-017`
-
-- **Given** Master with 2 EVSEs in solar mode, CapacityHeadroom_da = -50 (over budget)
-- **When** evse_calc_balanced_current is called even with solar surplus
-- **Then** Shortage detected due to capacity (IsetBalanced capped very low)
-
-> Test: `test_solar_capacity_negative_headroom` in `test_multi_node_solar.c:640`
-
-### SolarStopTimer expiry transitions STATE_C to STATE_C1 (power pause)
-
-**Requirement:** `REQ-MULTI-SOL-018`
-
-- **Given** EVSE in STATE_C, SolarStopTimer about to expire
-- **When** evse_tick_1s decrements SolarStopTimer to 0
-- **Then** State transitions to STATE_C1 (power paused), LESS_6A set
-
-> Test: `test_solar_stop_pauses_power_not_session` in `test_multi_node_solar.c:681`
-
-### LESS_6A clears when solar returns (auto-recovery)
-
-**Requirement:** `REQ-MULTI-SOL-019`
-
-- **Given** EVSE with LESS_6A set, solar surplus returns (Isum negative)
-- **When** evse_tick_1s checks evse_is_current_available
-- **Then** LESS_6A is cleared, allowing state machine to resume charging
-
-> Test: `test_solar_return_clears_less6a` in `test_multi_node_solar.c:708`
-
-### Full solar pause/resume cycle preserves AccessStatus
-
-**Requirement:** `REQ-MULTI-SOL-020`
-
-- **Given** EVSE in STATE_C charging, SolarStopTimer expires
-- **When** State goes C→C1 and C1Timer counts down to B1
-- **Then** AccessStatus stays ON throughout (OCPP tx survives the pause)
-
-> Test: `test_solar_full_pause_cycle_preserves_access` in `test_multi_node_solar.c:735`
-
----
-
 ## OCPP Current Limiting
 
 ### OCPP current limit exactly at MinCurrent boundary is accepted
@@ -7982,95 +7343,55 @@
 
 > Test: `test_should_not_clear_access_when_paused` in `test_ocpp_auth.c:162`
 
-### FreeVend + Solar mode with NO_SUN defers Access_bit
-
-**Requirement:** `REQ-OCPP-028`
-
-- **Given** Mode is Solar, ErrorFlags has NO_SUN set, ChargeDelay=0
-- **When** ocpp_should_defer_access is called
-- **Then** Returns true because Solar mode has no surplus available
-
-> Test: `test_defer_access_solar_no_sun` in `test_ocpp_auth.c:176`
-
-### FreeVend + Solar mode without NO_SUN does not defer
-
-**Requirement:** `REQ-OCPP-028`
-
-- **Given** Mode is Solar, ErrorFlags is clear (surplus available), ChargeDelay=0
-- **When** ocpp_should_defer_access is called
-- **Then** Returns false because solar surplus is available
-
-> Test: `test_no_defer_access_solar_with_surplus` in `test_ocpp_auth.c:188`
-
 ### FreeVend + ChargeDelay active defers Access_bit
 
 **Requirement:** `REQ-OCPP-029`
 
-- **Given** Mode is Normal, ChargeDelay=60 (delay active), ErrorFlags clear
+- **Given** Mode is Normal, ChargeDelay=60 (delay active)
 - **When** ocpp_should_defer_access is called
 - **Then** Returns true because ChargeDelay is active
 
-> Test: `test_defer_access_charge_delay_active` in `test_ocpp_auth.c:200`
+> Test: `test_defer_access_charge_delay_active` in `test_ocpp_auth.c:176`
 
 ### FreeVend + ChargeDelay=0 does not defer in Normal mode
 
 **Requirement:** `REQ-OCPP-029`
 
-- **Given** Mode is Normal, ChargeDelay=0, ErrorFlags clear
+- **Given** Mode is Normal, ChargeDelay=0
 - **When** ocpp_should_defer_access is called
 - **Then** Returns false because no deferral conditions are met
 
-> Test: `test_no_defer_access_normal_no_delay` in `test_ocpp_auth.c:212`
-
-### FreeVend + Solar mode with ChargeDelay defers (both conditions)
-
-**Requirement:** `REQ-OCPP-028`
-
-- **Given** Mode is Solar, ChargeDelay=30, ErrorFlags has NO_SUN
-- **When** ocpp_should_defer_access is called
-- **Then** Returns true because both Solar/NO_SUN and ChargeDelay trigger deferral
-
-> Test: `test_defer_access_solar_delay_and_no_sun` in `test_ocpp_auth.c:224`
+> Test: `test_no_defer_access_normal_no_delay` in `test_ocpp_auth.c:188`
 
 ### Smart mode with ChargeDelay defers Access_bit
 
 **Requirement:** `REQ-OCPP-029`
 
-- **Given** Mode is Smart, ChargeDelay=10, ErrorFlags clear
+- **Given** Mode is Smart, ChargeDelay=10
 - **When** ocpp_should_defer_access is called
 - **Then** Returns true because ChargeDelay is active regardless of mode
 
-> Test: `test_defer_access_smart_with_delay` in `test_ocpp_auth.c:236`
+> Test: `test_defer_access_smart_with_delay` in `test_ocpp_auth.c:200`
 
-### Smart mode without delay or errors does not defer
+### Smart mode without delay does not defer
 
 **Requirement:** `REQ-OCPP-028`
 
-- **Given** Mode is Smart, ChargeDelay=0, ErrorFlags clear
+- **Given** Mode is Smart, ChargeDelay=0
 - **When** ocpp_should_defer_access is called
 - **Then** Returns false because Smart mode without ChargeDelay has no deferral
 
-> Test: `test_no_defer_access_smart_no_delay` in `test_ocpp_auth.c:248`
-
-### Normal mode with NO_SUN error does not defer (only Solar checks NO_SUN)
-
-**Requirement:** `REQ-OCPP-028`
-
-- **Given** Mode is Normal, ErrorFlags has NO_SUN, ChargeDelay=0
-- **When** ocpp_should_defer_access is called
-- **Then** Returns false because NO_SUN deferral only applies in Solar mode
-
-> Test: `test_no_defer_access_normal_with_no_sun` in `test_ocpp_auth.c:260`
+> Test: `test_no_defer_access_smart_no_delay` in `test_ocpp_auth.c:212`
 
 ### Invalid mode value does not defer access (safe default)
 
 **Requirement:** `REQ-OCPP-096`
 
-- **Given** Mode is 255 (out-of-range), ChargeDelay=0, ErrorFlags has NO_SUN
+- **Given** Mode is 255 (out-of-range), ChargeDelay=0
 - **When** ocpp_should_defer_access is called
 - **Then** Returns false because invalid modes should not defer (safe default)
 
-> Test: `test_defer_access_invalid_mode_returns_false` in `test_ocpp_auth.c:272`
+> Test: `test_defer_access_invalid_mode_returns_false` in `test_ocpp_auth.c:224`
 
 ---
 
@@ -9403,26 +8724,6 @@
 
 ## Phase Switching
 
-### AUTO + SOLAR: no switch needed when already at correct phase count
-
-**Requirement:** `REQ-PHASE-003`
-
-- **Given** The EVSE is in STATE_B with EnableC2=AUTO, MODE_SOLAR, and various phase counts
-- **When** evse_check_switching_phases is called
-- **Then** Switching_Phases_C2 is NO_SWITCH when already at the correct phase count
-
-> Test: `test_check_auto_solar_forces_1p` in `test_phase_switching.c:1`
-
-### AUTO + SOLAR already on 1 phase results in NO_SWITCH
-
-**Requirement:** `REQ-PHASE-004`
-
-- **Given** The EVSE is in STATE_B with EnableC2=AUTO, MODE_SOLAR, and 1 phase
-- **When** evse_check_switching_phases is called
-- **Then** Switching_Phases_C2 is NO_SWITCH (already single phase)
-
-> Test: `test_check_auto_solar_already_1p` in `test_phase_switching.c:52`
-
 ### AUTO + SMART forces 3-phase when currently on 1 phase
 
 **Requirement:** `REQ-PHASE-005`
@@ -9431,7 +8732,7 @@
 - **When** evse_check_switching_phases is called
 - **Then** Switching_Phases_C2 is set to GOING_TO_SWITCH_3P
 
-> Test: `test_check_auto_smart_forces_3p` in `test_phase_switching.c:73`
+> Test: `test_check_auto_smart_forces_3p` in `test_phase_switching.c:1`
 
 ### AUTO + SMART already on 3 phases results in NO_SWITCH
 
@@ -9441,7 +8742,7 @@
 - **When** evse_check_switching_phases is called
 - **Then** Switching_Phases_C2 is NO_SWITCH (already three phase)
 
-> Test: `test_check_auto_smart_already_3p` in `test_phase_switching.c:94`
+> Test: `test_check_auto_smart_already_3p` in `test_phase_switching.c:44`
 
 ### ALWAYS_OFF in STATE_A sets Nr_Of_Phases_Charging directly to 1
 
@@ -9451,7 +8752,7 @@
 - **When** evse_check_switching_phases is called
 - **Then** Nr_Of_Phases_Charging is set directly to 1 (no deferred switch needed)
 
-> Test: `test_check_always_off_in_state_a` in `test_phase_switching.c:115`
+> Test: `test_check_always_off_in_state_a` in `test_phase_switching.c:65`
 
 ### ALWAYS_OFF in STATE_B sets deferred switching flag to 1P
 
@@ -9461,27 +8762,17 @@
 - **When** evse_check_switching_phases is called
 - **Then** Switching_Phases_C2 is set to GOING_TO_SWITCH_1P (deferred until STATE_C entry)
 
-> Test: `test_check_always_off_in_state_b` in `test_phase_switching.c:136`
+> Test: `test_check_always_off_in_state_b` in `test_phase_switching.c:86`
 
-### SOLAR_OFF + SMART forces 3-phase charging
+### RESERVED_C2_2 forces 3-phase charging regardless of mode
 
 **Requirement:** `REQ-PHASE-009`
 
-- **Given** The EVSE is in STATE_B with EnableC2=SOLAR_OFF, MODE_SMART, and 1 phase
+- **Given** The EVSE is in STATE_B with EnableC2=RESERVED_C2_2 (Solar mode removed) and 1 phase
 - **When** evse_check_switching_phases is called
 - **Then** Switching_Phases_C2 is set to GOING_TO_SWITCH_3P
 
-> Test: `test_check_solar_off_smart_3p` in `test_phase_switching.c:156`
-
-### SOLAR_OFF + SOLAR forces 1-phase charging
-
-**Requirement:** `REQ-PHASE-010`
-
-- **Given** The EVSE is in STATE_B with EnableC2=SOLAR_OFF, MODE_SOLAR, and 3 phases
-- **When** evse_check_switching_phases is called
-- **Then** Switching_Phases_C2 is set to GOING_TO_SWITCH_1P
-
-> Test: `test_check_solar_off_solar_1p` in `test_phase_switching.c:178`
+> Test: `test_check_reserved_c2_2_forces_3p` in `test_phase_switching.c:106`
 
 ### STATE_C entry applies deferred 1P switch and opens contactor 2
 
@@ -9491,7 +8782,7 @@
 - **When** The state is set to STATE_C
 - **Then** Nr_Of_Phases_Charging is 1 and contactor2 is off (open)
 
-> Test: `test_state_c_applies_1p_switch` in `test_phase_switching.c:199`
+> Test: `test_state_c_applies_1p_switch` in `test_phase_switching.c:128`
 
 ### STATE_C entry applies deferred 3P switch and closes contactor 2
 
@@ -9501,7 +8792,7 @@
 - **When** The state is set to STATE_C
 - **Then** Nr_Of_Phases_Charging is 3 and contactor2 is on (closed)
 
-> Test: `test_state_c_applies_3p_switch` in `test_phase_switching.c:220`
+> Test: `test_state_c_applies_3p_switch` in `test_phase_switching.c:149`
 
 ### STATE_C entry resets Switching_Phases_C2 to NO_SWITCH
 
@@ -9511,107 +8802,7 @@
 - **When** The state is set to STATE_C
 - **Then** Switching_Phases_C2 is reset to NO_SWITCH
 
-> Test: `test_state_c_resets_switching` in `test_phase_switching.c:241`
-
-### Full 3P to 1P to 3P phase switching cycle in solar mode
-
-**Requirement:** `REQ-PHASE-014`
-
-- **Given** The EVSE is solar charging on 3 phases with EnableC2=AUTO
-- **When** Solar shortage triggers 3P->1P switch, then surplus triggers 1P->3P switch
-- **Then** The EVSE correctly switches from 3P to 1P and back to 3P with proper contactor and flag states
-
-> Test: `test_full_3p_1p_3p_cycle` in `test_phase_switching.c:259`
-
-### Severe solar shortage uses short PhaseSwitchTimer
-
-**Requirement:** `REQ-PH-015`
-
-- **Given** The EVSE is solar charging on 3P with severe shortage (IsumImport >= MinCurrent*10)
-- **When** evse_calc_balanced_current is called
-- **Then** PhaseSwitchTimer is set to PhaseSwitchSevereTime (30s default)
-
-> Test: `test_severe_shortage_uses_short_timer` in `test_phase_switching.c:357`
-
-### Mild solar shortage uses long PhaseSwitchTimer (StopTime-based)
-
-**Requirement:** `REQ-PH-016`
-
-- **Given** The EVSE is solar charging on 3P with mild shortage (0 < IsumImport < MinCurrent*10)
-- **When** evse_calc_balanced_current is called
-- **Then** PhaseSwitchTimer is set to StopTime*60 (600s default)
-
-> Test: `test_mild_shortage_uses_long_timer` in `test_phase_switching.c:379`
-
-### PhaseSwitchTimer reaching <=2 triggers 3P to 1P switch
-
-**Requirement:** `REQ-PH-017`
-
-- **Given** The EVSE is solar charging on 3P with PhaseSwitchTimer=2 and ongoing shortage
-- **When** evse_calc_balanced_current is called
-- **Then** Switching_Phases_C2 is set to GOING_TO_SWITCH_1P
-
-> Test: `test_phase_switch_timer_triggers_1p` in `test_phase_switching.c:399`
-
-### Switching from 3P to 1P starts the hold-down counter
-
-**Requirement:** `REQ-PH-018`
-
-- **Given** The EVSE is solar charging on 3P with PhaseSwitchTimer about to trigger
-- **When** The 3P→1P switch is triggered (PhaseSwitchTimer<=2)
-- **Then** PhaseSwitchHoldDown is set to PhaseSwitchHoldDownTime
-
-> Test: `test_3p_to_1p_starts_holddown` in `test_phase_switching.c:418`
-
-### Hold-down counter prevents premature 1P to 3P upgrade
-
-**Requirement:** `REQ-PH-019`
-
-- **Given** The EVSE is solar charging on 1P with sufficient surplus but PhaseSwitchHoldDown > 0
-- **When** evse_calc_balanced_current is called
-- **Then** PhaseSwitchTimer stays 0 and Switching_Phases_C2 stays NO_SWITCH (upgrade blocked)
-
-> Test: `test_holddown_prevents_3p_upgrade` in `test_phase_switching.c:439`
-
-### Hold-down expired allows 1P to 3P upgrade to proceed
-
-**Requirement:** `REQ-PH-020`
-
-- **Given** The EVSE is solar charging on 1P with sufficient surplus and PhaseSwitchHoldDown=0
-- **When** evse_calc_balanced_current is called
-- **Then** PhaseSwitchTimer starts countdown for 3P upgrade
-
-> Test: `test_holddown_expired_allows_upgrade` in `test_phase_switching.c:464`
-
-### PhaseSwitchTimer is independent of SolarStopTimer
-
-**Requirement:** `REQ-PH-021`
-
-- **Given** PhaseSwitchTimer and SolarStopTimer are at different values
-- **When** evse_calc_balanced_current triggers a phase switch timer
-- **Then** Only PhaseSwitchTimer changes, SolarStopTimer is unaffected
-
-> Test: `test_phase_timer_independent_of_solar_stop` in `test_phase_switching.c:488`
-
-### PhaseSwitchTimer counts down each second in tick_1s
-
-**Requirement:** `REQ-PH-022`
-
-- **Given** PhaseSwitchTimer=10 and PhaseSwitchHoldDown=5
-- **When** evse_tick_1s is called
-- **Then** PhaseSwitchTimer decrements to 9 and PhaseSwitchHoldDown decrements to 4
-
-> Test: `test_phase_timer_countdown_in_tick_1s` in `test_phase_switching.c:509`
-
-### Phase switching timer fields initialized correctly by evse_init
-
-**Requirement:** `REQ-PH-023`
-
-- **Given** A freshly initialized EVSE context
-- **When** evse_init is called
-- **Then** PhaseSwitchHoldDownTime and PhaseSwitchSevereTime have correct defaults
-
-> Test: `test_phase_timer_defaults` in `test_phase_switching.c:529`
+> Test: `test_state_c_resets_switching` in `test_phase_switching.c:170`
 
 ### Phase switch completion resets IntTimer for startup protection
 
@@ -9621,7 +8812,7 @@
 - **When** STATE_C is entered with Switching_Phases_C2 = GOING_TO_SWITCH_1P
 - **Then** Node[0].IntTimer is reset to 0 (new startup period begins)
 
-> Test: `test_phase_switch_resets_inttimer` in `test_phase_switching.c:550`
+> Test: `test_phase_switch_resets_inttimer` in `test_phase_switching.c:190`
 
 ### 3P upgrade also resets IntTimer
 
@@ -9631,7 +8822,7 @@
 - **When** STATE_C is entered with Switching_Phases_C2 = GOING_TO_SWITCH_3P
 - **Then** Node[0].IntTimer is reset to 0
 
-> Test: `test_3p_upgrade_resets_inttimer` in `test_phase_switching.c:571`
+> Test: `test_3p_upgrade_resets_inttimer` in `test_phase_switching.c:211`
 
 ### Normal STATE_C entry (no phase switch) does not reset IntTimer
 
@@ -9641,27 +8832,7 @@
 - **When** evse_set_state is called with STATE_C
 - **Then** Node[0].IntTimer is NOT reset (keeps previous value)
 
-> Test: `test_no_switch_preserves_inttimer` in `test_phase_switching.c:592`
-
-### SolarStopTimer suppressed during startup period after phase switch
-
-**Requirement:** `REQ-PH-027`
-
-- **Given** The EVSE just completed a phase switch (IntTimer=5, < SOLARSTARTTIME)
-- **When** evse_calc_balanced_current detects a shortage in solar mode
-- **Then** SolarStopTimer is NOT started (suppressed during startup settling)
-
-> Test: `test_solar_stop_suppressed_during_startup` in `test_phase_switching.c:612`
-
-### SolarStopTimer allowed after startup period
-
-**Requirement:** `REQ-PH-028`
-
-- **Given** The EVSE is past startup (IntTimer > SOLARSTARTTIME) with shortage
-- **When** evse_calc_balanced_current detects a shortage in solar mode
-- **Then** SolarStopTimer IS started (startup protection expired)
-
-> Test: `test_solar_stop_allowed_after_startup` in `test_phase_switching.c:632`
+> Test: `test_no_switch_preserves_inttimer` in `test_phase_switching.c:232`
 
 ---
 
@@ -9799,7 +8970,7 @@
 - **When** evse_is_current_available is called
 - **Then** Returns 1 (available) because Normal mode ignores mains measurements
 
-> Test: `test_normal_mode_available_with_high_load` in `test_power_availability.c:45`
+> Test: `test_normal_mode_available_with_high_load` in `test_power_availability.c:44`
 
 ### Smart mode allows current when mains load plus MinCurrent is under MaxMains
 
@@ -9809,7 +8980,7 @@
 - **When** evse_is_current_available is called
 - **Then** Returns 1 (available) because baseload (10A) + MinCurrent (6A) = 16A < MaxMains (25A)
 
-> Test: `test_smart_maxmains_allows_under_limit` in `test_power_availability.c:62`
+> Test: `test_smart_maxmains_allows_under_limit` in `test_power_availability.c:61`
 
 ### Smart mode blocks current when mains load plus MinCurrent exceeds MaxMains
 
@@ -9819,7 +8990,7 @@
 - **When** evse_is_current_available is called
 - **Then** Returns 0 (unavailable) because baseload (20A) + MinCurrent (6A) = 26A > MaxMains (10A)
 
-> Test: `test_smart_maxmains_blocks_over_limit` in `test_power_availability.c:80`
+> Test: `test_smart_maxmains_blocks_over_limit` in `test_power_availability.c:79`
 
 ### Smart mode allows current when circuit load is under MaxCircuit limit
 
@@ -9829,7 +9000,7 @@
 - **When** evse_is_current_available is called
 - **Then** Returns 1 (available) because circuit load (5A) + MinCurrent (6A) is under MaxCircuit
 
-> Test: `test_smart_maxcircuit_allows_under_limit` in `test_power_availability.c:101`
+> Test: `test_smart_maxcircuit_allows_under_limit` in `test_power_availability.c:100`
 
 ### Smart mode blocks current when circuit load exceeds MaxCircuit limit
 
@@ -9839,7 +9010,7 @@
 - **When** evse_is_current_available is called
 - **Then** Returns 0 (unavailable) because circuit load (10A) already exceeds MaxCircuit (8A)
 
-> Test: `test_smart_maxcircuit_blocks_over_limit` in `test_power_availability.c:121`
+> Test: `test_smart_maxcircuit_blocks_over_limit` in `test_power_availability.c:120`
 
 ### MaxSumMains allows current when sum of phase currents is under limit
 
@@ -9849,7 +9020,7 @@
 - **When** evse_is_current_available is called
 - **Then** Returns 1 (available) because Isum plus MinCurrent is under MaxSumMains limit
 
-> Test: `test_maxsummains_allows_under_limit` in `test_power_availability.c:143`
+> Test: `test_maxsummains_allows_under_limit` in `test_power_availability.c:142`
 
 ### MaxSumMains blocks current when sum of phase currents exceeds limit
 
@@ -9859,7 +9030,7 @@
 - **When** evse_is_current_available is called
 - **Then** Returns 0 (unavailable) because total phase current sum exceeds MaxSumMains
 
-> Test: `test_maxsummains_blocks_over_limit` in `test_power_availability.c:162`
+> Test: `test_maxsummains_blocks_over_limit` in `test_power_availability.c:161`
 
 ### MaxSumMains=0 disables the sum-of-mains check entirely
 
@@ -9869,47 +9040,7 @@
 - **When** evse_is_current_available is called
 - **Then** Returns 1 (available) because MaxSumMains=0 means the check is skipped
 
-> Test: `test_maxsummains_zero_disables_check` in `test_power_availability.c:182`
-
-### Solar mode blocks current when no surplus is available
-
-**Requirement:** `REQ-PWR-010`
-
-- **Given** EVSE is in Solar mode with StartCurrent=6A and Isum=0 (no export)
-- **When** evse_is_current_available is called
-- **Then** Returns 0 (unavailable) because there is no solar surplus for charging
-
-> Test: `test_solar_no_surplus_blocks` in `test_power_availability.c:203`
-
-### Solar mode allows current when surplus exceeds StartCurrent
-
-**Requirement:** `REQ-PWR-011`
-
-- **Given** EVSE is in Solar mode with StartCurrent=6A and Isum=-80 (8A export surplus)
-- **When** evse_is_current_available is called
-- **Then** Returns 1 (available) because 8A surplus exceeds 6A StartCurrent threshold
-
-> Test: `test_solar_surplus_allows` in `test_power_availability.c:220`
-
-### Solar mode blocks current when surplus is below StartCurrent threshold
-
-**Requirement:** `REQ-PWR-012`
-
-- **Given** EVSE is in Solar mode with StartCurrent=10A and Isum=-80 (only 8A surplus)
-- **When** evse_is_current_available is called
-- **Then** Returns 0 (unavailable) because 8A surplus is below the 10A StartCurrent threshold
-
-> Test: `test_solar_insufficient_surplus_blocks` in `test_power_availability.c:237`
-
-### Solar mode with active EVSE checks fair share before allowing more
-
-**Requirement:** `REQ-PWR-013`
-
-- **Given** EVSE is in Solar mode with one active EVSE at MinCurrent and Isum=10 (1A import)
-- **When** evse_is_current_available is called
-- **Then** Returns 0 (unavailable) because grid import indicates insufficient surplus for another EVSE
-
-> Test: `test_solar_with_active_evse_checks_fair_share` in `test_power_availability.c:254`
+> Test: `test_maxsummains_zero_disables_check` in `test_power_availability.c:181`
 
 ### OCPP limit below MinCurrent blocks power availability
 
@@ -9919,7 +9050,7 @@
 - **When** evse_is_current_available is called
 - **Then** Returns 0 (unavailable) because OCPP limit is below the minimum viable charge current
 
-> Test: `test_ocpp_limit_blocks_when_below_min` in `test_power_availability.c:280`
+> Test: `test_ocpp_limit_blocks_when_below_min` in `test_power_availability.c:202`
 
 ### OCPP limit above MinCurrent allows power availability
 
@@ -9929,7 +9060,7 @@
 - **When** evse_is_current_available is called
 - **Then** Returns 1 (available) because OCPP limit is above the minimum viable charge current
 
-> Test: `test_ocpp_limit_allows_when_above_min` in `test_power_availability.c:297`
+> Test: `test_ocpp_limit_allows_when_above_min` in `test_power_availability.c:219`
 
 ### OCPP negative limit (no limit set) allows power availability
 
@@ -9939,7 +9070,7 @@
 - **When** evse_is_current_available is called
 - **Then** Returns 1 (available) because negative OCPP limit means no restriction
 
-> Test: `test_ocpp_no_limit_allows` in `test_power_availability.c:314`
+> Test: `test_ocpp_no_limit_allows` in `test_power_availability.c:236`
 
 ### OCPP availability check is skipped for non-standalone configurations
 
@@ -9949,7 +9080,7 @@
 - **When** evse_is_current_available is called
 - **Then** Returns 1 (available) because OCPP check requires LoadBl=0 (standalone)
 
-> Test: `test_ocpp_check_only_for_standalone` in `test_power_availability.c:330`
+> Test: `test_ocpp_check_only_for_standalone` in `test_power_availability.c:252`
 
 ### PWM duty cycle conversion for 6A (minimum charge current)
 
@@ -9959,7 +9090,7 @@
 - **When** evse_current_to_duty is called
 - **Then** Returns 102 as the PWM duty cycle value (60/0.6 * 1024/1000)
 
-> Test: `test_current_to_duty_6A` in `test_power_availability.c:350`
+> Test: `test_current_to_duty_6A` in `test_power_availability.c:272`
 
 ### PWM duty cycle conversion for 16A (common residential limit)
 
@@ -9969,7 +9100,7 @@
 - **When** evse_current_to_duty is called
 - **Then** Returns a duty cycle value between 100 and 600 (low-range formula)
 
-> Test: `test_current_to_duty_16A` in `test_power_availability.c:364`
+> Test: `test_current_to_duty_16A` in `test_power_availability.c:286`
 
 ### PWM duty cycle conversion for 51A (upper boundary of low-range formula)
 
@@ -9979,7 +9110,7 @@
 - **When** evse_current_to_duty is called
 - **Then** Returns a duty cycle value between 800 and 1000 (near top of low-range)
 
-> Test: `test_current_to_duty_51A` in `test_power_availability.c:378`
+> Test: `test_current_to_duty_51A` in `test_power_availability.c:300`
 
 ### PWM duty cycle conversion for 60A (high-range formula)
 
@@ -9989,7 +9120,7 @@
 - **When** evse_current_to_duty is called
 - **Then** Returns a duty cycle value between 850 and 1000 (high-range formula: current/2.5 + 640)
 
-> Test: `test_current_to_duty_high_range` in `test_power_availability.c:392`
+> Test: `test_current_to_duty_high_range` in `test_power_availability.c:314`
 
 ### PWM duty cycle conversion for 80A (near maximum charge current)
 
@@ -9999,7 +9130,7 @@
 - **When** evse_current_to_duty is called
 - **Then** Returns a duty cycle value between 950 and 1024 (near the top of the PWM range)
 
-> Test: `test_current_to_duty_80A` in `test_power_availability.c:406`
+> Test: `test_current_to_duty_80A` in `test_power_availability.c:328`
 
 ---
 
@@ -10158,16 +9289,6 @@
 
 > Test: `test_standalone_no_scheduling` in `test_scheduling.c:263`
 
-### Solar mode: paused EVSEs get NO_SUN error instead of LESS_6A
-
-**Requirement:** `REQ-LB-115`
-
-- **Given** Master with 2 EVSEs in STATE_C, Mode=MODE_SOLAR
-- **When** evse_calc_balanced_current(ctx, 0) is called
-- **Then** Balanced[1] == 0 and BalancedError[1] has NO_SUN set
-
-> Test: `test_solar_paused_gets_no_sun` in `test_scheduling.c:300`
-
 ### Capped EVSE surplus redistributed to uncapped ones
 
 **Requirement:** `REQ-LB-116`
@@ -10176,7 +9297,7 @@
 - **When** evse_calc_balanced_current(ctx, 0) is called
 - **Then** Balanced[1] == 80 (capped) and Balanced[0] + Balanced[2] == 160
 
-> Test: `test_capped_surplus_redistribution` in `test_scheduling.c:337`
+> Test: `test_capped_surplus_redistribution` in `test_scheduling.c:300`
 
 ### Power exactly equals MinCurrent for 1 EVSE
 
@@ -10186,7 +9307,7 @@
 - **When** evse_calc_balanced_current(ctx, 0) is called
 - **Then** Exactly 1 EVSE has Balanced >= 60, exactly 2 have Balanced == 0
 
-> Test: `test_exactly_one_mincurrent` in `test_scheduling.c:363`
+> Test: `test_exactly_one_mincurrent` in `test_scheduling.c:326`
 
 ### Zero available power pauses all EVSEs
 
@@ -10196,7 +9317,7 @@
 - **When** evse_calc_balanced_current(ctx, 0) is called
 - **Then** All Balanced[] == 0, all paused, NoCurrent increments
 
-> Test: `test_zero_power_pauses_all` in `test_scheduling.c:394`
+> Test: `test_zero_power_pauses_all` in `test_scheduling.c:357`
 
 ### NoCurrent does NOT increment when priority scheduling pauses some EVSEs
 
@@ -10206,7 +9327,7 @@
 - **When** evse_calc_balanced_current(ctx, 0) is called
 - **Then** NoCurrent == 0, EVSE[0] is charging
 
-> Test: `test_no_current_not_incremented_on_deliberate_pause` in `test_scheduling.c:422`
+> Test: `test_no_current_not_incremented_on_deliberate_pause` in `test_scheduling.c:385`
 
 ### EVSE drawing <1A when IdleTimer expires gets paused
 
@@ -10216,7 +9337,7 @@
 - **When** evse_schedule_tick_1s() is called
 - **Then** EVSE[0] paused, EVSE[1] activated with IdleTimer[1] = 0
 
-> Test: `test_idle_evse_paused_at_timeout` in `test_scheduling.c:450`
+> Test: `test_idle_evse_paused_at_timeout` in `test_scheduling.c:413`
 
 ### EVSE not paused before IdleTimeout expires (anti-flap)
 
@@ -10226,7 +9347,7 @@
 - **When** evse_schedule_tick_1s() is called
 - **Then** EVSE[0] remains active
 
-> Test: `test_antiflap_not_paused_early` in `test_scheduling.c:479`
+> Test: `test_antiflap_not_paused_early` in `test_scheduling.c:442`
 
 ### EVSE drawing power when IdleTimer expires stays active
 
@@ -10236,7 +9357,7 @@
 - **When** evse_schedule_tick_1s() is called
 - **Then** EVSE[0] stays active, RotationTimer starts if RotationInterval > 0
 
-> Test: `test_charging_evse_stays_active` in `test_scheduling.c:505`
+> Test: `test_charging_evse_stays_active` in `test_scheduling.c:468`
 
 ### Full idle cycle: all EVSEs tried, recircle to first
 
@@ -10246,7 +9367,7 @@
 - **When** evse_schedule_tick_1s() is called
 - **Then** EVSE[2] paused, EVSE[0] reactivated (wraps around)
 
-> Test: `test_idle_cycle_wraps_around` in `test_scheduling.c:534`
+> Test: `test_idle_cycle_wraps_around` in `test_scheduling.c:497`
 
 ### RotationTimer expiry pauses current EVSE and activates next
 
@@ -10256,7 +9377,7 @@
 - **When** evse_schedule_tick_1s() is called
 - **Then** EVSE[0] paused, EVSE[1] activated, RotationTimer reset to 1800
 
-> Test: `test_rotation_timer_expires` in `test_scheduling.c:567`
+> Test: `test_rotation_timer_expires` in `test_scheduling.c:530`
 
 ### RotationInterval=0 disables rotation entirely
 
@@ -10266,7 +9387,7 @@
 - **When** Checking ScheduleState
 - **Then** EVSE[0] still active (never rotated)
 
-> Test: `test_rotation_disabled` in `test_scheduling.c:598`
+> Test: `test_rotation_disabled` in `test_scheduling.c:561`
 
 ### Rotation wraps from last priority to first
 
@@ -10276,7 +9397,7 @@
 - **When** evse_schedule_tick_1s() is called
 - **Then** EVSE[2] paused, EVSE[0] activated
 
-> Test: `test_rotation_wraps_to_first` in `test_scheduling.c:628`
+> Test: `test_rotation_wraps_to_first` in `test_scheduling.c:591`
 
 ### Rotation skips disconnected EVSEs (STATE_A)
 
@@ -10286,7 +9407,7 @@
 - **When** evse_schedule_tick_1s() is called
 - **Then** EVSE[0] paused, EVSE[2] activated (EVSE[1] skipped)
 
-> Test: `test_rotation_skips_disconnected` in `test_scheduling.c:657`
+> Test: `test_rotation_skips_disconnected` in `test_scheduling.c:620`
 
 ### Newly activated EVSE gets idle check before rotation timer applies
 
@@ -10296,7 +9417,7 @@
 - **When** 60 seconds pass
 - **Then** EVSE[1] paused due to idle (not waiting for rotation)
 
-> Test: `test_idle_check_before_rotation` in `test_scheduling.c:687`
+> Test: `test_idle_check_before_rotation` in `test_scheduling.c:650`
 
 ### Power increases: paused EVSE reactivated immediately
 
@@ -10306,7 +9427,7 @@
 - **When** evse_calc_balanced_current(ctx, 0) is called with new power
 - **Then** EVSE[1] reactivated, IdleTimer reset
 
-> Test: `test_power_increase_reactivates` in `test_scheduling.c:723`
+> Test: `test_power_increase_reactivates` in `test_scheduling.c:686`
 
 ### Reactivation follows priority order
 
@@ -10316,7 +9437,7 @@
 - **When** evse_calc_balanced_current(ctx, 0) is called
 - **Then** EVSE[0] and EVSE[1] activated (not [0] and [2])
 
-> Test: `test_reactivation_follows_priority` in `test_scheduling.c:758`
+> Test: `test_reactivation_follows_priority` in `test_scheduling.c:721`
 
 ### Original bug: 2 EVSEs, power drops, only 1 stops (no oscillation)
 
@@ -10326,7 +9447,7 @@
 - **When** evse_calc_balanced_current(ctx, 0) is called
 - **Then** Exactly 1 EVSE continues, 1 paused, NoCurrent == 0
 
-> Test: `test_regression_no_oscillation` in `test_scheduling.c:790`
+> Test: `test_regression_no_oscillation` in `test_scheduling.c:753`
 
 ### 6 EVSEs, power for 5: lowest priority paused
 
@@ -10336,7 +9457,7 @@
 - **When** evse_calc_balanced_current(ctx, 0) is called
 - **Then** EVSEs [0]-[4] receive current, EVSE[5] paused
 
-> Test: `test_six_evse_lowest_paused` in `test_scheduling.c:820`
+> Test: `test_six_evse_lowest_paused` in `test_scheduling.c:783`
 
 ### Node goes offline: removed from scheduling
 
@@ -10346,7 +9467,7 @@
 - **When** evse_schedule_tick_1s() runs
 - **Then** EVSE[1] gets ScheduleState = SCHED_INACTIVE
 
-> Test: `test_offline_node_removed` in `test_scheduling.c:845`
+> Test: `test_offline_node_removed` in `test_scheduling.c:808`
 
 ### New EVSE join during shortage doesn't displace active ones
 
@@ -10356,7 +9477,7 @@
 - **When** evse_calc_balanced_current(ctx, 1) is called
 - **Then** EVSE[0] and EVSE[1] keep allocation, EVSE[2] gets 0
 
-> Test: `test_new_evse_doesnt_displace` in `test_scheduling.c:872`
+> Test: `test_new_evse_doesnt_displace` in `test_scheduling.c:835`
 
 ---
 
@@ -10380,7 +9501,7 @@
 - **When** serial_parse_irms is called
 - **Then** Negative values are parsed correctly
 
-> Test: `test_irms_negative_values` in `test_serial_parser.c:40`
+> Test: `test_irms_negative_values` in `test_serial_parser.c:39`
 
 ### Irms message with zero values
 
@@ -10390,7 +9511,7 @@
 - **When** serial_parse_irms is called
 - **Then** All values parsed as zero
 
-> Test: `test_irms_zero_values` in `test_serial_parser.c:57`
+> Test: `test_irms_zero_values` in `test_serial_parser.c:56`
 
 ### Irms message embedded in larger buffer with extra text
 
@@ -10400,7 +9521,7 @@
 - **When** serial_parse_irms is called
 - **Then** The Irms message is found and parsed correctly
 
-> Test: `test_irms_embedded_in_buffer` in `test_serial_parser.c:74`
+> Test: `test_irms_embedded_in_buffer` in `test_serial_parser.c:73`
 
 ### Valid power measurement with address 010
 
@@ -10410,7 +9531,7 @@
 - **When** serial_parse_power is called
 - **Then** Address is 10 and power is 500
 
-> Test: `test_power_valid` in `test_serial_parser.c:147`
+> Test: `test_power_valid` in `test_serial_parser.c:146`
 
 ### Power measurement with negative value (export)
 
@@ -10420,7 +9541,7 @@
 - **When** serial_parse_power is called
 - **Then** Negative power is parsed correctly
 
-> Test: `test_power_negative` in `test_serial_parser.c:162`
+> Test: `test_power_negative` in `test_serial_parser.c:161`
 
 ### Valid 16-byte node status with state B and no errors
 
@@ -10430,17 +9551,17 @@
 - **When** serial_parse_node_status is called
 - **Then** All fields parsed correctly
 
-> Test: `test_node_status_valid` in `test_serial_parser.c:220`
+> Test: `test_node_status_valid` in `test_serial_parser.c:219`
 
-### Node status with error flags and solar timer
+### Node status with error flags
 
 **Requirement:** `REQ-SERIAL-003`
 
-- **Given** A buffer with RCM_TRIPPED error and large solar timer
+- **Given** A buffer with RCM_TRIPPED error
 - **When** serial_parse_node_status is called
-- **Then** Error and solar timer are parsed correctly
+- **Then** Error is parsed correctly
 
-> Test: `test_node_status_error_and_timer` in `test_serial_parser.c:248`
+> Test: `test_node_status_error_and_timer` in `test_serial_parser.c:244`
 
 ### Node status with mode Smart and max current boundary
 
@@ -10450,7 +9571,7 @@
 - **When** serial_parse_node_status is called
 - **Then** Max current is 255 * 10 = 2550
 
-> Test: `test_node_status_max_current_boundary` in `test_serial_parser.c:276`
+> Test: `test_node_status_max_current_boundary` in `test_serial_parser.c:269`
 
 ---
 
@@ -10464,7 +9585,7 @@
 - **When** serial_parse_irms is called
 - **Then** Returns false
 
-> Test: `test_irms_missing_fields` in `test_serial_parser.c:91`
+> Test: `test_irms_missing_fields` in `test_serial_parser.c:90`
 
 ### Irms token not found in buffer
 
@@ -10474,7 +9595,7 @@
 - **When** serial_parse_irms is called
 - **Then** Returns false
 
-> Test: `test_irms_token_not_found` in `test_serial_parser.c:104`
+> Test: `test_irms_token_not_found` in `test_serial_parser.c:103`
 
 ### NULL buffer passed to Irms parser
 
@@ -10484,7 +9605,7 @@
 - **When** serial_parse_irms is called
 - **Then** Returns false without crashing
 
-> Test: `test_irms_null_buffer` in `test_serial_parser.c:117`
+> Test: `test_irms_null_buffer` in `test_serial_parser.c:116`
 
 ### Empty buffer passed to Irms parser
 
@@ -10494,7 +9615,7 @@
 - **When** serial_parse_irms is called
 - **Then** Returns false
 
-> Test: `test_irms_empty_buffer` in `test_serial_parser.c:130`
+> Test: `test_irms_empty_buffer` in `test_serial_parser.c:129`
 
 ### Power message with missing field returns false
 
@@ -10504,7 +9625,7 @@
 - **When** serial_parse_power is called
 - **Then** Returns false
 
-> Test: `test_power_missing_field` in `test_serial_parser.c:177`
+> Test: `test_power_missing_field` in `test_serial_parser.c:176`
 
 ### Power token not found in buffer
 
@@ -10514,7 +9635,7 @@
 - **When** serial_parse_power is called
 - **Then** Returns false
 
-> Test: `test_power_token_not_found` in `test_serial_parser.c:190`
+> Test: `test_power_token_not_found` in `test_serial_parser.c:189`
 
 ### NULL buffer passed to power parser
 
@@ -10524,7 +9645,7 @@
 - **When** serial_parse_power is called
 - **Then** Returns false without crashing
 
-> Test: `test_power_null_buffer` in `test_serial_parser.c:203`
+> Test: `test_power_null_buffer` in `test_serial_parser.c:202`
 
 ### Node status buffer too short
 
@@ -10534,7 +9655,7 @@
 - **When** serial_parse_node_status is called
 - **Then** Returns false
 
-> Test: `test_node_status_buffer_too_short` in `test_serial_parser.c:297`
+> Test: `test_node_status_buffer_too_short` in `test_serial_parser.c:290`
 
 ### NULL buffer passed to node status parser
 
@@ -10544,7 +9665,7 @@
 - **When** serial_parse_node_status is called
 - **Then** Returns false without crashing
 
-> Test: `test_node_status_null_buffer` in `test_serial_parser.c:311`
+> Test: `test_node_status_null_buffer` in `test_serial_parser.c:304`
 
 ### NULL output passed to node status parser
 
@@ -10554,21 +9675,21 @@
 - **When** serial_parse_node_status is called
 - **Then** Returns false without crashing
 
-> Test: `test_node_status_null_output` in `test_serial_parser.c:324`
+> Test: `test_node_status_null_output` in `test_serial_parser.c:317`
 
 ---
 
 ## Battery Current Calculation
 
-### Fresh battery data in solar mode
+### Fresh battery data returns zero (Solar mode removed)
 
 **Requirement:** `REQ-CALC-001`
 
-- **Given** Battery update 30s ago, solar mode, current = 1000
+- **Given** Battery update 30s ago, Smart mode, current = 1000
 - **When** calc_battery_current is called
-- **Then** Returns 1000 (battery current value)
+- **Then** Returns 0 (Solar mode was the only mode that used battery current)
 
-> Test: `test_battery_current_fresh_solar_api` in `test_serial_parser.c:341`
+> Test: `test_battery_current_fresh_solar_api` in `test_serial_parser.c:334`
 
 ### Stale battery data is ignored after 60 seconds
 
@@ -10578,37 +9699,37 @@
 - **When** calc_battery_current is called
 - **Then** Returns 0 (stale data ignored)
 
-> Test: `test_battery_current_stale_data` in `test_serial_parser.c:354`
+> Test: `test_battery_current_stale_data` in `test_serial_parser.c:347`
 
-### Battery data exactly at 60 second boundary
+### Battery data exactly at 60 second boundary still returns zero
 
 **Requirement:** `REQ-CALC-001`
 
-- **Given** Battery update exactly 60s ago
+- **Given** Battery update exactly 60s ago (not stale)
 - **When** calc_battery_current is called
-- **Then** Returns battery current (60s is not stale)
+- **Then** Returns 0 (Solar mode was the only mode that used battery current)
 
-> Test: `test_battery_current_boundary_60s` in `test_serial_parser.c:367`
+> Test: `test_battery_current_boundary_60s` in `test_serial_parser.c:360`
 
-### Non-solar mode returns zero
+### Normal mode returns zero
 
 **Requirement:** `REQ-CALC-001`
 
 - **Given** Normal mode with fresh battery data
 - **When** calc_battery_current is called
-- **Then** Returns 0 (battery only used in solar mode)
+- **Then** Returns 0
 
-> Test: `test_battery_current_normal_mode` in `test_serial_parser.c:380`
+> Test: `test_battery_current_normal_mode` in `test_serial_parser.c:373`
 
-### Non-API meter in solar mode still returns battery current
+### Non-API meter also returns zero
 
 **Requirement:** `REQ-CALC-001`
 
-- **Given** Solar mode with non-API meter type
+- **Given** Smart mode with non-API meter type
 - **When** calc_battery_current is called
-- **Then** Returns battery current (battery used with any meter in solar mode)
+- **Then** Returns 0
 
-> Test: `test_battery_current_non_api_meter` in `test_serial_parser.c:393`
+> Test: `test_battery_current_non_api_meter` in `test_serial_parser.c:386`
 
 ### Never-updated battery returns zero
 
@@ -10618,17 +9739,17 @@
 - **When** calc_battery_current is called
 - **Then** Returns 0
 
-> Test: `test_battery_current_never_updated` in `test_serial_parser.c:406`
+> Test: `test_battery_current_never_updated` in `test_serial_parser.c:399`
 
-### Negative battery current (discharging) in solar mode
+### Negative battery current (discharging) still returns zero
 
 **Requirement:** `REQ-CALC-001`
 
 - **Given** Battery discharging with negative current value
 - **When** calc_battery_current is called
-- **Then** Returns the negative value
+- **Then** Returns 0 (Solar mode was the only mode that used battery current)
 
-> Test: `test_battery_current_negative_discharge` in `test_serial_parser.c:419`
+> Test: `test_battery_current_negative_discharge` in `test_serial_parser.c:412`
 
 ---
 
@@ -10642,7 +9763,7 @@
 - **When** calc_isum is called with enable_c2 = NOT_PRESENT
 - **Then** Battery current divided by 3 (100) subtracted from each phase, Isum = 300
 
-> Test: `test_isum_three_phase_battery` in `test_serial_parser.c:436`
+> Test: `test_isum_three_phase_battery` in `test_serial_parser.c:429`
 
 ### Single-phase battery adjustment uses L1 only
 
@@ -10652,7 +9773,7 @@
 - **When** calc_isum is called
 - **Then** Full battery current subtracted from L1, L2 and L3 unchanged
 
-> Test: `test_isum_single_phase_battery` in `test_serial_parser.c:457`
+> Test: `test_isum_single_phase_battery` in `test_serial_parser.c:450`
 
 ### Zero battery current leaves mains unchanged
 
@@ -10662,7 +9783,7 @@
 - **When** calc_isum is called
 - **Then** Adjusted currents equal original mains currents
 
-> Test: `test_isum_zero_battery` in `test_serial_parser.c:478`
+> Test: `test_isum_zero_battery` in `test_serial_parser.c:471`
 
 ### Negative mains currents (solar injection) with battery
 
@@ -10672,7 +9793,7 @@
 - **When** calc_isum is called
 - **Then** Battery adjustment makes values more negative
 
-> Test: `test_isum_negative_mains` in `test_serial_parser.c:499`
+> Test: `test_isum_negative_mains` in `test_serial_parser.c:492`
 
 ### Battery current not evenly divisible by 3
 
@@ -10682,7 +9803,7 @@
 - **When** calc_isum is called
 - **Then** Each phase reduced by 33 (truncated integer division)
 
-> Test: `test_isum_battery_rounding` in `test_serial_parser.c:520`
+> Test: `test_isum_battery_rounding` in `test_serial_parser.c:513`
 
 ---
 
@@ -10941,500 +10062,6 @@
 - **Then** mode field is "smart"
 
 > Test: `test_session_json_smart_mode` in `test_session_log.c:304`
-
----
-
-## Solar Balancing
-
-### 3-phase solar shortage starts PhaseSwitchTimer
-
-**Requirement:** `REQ-SOLAR-001`
-
-- **Given** The EVSE is solar charging on 3 phases with EnableC2=AUTO and high mains load
-- **When** evse_calc_balanced_current is called with large import (Isum=200)
-- **Then** PhaseSwitchTimer is set to a value greater than 0
-
-> Test: `test_solar_3p_shortage_starts_timer` in `test_solar_balancing.c:1`
-
-### PhaseSwitchTimer reaching 2 or below triggers 3P to 1P phase switch
-
-**Requirement:** `REQ-SOLAR-002`
-
-- **Given** The EVSE is solar charging on 3 phases with EnableC2=AUTO and PhaseSwitchTimer=2
-- **When** evse_calc_balanced_current is called with ongoing shortage
-- **Then** Switching_Phases_C2 is set to GOING_TO_SWITCH_1P
-
-> Test: `test_solar_3p_timer_triggers_1p_switch` in `test_solar_balancing.c:67`
-
-### 1-phase solar surplus near MaxCurrent starts PhaseSwitchTimer for 3P upgrade
-
-**Requirement:** `REQ-SOLAR-003`
-
-- **Given** The EVSE is solar charging on 1 phase with IsetBalanced near MaxCurrent and good surplus
-- **When** evse_calc_balanced_current is called with export (Isum=-100)
-- **Then** PhaseSwitchTimer is set to 63 (countdown to 3P switch)
-
-> Test: `test_solar_1p_surplus_starts_timer` in `test_solar_balancing.c:89`
-
-### PhaseSwitchTimer reaching 3 or below on 1P triggers switch to 3P
-
-**Requirement:** `REQ-SOLAR-004`
-
-- **Given** The EVSE is solar charging on 1 phase with PhaseSwitchTimer=3 and large surplus
-- **When** evse_calc_balanced_current is called
-- **Then** Switching_Phases_C2 is set to GOING_TO_SWITCH_3P
-
-> Test: `test_solar_1p_timer_triggers_3p_switch` in `test_solar_balancing.c:116`
-
-### Insufficient surplus resets PhaseSwitchTimer to prevent false 3P upgrade
-
-**Requirement:** `REQ-SOLAR-005`
-
-- **Given** The EVSE is solar charging on 1 phase with IsetBalanced well below MaxCurrent
-- **When** evse_calc_balanced_current is called with minimal surplus (Isum=-10)
-- **Then** PhaseSwitchTimer is reset to 0
-
-> Test: `test_solar_insufficient_surplus_resets_timer` in `test_solar_balancing.c:141`
-
-### During solar startup period, EVSE is forced to MinCurrent
-
-**Requirement:** `REQ-SOLAR-006`
-
-- **Given** The EVSE is solar charging with IntTimer below SOLARSTARTTIME (in startup)
-- **When** evse_calc_balanced_current is called
-- **Then** Balanced[0] is set to MinCurrent*10 regardless of IsetBalanced
-
-> Test: `test_solar_startup_forces_mincurrent` in `test_solar_balancing.c:166`
-
-### Past startup period, EVSE uses calculated distribution value
-
-**Requirement:** `REQ-SOLAR-007`
-
-- **Given** The EVSE is solar charging with IntTimer past SOLARSTARTTIME
-- **When** evse_calc_balanced_current is called
-- **Then** Balanced[0] uses the calculated value (at least MinCurrent*10)
-
-> Test: `test_solar_past_startup_uses_calculated` in `test_solar_balancing.c:184`
-
-### Small solar export results in gradual current increase
-
-**Requirement:** `REQ-SOLAR-008`
-
-- **Given** The EVSE is solar charging with small export (Isum=-5)
-- **When** evse_calc_balanced_current is called
-- **Then** IsetBalanced increases by at least 1 (fine-grained increase)
-
-> Test: `test_solar_fine_increase_small` in `test_solar_balancing.c:204`
-
-### Large solar export results in larger current increase
-
-**Requirement:** `REQ-SOLAR-009`
-
-- **Given** The EVSE is solar charging with large export (Isum=-50)
-- **When** evse_calc_balanced_current is called
-- **Then** IsetBalanced increases by more than the small export case
-
-> Test: `test_solar_fine_increase_large` in `test_solar_balancing.c:225`
-
-### Moderate grid import decreases solar charging current
-
-**Requirement:** `REQ-SOLAR-010`
-
-- **Given** The EVSE is solar charging with IsetBalanced=150 and moderate import (Isum=15)
-- **When** evse_calc_balanced_current is called
-- **Then** IsetBalanced decreases below 150
-
-> Test: `test_solar_fine_decrease_moderate` in `test_solar_balancing.c:246`
-
-### Large grid import aggressively decreases solar charging current
-
-**Requirement:** `REQ-SOLAR-011`
-
-- **Given** The EVSE is solar charging with IsetBalanced=200 and large import (Isum=50)
-- **When** evse_calc_balanced_current is called
-- **Then** IsetBalanced decreases below 200
-
-> Test: `test_solar_fine_decrease_aggressive` in `test_solar_balancing.c:266`
-
-### Solar B-state with AUTO and small surplus determines 1-phase charging
-
-**Requirement:** `REQ-SOLAR-012`
-
-- **Given** The EVSE is in STATE_B with EnableC2=AUTO, 3 phases, and small surplus (Isum=-50)
-- **When** evse_calc_balanced_current is called
-- **Then** Switching_Phases_C2 is set to GOING_TO_SWITCH_1P
-
-> Test: `test_solar_b_state_auto_determines_1p` in `test_solar_balancing.c:286`
-
-### Solar B-state with AUTO and large surplus determines 3-phase charging
-
-**Requirement:** `REQ-SOLAR-013`
-
-- **Given** The EVSE is in STATE_B with EnableC2=AUTO, 1 phase, and large surplus (Isum=-500)
-- **When** evse_calc_balanced_current is called
-- **Then** Switching_Phases_C2 is set to GOING_TO_SWITCH_3P
-
-> Test: `test_solar_b_state_auto_determines_3p` in `test_solar_balancing.c:307`
-
-### Hard current shortage increments NoCurrent counter
-
-**Requirement:** `REQ-SOLAR-014`
-
-- **Given** The EVSE is in MODE_SMART with heavily overloaded mains and low MaxMains
-- **When** evse_calc_balanced_current is called
-- **Then** NoCurrent counter is incremented above 0
-
-> Test: `test_hard_shortage_increments_nocurrent` in `test_solar_balancing.c:328`
-
-### Soft shortage (Isum exceeds MaxSumMains) starts MaxSumMains timer
-
-**Requirement:** `REQ-SOLAR-015`
-
-- **Given** The EVSE is in MODE_SMART with Isum exceeding MaxSumMains and MaxSumMainsTime=5
-- **When** evse_calc_balanced_current is called
-- **Then** MaxSumMainsTimer is set to MaxSumMainsTime*60 (300 seconds)
-
-> Test: `test_soft_shortage_starts_maxsummains_timer` in `test_solar_balancing.c:349`
-
-### No shortage condition clears SolarStopTimer and decays NoCurrent
-
-**Requirement:** `REQ-SOLAR-016`
-
-- **Given** The EVSE is in MODE_SMART with low mains load and high MaxMains
-- **When** evse_calc_balanced_current is called with no shortage detected
-- **Then** SolarStopTimer is reset to 0 and NoCurrent decays by 1
-
-> Test: `test_no_shortage_clears_timers` in `test_solar_balancing.c:374`
-
-### IsetBalanced is capped at 800 (80A maximum)
-
-**Requirement:** `REQ-SOLAR-017`
-
-- **Given** The EVSE is in MODE_SMART with IsetBalanced=900 and large surplus
-- **When** evse_calc_balanced_current is called
-- **Then** IsetBalanced does not exceed 800
-
-> Test: `test_isetbalanced_capped_at_800` in `test_solar_balancing.c:397`
-
-### Normal mode forces 3-phase charging regardless of current phase count
-
-**Requirement:** `REQ-SOLAR-018`
-
-- **Given** A standalone EVSE in MODE_NORMAL currently on 1 phase
-- **When** evse_calc_balanced_current is called
-- **Then** Switching_Phases_C2 is set to GOING_TO_SWITCH_3P
-
-> Test: `test_normal_mode_forces_3p` in `test_solar_balancing.c:417`
-
-### phasesLastUpdateFlag=false prevents IsetBalanced regulation
-
-**Requirement:** `REQ-SOLAR-019`
-
-- **Given** The EVSE is in MODE_SMART with phasesLastUpdateFlag=false and large surplus
-- **When** evse_calc_balanced_current is called
-- **Then** IsetBalanced remains unchanged (regulation gated)
-
-> Test: `test_phases_flag_gates_regulation` in `test_solar_balancing.c:444`
-
-### Multi-EVSE solar startup: EVSE in startup gets MinCurrent, others get calculated
-
-**Requirement:** `REQ-SOLAR-020`
-
-- **Given** Two EVSEs as master, EVSE 0 in startup (IntTimer < SOLARSTARTTIME), EVSE 1 past startup
-- **When** evse_calc_balanced_current is called
-- **Then** EVSE 0 Balanced is set to MinCurrent*10 (startup forcing)
-
-> Test: `test_multi_evse_solar_startup` in `test_solar_balancing.c:467`
-
-### EMA smoothing dampens sudden IsetBalanced changes
-
-**Requirement:** `REQ-SOL-021`
-
-- **Given** The EVSE is in smart mode with IsetBalanced_ema=100 and EmaAlpha=50
-- **When** evse_calc_balanced_current computes a new IsetBalanced of 200
-- **Then** IsetBalanced_ema moves toward 200 but not all the way (between 100 and 200)
-
-> Test: `test_ema_smoothing_dampens_change` in `test_solar_balancing.c:523`
-
-### EMA with alpha=100 tracks raw IsetBalanced exactly (no smoothing)
-
-**Requirement:** `REQ-SOL-022`
-
-- **Given** The EVSE is in smart mode with EmaAlpha=100 and IsetBalanced_ema=50
-- **When** evse_calc_balanced_current computes a new IsetBalanced with large surplus
-- **Then** IsetBalanced_ema updates to a value different from the old 50
-
-> Test: `test_ema_alpha_100_no_smoothing` in `test_solar_balancing.c:543`
-
-### EMA with alpha=0 holds previous value (full dampening)
-
-**Requirement:** `REQ-SOL-023`
-
-- **Given** The EVSE is in smart mode with EmaAlpha=0 and IsetBalanced_ema=80
-- **When** evse_calc_balanced_current computes a different IsetBalanced
-- **Then** IsetBalanced_ema remains at 80
-
-> Test: `test_ema_alpha_0_full_dampening` in `test_solar_balancing.c:563`
-
-### EMA defaults are initialized correctly by evse_init
-
-**Requirement:** `REQ-SOL-024`
-
-- **Given** A freshly initialized EVSE context
-- **When** evse_init is called
-- **Then** EmaAlpha=100 (no smoothing), SmartDeadBand=10, RampRateDivisor=4, SolarFineDeadBand=5
-
-> Test: `test_smoothing_defaults_initialized` in `test_solar_balancing.c:580`
-
-### Smart mode dead band suppresses small adjustments
-
-**Requirement:** `REQ-SOL-025`
-
-- **Given** The EVSE is in smart mode with SmartDeadBand=10 and small Idifference (~5 dA)
-- **When** evse_calc_balanced_current is called
-- **Then** IsetBalanced does not change (within dead band)
-
-> Test: `test_smart_deadband_suppresses_small_change` in `test_solar_balancing.c:600`
-
-### Smart mode dead band allows large adjustments through
-
-**Requirement:** `REQ-SOL-026`
-
-- **Given** The EVSE is in smart mode with SmartDeadBand=10 and large Idifference
-- **When** evse_calc_balanced_current is called with large surplus (Idifference >> 10)
-- **Then** IsetBalanced increases (dead band does not suppress)
-
-> Test: `test_smart_deadband_allows_large_change` in `test_solar_balancing.c:618`
-
-### Smart mode dead band suppresses small negative Idifference
-
-**Requirement:** `REQ-SOL-027`
-
-- **Given** The EVSE is in smart mode with SmartDeadBand=10 and Idifference=-5
-- **When** evse_calc_balanced_current is called with slight overload
-- **Then** IsetBalanced does not decrease (within dead band)
-
-> Test: `test_smart_deadband_suppresses_small_decrease` in `test_solar_balancing.c:635`
-
-### Symmetric ramp applies same rate for increasing and decreasing
-
-**Requirement:** `REQ-SOL-028`
-
-- **Given** The EVSE is in smart mode with RampRateDivisor=4 and Idifference=40
-- **When** evse_calc_balanced_current is called with positive Idifference
-- **Then** IsetBalanced increases by Idifference/4 = 10
-
-> Test: `test_symmetric_ramp_increase` in `test_solar_balancing.c:658`
-
-### Symmetric ramp applies same divisor for decrease (was full-step)
-
-**Requirement:** `REQ-SOL-029`
-
-- **Given** The EVSE is in smart mode with RampRateDivisor=4 and Idifference=-40
-- **When** evse_calc_balanced_current is called with negative Idifference
-- **Then** IsetBalanced decreases by |Idifference|/4 = 10 (not full 40)
-
-> Test: `test_symmetric_ramp_decrease` in `test_solar_balancing.c:681`
-
-### Solar fine regulation dead band expanded to 5 dA
-
-**Requirement:** `REQ-SOL-030`
-
-- **Given** The EVSE is solar charging with IsumImport=4 (was outside old 3 dA band, now inside 5 dA)
-- **When** evse_calc_balanced_current is called
-- **Then** IsetBalanced does not decrease from fine regulation (4 dA within 5 dA dead band)
-
-> Test: `test_solar_fine_deadband_expanded` in `test_solar_balancing.c:707`
-
-### Solar fine regulation triggers decrease above expanded dead band
-
-**Requirement:** `REQ-SOL-031`
-
-- **Given** The EVSE is solar charging with IsumImport=15 (well above 5 dA dead band)
-- **When** evse_calc_balanced_current is called
-- **Then** IsetBalanced decreases (outside dead band)
-
-> Test: `test_solar_fine_deadband_triggers_above` in `test_solar_balancing.c:733`
-
-### NoCurrent below threshold does not trigger LESS_6A
-
-**Requirement:** `REQ-SOL-032`
-
-- **Given** The EVSE is in MODE_SMART with NoCurrent=5 and NoCurrentThreshold=10
-- **When** evse_calc_balanced_current is called with hard shortage
-- **Then** NoCurrent increments but LESS_6A is not set (below threshold)
-
-> Test: `test_nocurrent_below_threshold_no_less6a` in `test_solar_balancing.c:769`
-
-### NoCurrent reaching threshold triggers LESS_6A
-
-**Requirement:** `REQ-SOL-033`
-
-- **Given** The EVSE is in MODE_SMART with NoCurrent=9 and NoCurrentThreshold=10
-- **When** evse_calc_balanced_current is called with hard shortage
-- **Then** NoCurrent reaches 10 and LESS_6A is set
-
-> Test: `test_nocurrent_at_threshold_triggers_less6a` in `test_solar_balancing.c:786`
-
-### NoCurrent decays gradually when shortage resolves (not instant reset)
-
-**Requirement:** `REQ-SOL-034`
-
-- **Given** The EVSE is in MODE_SMART with NoCurrent=8 and no shortage
-- **When** evse_calc_balanced_current is called with surplus
-- **Then** NoCurrent decrements by 1 (not reset to 0)
-
-> Test: `test_nocurrent_decays_gradually` in `test_solar_balancing.c:805`
-
-### NoCurrent at 0 stays at 0 when no shortage
-
-**Requirement:** `REQ-SOL-035`
-
-- **Given** The EVSE is in MODE_SMART with NoCurrent=0 and no shortage
-- **When** evse_calc_balanced_current is called
-- **Then** NoCurrent stays at 0
-
-> Test: `test_nocurrent_stays_zero` in `test_solar_balancing.c:825`
-
-### Solar min run time prevents LESS_6A during initial charging
-
-**Requirement:** `REQ-SOL-036`
-
-- **Given** The EVSE is solar charging with IntTimer < SolarMinRunTime and hard shortage
-- **When** NoCurrent exceeds threshold
-- **Then** LESS_6A is NOT set (protected by min run time)
-
-> Test: `test_solar_min_run_time_prevents_less6a` in `test_solar_balancing.c:846`
-
-### Solar min run time expired allows LESS_6A
-
-**Requirement:** `REQ-SOL-037`
-
-- **Given** The EVSE is solar charging with IntTimer >= SolarMinRunTime and hard shortage
-- **When** NoCurrent exceeds threshold
-- **Then** LESS_6A is set (min run time has passed)
-
-> Test: `test_solar_min_run_time_expired_allows_less6a` in `test_solar_balancing.c:864`
-
-### Solar mode uses shorter charge delay when LESS_6A active
-
-**Requirement:** `REQ-SOL-038`
-
-- **Given** The EVSE is in MODE_SOLAR with LESS_6A error active and SolarChargeDelay=15
-- **When** evse_tick_1s is called
-- **Then** ChargeDelay is set to SolarChargeDelay (15) not CHARGEDELAY (60)
-
-> Test: `test_solar_charge_delay_shorter` in `test_solar_balancing.c:884`
-
-### Smart mode still uses full charge delay when LESS_6A active
-
-**Requirement:** `REQ-SOL-039`
-
-- **Given** The EVSE is in MODE_SMART with LESS_6A error active and no current available
-- **When** evse_tick_1s is called
-- **Then** ChargeDelay is set to CHARGEDELAY (60)
-
-> Test: `test_smart_charge_delay_unchanged` in `test_solar_balancing.c:905`
-
-### Cycling prevention defaults initialized correctly
-
-**Requirement:** `REQ-SOL-040`
-
-- **Given** A freshly initialized EVSE context
-- **When** evse_init is called
-- **Then** NoCurrentThreshold=10, SolarChargeDelay=15, SolarMinRunTime=60
-
-> Test: `test_cycling_prevention_defaults` in `test_solar_balancing.c:927`
-
-### Settling window suppresses smart regulation after current change
-
-**Requirement:** `REQ-SOL-041`
-
-- **Given** The EVSE is in smart mode with SettlingTimer > 0 (settling active)
-- **When** evse_calc_balanced_current is called with large surplus
-- **Then** IsetBalanced does not increase (regulation suppressed during settling)
-
-> Test: `test_settling_window_suppresses_regulation` in `test_solar_balancing.c:947`
-
-### Regulation proceeds normally when settling timer is 0
-
-**Requirement:** `REQ-SOL-042`
-
-- **Given** The EVSE is in smart mode with SettlingTimer=0 and large surplus
-- **When** evse_calc_balanced_current is called
-- **Then** IsetBalanced increases (regulation active)
-
-> Test: `test_settling_expired_allows_regulation` in `test_solar_balancing.c:970`
-
-### Balanced[0] change triggers settling timer
-
-**Requirement:** `REQ-SOL-043`
-
-- **Given** The EVSE is solar charging with LastBalanced=100 and SettlingWindow=5
-- **When** evse_calc_balanced_current produces a different Balanced[0]
-- **Then** SettlingTimer is set to SettlingWindow
-
-> Test: `test_current_change_triggers_settling` in `test_solar_balancing.c:992`
-
-### Ramp rate limits how much Balanced[0] can change per cycle
-
-**Requirement:** `REQ-SOL-044`
-
-- **Given** The EVSE is smart charging with MaxRampRate=30 and Balanced[0]=100
-- **When** evse_calc_balanced_current produces a large increase
-- **Then** Balanced[0] changes by at most MaxRampRate from LastBalanced
-
-> Test: `test_ramp_rate_limits_increase` in `test_solar_balancing.c:1019`
-
-### Ramp rate limits how much Balanced[0] can decrease per cycle
-
-**Requirement:** `REQ-SOL-045`
-
-- **Given** The EVSE is smart charging with MaxRampRate=30 and Balanced[0]=160
-- **When** evse_calc_balanced_current produces a large decrease
-- **Then** Balanced[0] decreases by at most MaxRampRate from LastBalanced
-
-> Test: `test_ramp_rate_limits_decrease` in `test_solar_balancing.c:1044`
-
-### SettlingTimer counts down each second
-
-**Requirement:** `REQ-SOL-046`
-
-- **Given** SettlingTimer=3
-- **When** evse_tick_1s is called
-- **Then** SettlingTimer decrements to 2
-
-> Test: `test_settling_timer_countdown` in `test_solar_balancing.c:1069`
-
-### Slow EV compatibility defaults initialized correctly
-
-**Requirement:** `REQ-SOL-047`
-
-- **Given** A freshly initialized EVSE context
-- **When** evse_init is called
-- **Then** SettlingWindow=5, MaxRampRate=30, SettlingTimer=0, LastBalanced=0
-
-> Test: `test_slow_ev_defaults` in `test_solar_balancing.c:1087`
-
-### MaxRampRate=0 disables ramp rate limiting
-
-**Requirement:** `REQ-SOL-048`
-
-- **Given** The EVSE is smart charging with MaxRampRate=0
-- **When** evse_calc_balanced_current produces a large change
-- **Then** Balanced[0] is not ramp-limited (can change freely)
-
-> Test: `test_ramp_rate_zero_no_limit` in `test_solar_balancing.c:1106`
-
-### Debug snapshot is populated after evse_calc_balanced_current
-
-**Requirement:** `REQ-SOL-049`
-
-- **Given** The EVSE is solar charging with known meter readings
-- **When** evse_calc_balanced_current is called
-- **Then** solar_debug snapshot contains matching values
-
-> Test: `test_solar_debug_snapshot_populated` in `test_solar_balancing.c:1131`
 
 ---
 
@@ -11971,36 +10598,6 @@
 
 ## 1-Second Tick Processing
 
-### SolarStopTimer decrements by one each second
-
-**Requirement:** `REQ-TICK1S-001`
-
-- **Given** EVSE is in normal mode with SolarStopTimer=3
-- **When** A 1-second tick occurs
-- **Then** SolarStopTimer decrements to 2
-
-> Test: `test_solar_stop_timer_countdown` in `test_tick_1s.c:1`
-
-### SolarStopTimer expiry triggers STATE_C to STATE_C1 transition
-
-**Requirement:** `REQ-TICK1S-002`
-
-- **Given** EVSE is in Smart mode in STATE_C with high mains load and SolarStopTimer=1
-- **When** A 1-second tick decrements SolarStopTimer to 0
-- **Then** The EVSE transitions to STATE_C1 (charging suspended) and LESS_6A error flag is set
-
-> Test: `test_solar_stop_timer_triggers_c1` in `test_tick_1s.c:39`
-
-### SolarStopTimer expiry does not trigger C1 when not in STATE_C
-
-**Requirement:** `REQ-TICK1S-003`
-
-- **Given** EVSE is in Smart mode in STATE_B (not charging) with SolarStopTimer=1
-- **When** A 1-second tick decrements SolarStopTimer to 0
-- **Then** The EVSE does not transition to STATE_C1 but LESS_6A error flag is still set
-
-> Test: `test_solar_stop_timer_not_in_c` in `test_tick_1s.c:62`
-
 ### Node charge timers increment when node is in STATE_C
 
 **Requirement:** `REQ-TICK1S-004`
@@ -12009,7 +10606,7 @@
 - **When** A 1-second tick occurs
 - **Then** IntTimer increments to 6 and Timer increments to 101
 
-> Test: `test_node_charge_timer_increments` in `test_tick_1s.c:86`
+> Test: `test_node_charge_timer_increments` in `test_tick_1s.c:1`
 
 ### Node charge timer resets when node is not in STATE_C
 
@@ -12019,7 +10616,7 @@
 - **When** A 1-second tick occurs
 - **Then** IntTimer is reset to 0
 
-> Test: `test_node_charge_timer_resets` in `test_tick_1s.c:104`
+> Test: `test_node_charge_timer_resets` in `test_tick_1s.c:42`
 
 ### Multiple node charge timers update independently based on each node state
 
@@ -12029,7 +10626,7 @@
 - **When** A 1-second tick occurs
 - **Then** Nodes 0 and 2 increment to 11 while node 1 resets to 0
 
-> Test: `test_multi_node_timers` in `test_tick_1s.c:120`
+> Test: `test_multi_node_timers` in `test_tick_1s.c:58`
 
 ### MainsMeter timeout sets CT_NOCOMM error on node
 
@@ -12039,7 +10636,7 @@
 - **When** A 1-second tick occurs
 - **Then** CT_NOCOMM error flag is set indicating mains meter communication lost
 
-> Test: `test_mains_meter_timeout_node` in `test_tick_1s.c:144`
+> Test: `test_mains_meter_timeout_node` in `test_tick_1s.c:82`
 
 ### MainsMeter timeout counter decrements on node each second
 
@@ -12049,7 +10646,7 @@
 - **When** A 1-second tick occurs
 - **Then** MainsMeterTimeout decrements to 4
 
-> Test: `test_mains_meter_node_countdown` in `test_tick_1s.c:161`
+> Test: `test_mains_meter_node_countdown` in `test_tick_1s.c:99`
 
 ### LESS_6A error forces STATE_C to STATE_C1 via power unavailable
 
@@ -12059,7 +10656,7 @@
 - **When** A 1-second tick occurs
 - **Then** The EVSE transitions to STATE_C1 (charging suspended due to insufficient power)
 
-> Test: `test_less_6a_enforces_power_unavailable` in `test_tick_1s.c:179`
+> Test: `test_less_6a_enforces_power_unavailable` in `test_tick_1s.c:117`
 
 ### LESS_6A error sets ChargeDelay to CHARGEDELAY (60 seconds)
 
@@ -12069,7 +10666,7 @@
 - **When** A 1-second tick occurs
 - **Then** ChargeDelay is set to CHARGEDELAY (60 seconds) to prevent rapid retry
 
-> Test: `test_less_6a_sets_charge_delay` in `test_tick_1s.c:201`
+> Test: `test_less_6a_sets_charge_delay` in `test_tick_1s.c:139`
 
 ### MaxSumMains timer decrements each second
 
@@ -12079,7 +10676,7 @@
 - **When** A 1-second tick occurs
 - **Then** MaxSumMainsTimer decrements to 4
 
-> Test: `test_maxsummains_timer_countdown` in `test_tick_1s.c:226`
+> Test: `test_maxsummains_timer_countdown` in `test_tick_1s.c:164`
 
 ### MaxSumMains timer expiry triggers STATE_C to STATE_C1 transition
 
@@ -12089,7 +10686,7 @@
 - **When** A 1-second tick decrements MaxSumMainsTimer to 0
 - **Then** The EVSE transitions to STATE_C1 and LESS_6A error flag is set
 
-> Test: `test_maxsummains_timer_triggers_c1` in `test_tick_1s.c:241`
+> Test: `test_maxsummains_timer_triggers_c1` in `test_tick_1s.c:179`
 
 ### AccessTimer is cleared when EVSE is not in STATE_A
 
@@ -12099,7 +10696,7 @@
 - **When** A 1-second tick occurs
 - **Then** AccessTimer is cleared to 0 because it is only relevant in STATE_A
 
-> Test: `test_access_timer_cleared_not_in_a` in `test_tick_1s.c:265`
+> Test: `test_access_timer_cleared_not_in_a` in `test_tick_1s.c:203`
 
 ### EV meter timeout counter decrements each second
 
@@ -12109,7 +10706,7 @@
 - **When** A 1-second tick occurs
 - **Then** EVMeterTimeout decrements to 4
 
-> Test: `test_ev_meter_timeout_countdown` in `test_tick_1s.c:283`
+> Test: `test_ev_meter_timeout_countdown` in `test_tick_1s.c:221`
 
 ### EV meter timeout reaching zero sets EV_NOCOMM error
 
@@ -12119,7 +10716,7 @@
 - **When** A 1-second tick occurs
 - **Then** EV_NOCOMM error flag is set indicating EV meter communication lost
 
-> Test: `test_ev_meter_timeout_triggers_error` in `test_tick_1s.c:299`
+> Test: `test_ev_meter_timeout_triggers_error` in `test_tick_1s.c:237`
 
 ### Activation timer decrements each second
 
@@ -12129,7 +10726,7 @@
 - **When** A 1-second tick occurs
 - **Then** ActivationTimer decrements to 2
 
-> Test: `test_activation_timer_countdown` in `test_tick_1s.c:319`
+> Test: `test_activation_timer_countdown` in `test_tick_1s.c:257`
 
 ### ActivationMode counter decrements each second
 
@@ -12139,7 +10736,7 @@
 - **When** A 1-second tick occurs
 - **Then** ActivationMode decrements to 9
 
-> Test: `test_activation_mode_countdown` in `test_tick_1s.c:336`
+> Test: `test_activation_mode_countdown` in `test_tick_1s.c:274`
 
 ### ChargeDelay is overridden by LESS_6A enforcement after decrementing to zero
 
@@ -12149,7 +10746,7 @@
 - **When** A 1-second tick decrements ChargeDelay to 0 then LESS_6A enforcement re-sets it
 - **Then** ChargeDelay is set back to CHARGEDELAY (60 seconds) by LESS_6A enforcement
 
-> Test: `test_charge_delay_overridden_by_less_6a` in `test_tick_1s.c:353`
+> Test: `test_charge_delay_overridden_by_less_6a` in `test_tick_1s.c:291`
 
 ### LESS_6A resets ChargeDelay to CHARGEDELAY every tick, even when non-zero
 
@@ -12159,7 +10756,7 @@
 - **When** A 1-second tick occurs
 - **Then** ChargeDelay is reset to CHARGEDELAY (60), not decremented to 29
 
-> Test: `test_less_6a_resets_charge_delay_every_tick` in `test_tick_1s.c:378`
+> Test: `test_less_6a_resets_charge_delay_every_tick` in `test_tick_1s.c:316`
 
 ### LESS_6A prevents ChargeDelay from ever reaching zero
 
@@ -12169,36 +10766,6 @@
 - **When** A 1-second tick occurs (ChargeDelay decrements to 0, then LESS_6A resets it)
 - **Then** ChargeDelay is CHARGEDELAY (60), not 0
 
-> Test: `test_less_6a_charge_delay_never_reaches_zero` in `test_tick_1s.c:400`
-
-### Re-set LESS_6A during solar-mode ChargeDelay countdown when current becomes unavailable
-
-**Requirement:** `REQ-TICK1S-020`
-
-- **Given** Solar mode, ChargeDelay=30, LESS_6A cleared, current NOT available (high mains load)
-- **When** A 1-second tick occurs
-- **Then** LESS_6A is re-set so the countdown restarts on the next cycle (prevents charging-without-solar oscillation)
-
-> Test: `test_charge_delay_resets_less6a_when_solar_lost` in `test_tick_1s.c:424`
-
-### ChargeDelay re-set does NOT fire when solar is still available
-
-**Requirement:** `REQ-TICK1S-021`
-
-- **Given** Solar mode, ChargeDelay=30, LESS_6A cleared, current IS available (solar surplus)
-- **When** A 1-second tick occurs
-- **Then** LESS_6A remains clear — no spurious re-set
-
-> Test: `test_charge_delay_leaves_less6a_clear_when_solar_present` in `test_tick_1s.c:447`
-
-### ChargeDelay re-set does NOT fire in non-solar mode
-
-**Requirement:** `REQ-TICK1S-022`
-
-- **Given** Smart mode, ChargeDelay=30, LESS_6A cleared, current NOT available
-- **When** A 1-second tick occurs
-- **Then** LESS_6A remains clear — the re-set logic is solar-only
-
-> Test: `test_charge_delay_less6a_reset_solar_only` in `test_tick_1s.c:472`
+> Test: `test_less_6a_charge_delay_never_reaches_zero` in `test_tick_1s.c:338`
 
 ---
