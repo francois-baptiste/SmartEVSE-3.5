@@ -70,7 +70,7 @@ audience guides):
 | MQTT topics + HA discovery | [mqtt-home-assistant.md](docs/mqtt-home-assistant.md) |
 | REST API reference | [REST_API.md](docs/REST_API.md) |
 | OCPP 1.6j coverage | [ocpp.md](docs/ocpp.md) |
-| Solar / Smart mode tuning | [solar-smart-stability.md](docs/solar-smart-stability.md) |
+| Smart mode tuning | [solar-smart-stability.md](docs/solar-smart-stability.md) |
 | Load balancing behaviour | [load-balancing-stability.md](docs/load-balancing-stability.md) |
 | Priority scheduling (multi-node) | [priority-scheduling.md](docs/priority-scheduling.md) |
 | EVCC integration | [evcc-integration.md](docs/evcc-integration.md) |

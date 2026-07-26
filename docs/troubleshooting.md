@@ -1,7 +1,7 @@
 # Troubleshooting
 
 Symptom-indexed. Start at the symptom, work through the triage steps.
-If nothing here matches, capture a telnet debug log (§11) and open an
+If nothing here matches, capture a telnet debug log (§9) and open an
 issue or ask on the
 [Tweakers thread](https://gathering.tweakers.net/forum/list_messages/1648387).
 
@@ -14,8 +14,8 @@ State on the LCD / Web UI stays at B.
 | Check | How | If bad |
 |---|---|---|
 | Car is authorised to charge | Web UI: Access = ON? RFID swiped? | Enable access, swipe card, or disable RFID gate |
-| Mode is not OFF or PAUSE | Web UI top mode indicator | Switch to Normal / Smart / Solar |
-| In Smart/Solar: enough power available | Web UI → Mains currents | Lower `MaxMains` if already at limit; in Solar mode wait for export |
+| Mode is not OFF or PAUSE | Web UI top mode indicator | Switch to Normal / Smart |
+| In Smart mode: enough power available | Web UI → Mains currents | Lower `MaxMains` if already at limit |
 | In Smart mode: `MaxMains` is not 0 | Web UI → Settings | Set to actual house main rating |
 | CP PWM is driving the pilot | Scope on CP pin, state B should show ±12 V 1 kHz PWM | If flat +12 V, CP is not being driven — possible wiring fault or hardware issue |
 | PP cable resistor detected | Web UI → cable limit shows expected A | If cable limit is wrong, check PP resistor (220 Ω = 32 A, 680 Ω = 20 A, 1.5 kΩ = 13 A) |
@@ -46,39 +46,7 @@ side only. See [guide-installer.md §6](guide-installer.md).
 
 ---
 
-## 3. Solar mode cycles on/off
-
-Charging starts, runs for 1–3 minutes, stops. Repeats.
-
-| Check | Fix |
-|---|---|
-| `StopTime` too short for cloud events | Raise to 15–20 minutes |
-| `StartCurrent` too high for your array | Lower. 2–3 A/phase is a reasonable floor |
-| Car won't accept < 6 A offered | Set `ImportCurrent` so the minimum stays ≥ 6 A |
-| Some cars need 6 A × 3 phases = 18 A min | Lower pseudo-single-phase with `EnableC2=AUTO` if hardware supports C2 |
-| Sensorbox CT clamps on wrong phases | Verify with kettle / dryer — one appliance should show on one phase only |
-
-See [solar-smart-stability.md](solar-smart-stability.md) for the full
-tuning guide.
-
----
-
-## 4. Solar mode never starts
-
-Export visible on the smart meter, but charger doesn't engage.
-
-| Check | Cause |
-|---|---|
-| Mode is Solar on the Web UI | Easy miss — confirm it's not still Normal/Smart |
-| Mains meter shows negative Isum during export | If positive, CT clamp orientation is wrong — flip it |
-| `StartCurrent` threshold not reached | Lower `StartCurrent` |
-| Export was transient (< `StopTime` threshold) | Wait longer, or lower `StopTime` |
-| Car is in state B but `Access` is Off | Enable access or swipe RFID |
-| `HomeBatteryCurrent` feeds falsely low export | If you're pushing HA battery data, check the sign and path |
-
----
-
-## 5. Smart mode trips the house main
+## 3. Smart mode trips the house main
 
 The charger pulls too much and the main breaker pops.
 
@@ -95,7 +63,7 @@ loop headroom for fast transients.
 
 ---
 
-## 6. Wrong or missing current values
+## 4. Wrong or missing current values
 
 Mains or EV currents show zero, wrong sign, or obviously wrong magnitude.
 
@@ -127,7 +95,7 @@ Mains or EV currents show zero, wrong sign, or obviously wrong magnitude.
 
 ---
 
-## 7. Contactor chatters or welds
+## 5. Contactor chatters or welds
 
 Contactor buzzes, rapid-clicks, or stays closed after session ends.
 
@@ -146,13 +114,13 @@ type not compatible with this firmware's coil drive.
 
 Welded contacts from a compatible contactor that's been run beyond its
 life cycles: replace the contactor. Contactor lifetime is finite —
-40 A AC-1 contactors are rated for ~100,000 switch cycles. A
-solar-cycling install that opens/closes 10× per day reaches that in
+40 A AC-1 contactors are rated for ~100,000 switch cycles. An
+install that opens/closes 10× per day reaches that in
 ~27 years, so most welds are from incompatible coil drive, not wear.
 
 ---
 
-## 8. MQTT / Home Assistant entities missing or stale
+## 6. MQTT / Home Assistant entities missing or stale
 
 ### Nothing appears in HA
 
@@ -184,7 +152,7 @@ layout.
 
 ---
 
-## 9. OCPP backend stays Disconnected
+## 7. OCPP backend stays Disconnected
 
 ### WebSocket never connects
 
@@ -212,7 +180,7 @@ on a bad network will trip every network hiccup.
 
 ---
 
-## 10. Firmware upload fails
+## 8. Firmware upload fails
 
 ### "Unsigned firmware rejected"
 
@@ -246,7 +214,7 @@ Check telnet log for the exact failure (stack trace, abort reason).
 
 ---
 
-## 11. Capturing a debug log
+## 9. Capturing a debug log
 
 The device runs a telnet server on port 23 with verbose runtime
 logging. Connect with any client:
@@ -292,7 +260,7 @@ Once connected to telnet:
 
 ---
 
-## 12. Web UI locks out with PIN rate-limit
+## 10. Web UI locks out with PIN rate-limit
 
 You got the PIN wrong too many times. Server returns 429 with
 `Retry-After: <seconds>`. Wait it out.
@@ -315,7 +283,7 @@ reflash via USB + factory-reset.
 
 ---
 
-## 13. Diagnostics panel shows "Capturing" on every page load
+## 11. Diagnostics panel shows "Capturing" on every page load
 
 Known-fixed. On recent releases, pressing **Stop** correctly clears the
 diag profile and the panel won't auto-resume.
@@ -325,10 +293,11 @@ in-memory profile state, then update to the latest release.
 
 ---
 
-## 14. Phase-switching not working (1P ↔ 3P)
+## 12. Phase-switching not working (1P ↔ 3P)
 
-On `EnableC2=AUTO`, the charger should drop to 1-phase when solar drops
-below ~4 kW and return to 3-phase when solar exceeds ~4 kW.
+On `EnableC2=AUTO`, in Smart mode the charger should drop to 1-phase when
+available current drops below the 3-phase minimum and return to 3-phase
+once enough current is available again.
 
 | Check | Fix |
 |---|---|
@@ -336,7 +305,7 @@ below ~4 kW and return to 3-phase when solar exceeds ~4 kW.
 | C2 wired per [guide-installer.md §5](guide-installer.md) | Neutral never switched alone — critical for safety |
 | `EnableC2` set to AUTO (not Always Off / Always On) | Via LCD or Web UI |
 | Car supports on-the-fly phase switching | **Many don't.** Tesla Model 3 MY2019 has documented issues; some Ioniqs and Zoes also |
-| Solar threshold is actually being crossed | Watch Web UI during a cloudy hour |
+| Available-current threshold is actually being crossed | Watch Web UI while mains load changes |
 
 Car compatibility is a moving target — the
 [Tweakers thread](https://gathering.tweakers.net/forum/list_messages/1648387)
@@ -344,7 +313,7 @@ has current per-model reports from other owners.
 
 ---
 
-## 15. Display light stays on after charger "off"
+## 13. Display light stays on after charger "off"
 
 Known behaviour. The LCD backlight is separately controlled and may
 stay on in some idle states. Not a bug — intentional so the device
@@ -353,7 +322,7 @@ appears reachable. If you want it off, set **LCD Backlight** to
 
 ---
 
-## 16. RFID reader not responding
+## 14. RFID reader not responding
 
 | Check | Fix |
 |---|---|
@@ -364,7 +333,7 @@ appears reachable. If you want it off, set **LCD Backlight** to
 
 ---
 
-## 17. Nothing above matches
+## 15. Nothing above matches
 
 Capture:
 

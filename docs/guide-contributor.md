@@ -174,7 +174,7 @@ knowledge. Quick map:
 |---|---|---|
 | State machine | `evse_state_machine.c`, `evse_ctx.h`, `evse_bridge.cpp` | REQ-SM-, REQ-ERR- |
 | Load balancing | Multi-node logic in `main.cpp` (extraction candidate) | REQ-LB-, REQ-MULTI-, REQ-PWR- |
-| Solar / smart mode | Mode logic in `main.cpp` + state machine | REQ-SOL-, REQ-PH- |
+| Smart mode / phase switching | Mode logic in `main.cpp` + state machine | REQ-PH- |
 | OCPP | `ocpp_logic.c` + OCPP library integration | REQ-OCPP- |
 | Network / MQTT / HTTP | `network_common.cpp`, `mqtt_parser.c`, `http_api.c` | REQ-MQTT-, REQ-API- |
 | Modbus / metering | `modbus.cpp`, meter code | REQ-MTR- |

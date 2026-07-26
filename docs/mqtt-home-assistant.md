@@ -19,7 +19,6 @@ Background — community reports that motivated current behaviour:
 | EV Energy Charged | `state_class: total_increasing` | `state_class: total` | Fixes corrupted HA long-term statistics (value resets per session) |
 | ESP Uptime | `state_class: measurement` | `state_class: total_increasing` | Enables proper HA statistics tracking |
 | Mains/EV Import/Export Energy | no `state_class` | `state_class: total_increasing` | Required for HA energy dashboard |
-| Solar Stop Timer | no `state_class` | `state_class: measurement` | Enables HA graphs |
 
 ### Energy zero-value guard
 
@@ -102,7 +101,7 @@ curl -X POST http://smartevse-xxxx.local/settings \
 |----------|---------------|---------------|
 | Standard Home Assistant | 1 (on) | 60s |
 | Constrained WiFi / MQTT broker | 1 (on) | 300s |
-| Critical solar automations | 1 (on) | 30s |
+| Critical Smart-mode automations | 1 (on) | 30s |
 | Legacy setup (needs all values) | 0 (off) | — |
 
 ## Full MQTT topic reference
@@ -127,7 +126,6 @@ All topics use prefix `SmartEVSE/<serial>/`.
 | `/MainsExportActiveEnergy` | float | kWh | total_increasing | Grid export energy (zero-guarded) |
 | `/EVChargedEnergy` | float | kWh | total | Session charged energy (resets per session) |
 | `/EVTotalChargedEnergy` | float | kWh | total_increasing | Total charged energy (zero-guarded) |
-| `/SolarStopTimer` | int | s | measurement | Solar stop countdown timer |
 | `/CurrentMaxSumMains` | int | A | — | Max sum mains current (number entity) |
 | `/FreeHeap` | int | B | measurement | ESP32 free heap memory |
 | `/MQTTMsgCount` | int | — | total_increasing | Total MQTT messages published |
@@ -144,7 +142,7 @@ All topics use prefix `SmartEVSE/<serial>/`.
 | `/Set/CurrentOverride` | int | 0-80 | Override charge current (A) |
 | `/Set/MainsMeter` | int | 0-x | Set mains meter type |
 | `/Set/MaxCurrent` | int | 6-80 | Maximum charge current |
-| `/Set/Mode` | int | 0-2 | 0=Normal, 1=Smart, 2=Solar |
+| `/Set/Mode` | int | 0-1, 254-255 | 0=Normal, 1=Smart, 254=Pause, 255=Off |
 | `/Set/MQTTChangeOnly` | int | 0-1 | Enable/disable change-only publishing |
 | `/Set/MQTTHeartbeat` | int | 10-300 | Heartbeat interval (seconds) |
 | `/Set/InitialSoC` | int | -1 to 100 | Set initial State of Charge (%). -1 to clear. |

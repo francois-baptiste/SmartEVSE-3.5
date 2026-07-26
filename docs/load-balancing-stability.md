@@ -53,7 +53,7 @@ and transient loads without significantly delaying convergence on sustained chan
 
 **Important:** The raw (unfiltered) `Idifference` is still used for:
 - Oscillation detection (needs to see actual sign flips)
-- Solar safety decrease (must react immediately to grid overload)
+- Safety decrease (must react immediately to grid overload)
 
 ### Distribution smoothing (delta clamping)
 
@@ -116,8 +116,8 @@ The three features operate in sequence during each regulation cycle:
 ## Settings
 
 These features use the existing `RampRateDivisor` and `EmaAlpha` settings from
-the solar/smart mode stability improvements. The oscillation dampening and delta
-clamping are always active in Smart and Solar modes with no additional configuration.
+the smart mode stability improvements. The oscillation dampening and delta
+clamping are always active in Smart mode with no additional configuration.
 
 | Setting | Effect on load balancing |
 |---------|------------------------|
@@ -137,7 +137,7 @@ The load balancing improvements are verified by 126 convergence tests covering:
 
 | Category | Tests | Scenarios |
 |----------|-------|-----------|
-| Single/multi-EVSE convergence | 18 | Smart, Solar, Normal modes; 1-4 EVSEs |
+| Single/multi-EVSE convergence | 18 | Smart, Normal modes; 1-4 EVSEs |
 | Capacity limits | 6 | MaxMains, MaxCircuit, MaxSumMains constraints |
 | Priority scheduling | 4 | Shortage rotation, fair scheduling |
 | Oscillation dampening | 5 | Detection, adaptive gain, decay, noisy loads |

@@ -1,7 +1,7 @@
 # Power Input Methods
 
 SmartEVSE supports five methods for obtaining mains current data — the critical
-input that drives load balancing, smart mode, and solar mode. This guide helps
+input that drives load balancing and smart mode. This guide helps
 you choose the right method and configure it correctly.
 
 **Why this matters:** When any metering method fails, SmartEVSE stops charging
@@ -51,15 +51,13 @@ Do you have a dedicated energy meter on the mains connection?
 │   └── Use HomeWizard P1 (Method 3) — reliable on stable WiFi
 │
 ├── No dedicated meter, but I have Home Assistant / external system
-│   ├── Is charging robustness critical? (e.g., overnight unattended)
-│   │   ├── Yes → Consider adding a wired meter (Method 1 or 2)
-│   │   └── No → Use API/MQTT feed (Method 5) — least robust
-│   └── Do you have a home battery?
-│       └── Yes → Also configure Battery Current (Method 4) for solar mode
+│   └── Is charging robustness critical? (e.g., overnight unattended)
+│       ├── Yes → Consider adding a wired meter (Method 1 or 2)
+│       └── No → Use API/MQTT feed (Method 5) — least robust
 │
 └── No meter at all
     └── Use "Disabled" — SmartEVSE charges at configured MaxCurrent
-        (no load balancing, no solar/smart mode)
+        (no load balancing, no smart mode)
 ```
 
 ---
@@ -246,14 +244,20 @@ energy totals.
 
 ---
 
-### 3.4 Battery Current Injection via MQTT (Rank 4 — Solar Mode Only)
+### 3.4 Battery Current Injection via MQTT (Rank 4 — Currently a No-Op)
+
+> Solar mode, the only mode that used this data, was removed. The MQTT topic
+> below is still accepted for compatibility with existing Home Assistant
+> automations, but the published value is not applied to any calculation.
+> There is no reason to newly configure this method.
 
 **What it is:** An external system (typically Home Assistant) publishes your home
-battery's charge/discharge current to SmartEVSE via MQTT. This allows solar mode
-to account for battery storage when calculating available surplus current.
+battery's charge/discharge current to SmartEVSE via MQTT. This previously allowed
+solar mode to account for battery storage when calculating available surplus
+current.
 
 **This method is NOT a mains meter replacement.** It supplements one of the other
-methods (1–3 or 5) by providing battery current data for solar calculations.
+methods (1–3 or 5) by providing battery current data.
 
 **Requirements:**
 - An MQTT broker (e.g., Mosquitto) accessible to both SmartEVSE and the publisher
@@ -276,18 +280,16 @@ methods (1–3 or 5) by providing battery current data for solar calculations.
 **Failure modes:**
 - MQTT broker down → no updates → value zeroed after 60 seconds
 - Publisher automation crashes → same as above
-- Incorrect sign convention → solar calculations will be wrong
 
 **Verification:**
 - MQTT topic `SmartEVSE/<serial>/HomeBatteryCurrent` shows the last received value
-- Solar mode calculations adjust when battery is charging/discharging
+- The value is accepted and echoed back, but does not affect charging behavior
 
 **Troubleshooting:**
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
 | Battery current always 0 | Publisher not running, wrong topic | Check MQTT topic matches `SmartEVSE/<serial>/Set/HomeBatteryCurrent` |
-| Solar mode ignores battery | Value zeroed (stale) | Ensure publisher sends updates more often than every 60 seconds |
-| Solar charges when battery is full | Wrong sign convention | Verify: positive = charging, negative = discharging |
+| Charging behavior doesn't reflect battery state | Expected — Solar mode was removed | This method no longer affects charging; there is no replacement |
 
 ---
 
@@ -444,11 +446,11 @@ a Modbus mains meter — depends on meter type).
 - Change `MainsMeter` from type 9 to type 13
 - Remove or disable the MQTT/HTTP automation (no longer needed)
 
-**No meter → Sensorbox** (adding solar/smart mode):
+**No meter → Sensorbox** (adding smart mode):
 - Install Sensorbox with CT clamps on mains wires
 - Wire RS485 from SmartEVSE to Sensorbox
 - Change `MainsMeter` to type 1
-- Solar mode and smart mode become available
+- Smart mode becomes available
 
 ---
 
@@ -468,5 +470,5 @@ a Modbus mains meter — depends on meter type).
 
 - All current values in SmartEVSE are in **deci-Amperes** (0.1A units)
 - Positive values = importing from grid (consumption)
-- Negative values = exporting to grid (solar feed-in)
-- The sum of all three phases (`Isum`) drives load balancing and solar mode
+- Negative values = exporting to grid
+- The sum of all three phases (`Isum`) drives load balancing and smart mode

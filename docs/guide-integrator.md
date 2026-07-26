@@ -69,7 +69,6 @@ at your broker, entities appear.
 - State, mode, error flags.
 - Charging active / enabled.
 - Override current, limits.
-- Solar state.
 
 All as sensors. Mode switching, override current, mains-current
 injection, MQTT command topics — all writable. Full reference:
@@ -185,7 +184,7 @@ let HA push the current readings.
 
 **The charger's API has a 10-second timeout.** If HA hasn't posted a
 fresh reading within 10 seconds, the charger marks the meter as stale
-and disables Smart/Solar mode.
+and disables Smart mode.
 
 DSMR4 smart meters emit telegrams every 10 seconds. HA's DSMR
 integration receives them, but then has to run an automation that POSTs
@@ -198,7 +197,7 @@ Mitigations:
 - Run the reader → POST chain on a small dedicated device (Raspberry Pi
   running a short Python loop), not through HA's full automation graph.
 - Cache the last telegram in HA and replay it every 5 seconds if no new
-  data arrived. Doesn't help solar accuracy but keeps the charger happy.
+  data arrived. Keeps the charger from marking the meter stale.
 
 ### Don't set the charger's internal poll faster than this
 
@@ -274,14 +273,15 @@ Full reference: [ocpp.md](ocpp.md).
 
 > [!IMPORTANT]
 > When OCPP is enabled **and** the backend sends a charging profile
-> (current limit), the internal Smart/Solar-mode load balancing is
+> (current limit), the internal Smart-mode load balancing is
 > **overridden**. The backend's limit wins. This is by design — an OCPP
 > backend operator expects full control.
 >
-> If you want both — solar-adaptive charging **and** OCPP billing —
-> configure the backend to send no-limit profiles (or a profile larger
-> than `MaxMains`) and let the charger's Smart/Solar mode do the
-> adaptation. Check with your provider; not all support no-profile mode.
+> If you want both — Smart-mode grid-load adaptation **and** OCPP
+> billing — configure the backend to send no-limit profiles (or a
+> profile larger than `MaxMains`) and let the charger's Smart mode do
+> the adaptation. Check with your provider; not all support no-profile
+> mode.
 
 ### Provider notes (from user reports)
 
@@ -381,9 +381,8 @@ CPU for no benefit.
 ### The real constraint
 
 - **Push < 2 s** — redundant, HTTP overhead negligible but wasteful.
-- **Push 2–5 s** — ideal for Smart/Solar control responsiveness.
-- **Push 5–10 s** — fine for Smart mode, marginal for Solar (slower
-  reaction to cloud events).
+- **Push 2–5 s** — ideal for Smart-mode control responsiveness.
+- **Push 5–10 s** — fine for Smart mode, but slower to react to load changes.
 - **Push > 10 s** — meter times out, mode disabled until fresh data.
 
 ---

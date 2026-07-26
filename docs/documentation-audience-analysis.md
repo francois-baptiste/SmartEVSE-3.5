@@ -3,6 +3,11 @@
 **Date:** 2026-04-15
 **Status:** Decisions locked — execution starts with `guide-installer.md`
 
+> **Update (2026-07-26):** Solar mode was removed from the firmware after this
+> analysis was written. References to Solar mode below describe user needs and
+> issues observed *at the time of this analysis*; they are not a statement
+> that Solar mode still exists. Only Normal and Smart modes remain.
+
 ## Decisions (locked 2026-04-15)
 
 | # | Question | Decision |

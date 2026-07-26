@@ -1,7 +1,7 @@
 # Improved Start/Stop Functionality via LCD Screen
 
 * Pressing the "O" button for longer than 2 seconds will open the Menu screen.
-* Pressing the "<" button for less than 2 seconds will toggle between Smart and Solar modes.
+* Pressing the "<" button for less than 2 seconds will toggle Smart mode.
 * Pressing the "<" button for longer than 2 seconds will deny access, setting the mode to "Off" and stopping charging.
 * Pressing the ">" button for longer than 2 seconds will grant access, activating the previously set mode and resuming charging.
 
@@ -44,8 +44,7 @@ Once your Wi-Fi parameters are configured, your SmartEVSE will be accessible on 
 # Power Share Mode Switching
 
 * When switching the mode on the Master device, the Slaves will automatically switch modes accordingly.
-* If you change the mode on a Slave and the Master is not configured with a Smart/Solar toggle switch, the Master and all other Slaves will follow the mode change.
-* If a Smart/Solar toggle switch is present, ensure that the Master and all Slaves are set to the same mode. We recommend replacing the toggle switch with a pushbutton switch for ease of use.
+* If you change the mode on a Slave, the Master and all other Slaves will follow the mode change.
 
 ---
 
@@ -80,13 +79,13 @@ A simple timer for delayed charging is available via the webserver.
 
 * Upon refreshing the webpage, the "StartTime" field (next to the mode buttons) will display the current system time.
 * If you press any mode button, charging will start immediately.
-* If you set a future "StartTime," a "StopTime" field will appear. If you leave "StopTime" at the default, it will be ignored. Pressing Normal, Solar, or Smart mode will:
+* If you set a future "StartTime," a "StopTime" field will appear. If you leave "StopTime" at the default, it will be ignored. Pressing Normal or Smart mode will:
     - Register the StartTime.
     - Switch the mode to "Off."
     - Start the charging session at the designated StartTime, either in Normal or Smart mode.
     - Continue the charging session indefinitely.
 * Entering a "StopTime" will enable a "Daily" checkbox, allowing the StartTime/StopTime combination to repeat daily starting from the selected date.
-* To clear StartTime, StopTime, and Repeat, refresh the webpage and select Normal, Solar, or Smart mode.
+* To clear StartTime, StopTime, and Repeat, refresh the webpage and select Normal or Smart mode.
 
 ### Known Bugs
 
@@ -102,7 +101,7 @@ A European Union directive allows electricity providers to charge consumers base
 For more information, visit [this link](https://github.com/serkri/SmartEVSE-3/issues/215).
 
 * A new menu option, "SumMains," has been added with a default setting of 600A.
-* This setting applies in Smart or Solar mode only.
+* This setting applies in Smart mode only.
 * In addition to other limits (Mains, MaxCircuit), the charging current will be restricted to ensure that the total current across all phases does not exceed the SumMains setting.
 * If you are unsure how to configure this, it is recommended to leave the setting at its default value.
 

@@ -446,7 +446,7 @@ On the LCD or web UI, set:
 
 | Setting | Value |
 |---|---|
-| Mode | **Normal** for the first plug-in test. Switch to Smart/Solar later |
+| Mode | **Normal** for the first plug-in test. Switch to Smart later |
 | MaxMains | Your house main rating, minus a margin. On a 3×25 A = set 23 A |
 | MaxCurrent | Charger branch rating. 16 A or 32 A |
 | MaxCircuit | 0 (disabled) unless you're on a subpanel (see §11) |
@@ -506,7 +506,7 @@ also feeds other loads (workshop tools, lighting), you need
 |---|---|
 | MaxMains | 23 A (the house main, minus margin) |
 | MaxCircuit | 15 A (the subpanel feed, minus margin for the other workshop loads) |
-| Mode | **Smart** or **Solar** (Normal mode ignores MaxCircuit) |
+| Mode | **Smart** (Normal mode ignores MaxCircuit) |
 
 The charger will clamp its own current so that neither the 23 A mains
 nor the 15 A subpanel is exceeded. You do **not** need Load Balancing
@@ -589,7 +589,7 @@ Full build + flash instructions in [building_flashing.md](building_flashing.md).
 Once the charger is installed, powered, and state A → B → C works with
 your car in Normal mode:
 
-- **[guide-owner.md](guide-owner.md)** — day-to-day usage, switching to Smart/Solar mode, LCD menu tour.
+- **[guide-owner.md](guide-owner.md)** — day-to-day usage, switching to Smart mode, LCD menu tour.
 - **[guide-integrator.md](guide-integrator.md)** — MQTT topics, Home Assistant, REST API, OCPP providers.
 - **[configuration.md](configuration.md)** — LCD menu reference.
 - **[power-input-methods.md](power-input-methods.md)** — detailed meter setup.

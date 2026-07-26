@@ -81,8 +81,7 @@ what a section does can click through to an explanation.
 
 | Section | Link target | Anchor |
 |---|---|---|
-| Mode selection (OFF / PAUSE / NORMAL / SOLAR / SMART) | `guide-owner.md` | `#2-the-five-modes` |
-| Solar settings (Start Current, Max Import, Stop Time) | `solar-smart-stability.md` | `#new-settings` |
+| Mode selection (OFF / PAUSE / NORMAL / SMART) | `guide-owner.md` | `#2-the-four-modes` |
 | Override Current + Schedule | `guide-owner.md` | `#3-starting-a-charge-session` |
 | Mains phase detail | `guide-installer.md` | `#7-meter-selection` |
 | EV meter | `guide-installer.md` | `#7-meter-selection` |
@@ -93,7 +92,7 @@ what a section does can click through to an explanation.
 | LCD remote | `guide-owner.md` | `#1-the-two-interfaces-youll-actually-use` |
 | MQTT configuration | `guide-integrator.md` | `#3-home-assistant-via-mqtt` |
 | OCPP configuration | `guide-integrator.md` | `#6-ocpp-backends` |
-| Diagnostics | `troubleshooting.md` | `#11-capturing-a-debug-log` |
+| Diagnostics | `troubleshooting.md` | `#9-capturing-a-debug-log` |
 | Firmware update page | `guide-owner.md` | `#6-firmware-updates` |
 | EV state / SoC | `mqtt-home-assistant.md` | `#soc-injection-via-mqtt` |
 | Cable lock / LCD lock | `guide-owner.md` | `#8-access-control` |
@@ -107,9 +106,6 @@ questions in the Tweakers thread or issue tracker.
 
 | Field | Link target | Why |
 |---|---|---|
-| `solar_start_current` | `solar-smart-stability.md#current-regulation` | "Why doesn't solar mode start?" — most common solar complaint |
-| `solar_stop_time` | `solar-smart-stability.md#current-regulation` | "Why does it cycle on/off?" |
-| `solar_max_import_current` | `solar-smart-stability.md#current-regulation` | "What does ImportCurrent actually do?" |
 | `mode_override_current` | `guide-owner.md#3-starting-a-charge-session` | "How do I charge at a specific current?" |
 | `capacity_limit_input` | `configuration.md` | Belgian capacity tariff is unfamiliar outside BE |
 | `mqtt_host` | `guide-integrator.md#setup` | MQTT connection troubleshooting entry |
@@ -121,7 +117,7 @@ questions in the Tweakers thread or issue tracker.
 | `prio_strategy` | `priority-scheduling.md` | Priority semantics not obvious |
 | `rotation_interval` | `priority-scheduling.md` | Same |
 | `idle_timeout` | `priority-scheduling.md` | Same |
-| `diag_profile` | `troubleshooting.md#11-capturing-a-debug-log` | "Which profile should I pick?" |
+| `diag_profile` | `troubleshooting.md#9-capturing-a-debug-log` | "Which profile should I pick?" |
 
 ---
 
@@ -174,7 +170,7 @@ adding/removing links doesn't require HTML edits:
 var HELP_LINKS = {
   'mqtt_config':     'guide-integrator.md#3-home-assistant-via-mqtt',
   'ocpp_config':     'guide-integrator.md#6-ocpp-backends',
-  'diag_section':    'troubleshooting.md#11-capturing-a-debug-log',
+  'diag_section':    'troubleshooting.md#9-capturing-a-debug-log',
   // ...
 };
 ```
