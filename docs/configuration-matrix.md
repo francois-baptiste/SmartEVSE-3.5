@@ -27,7 +27,7 @@ safety, configure these on the device LCD during initial installation.
 
 | Setting | Range | Default | LCD | Web | REST | MQTT | Saved | ⚠ | Notes |
 |---------|-------|---------|-----|-----|------|------|-------|---|-------|
-| MODE | Normal / Smart / Solar | Normal | RW | RW | RW | `Set/Mode` | Yes | **⚠** | Also accepts Off, Pause via MQTT |
+| MODE | Normal / Smart | Normal | RW | RW | RW | `Set/Mode` | Yes | **⚠** | Also accepts Off, Pause via MQTT |
 | MAX (charge current) | 6–80 A | 13 A | RW | RW | RW | via CurrentOverride | Yes | **⚠** | Per-phase limit, capped by cable |
 | MIN (charge current) | 6–16 A | 6 A | RW | RW | RW | — | Yes | **⚠** | Minimum per-phase current |
 | Override current | 0–MAX×10 dA | 0 | — | RW | RW | `Set/CurrentOverride` | No | **⚠** | Temporary; resets on power loss |
@@ -45,15 +45,15 @@ safety, configure these on the device LCD during initial installation.
 | CapacityLimit (peak) | 0–25000 W | 0 | RW | RW | RW | `Set/CapacityLimit` | Yes | | 15-min peak tracking; 0=disabled |
 | PWR SHARE (load bal) | Disabled / Master / Node 1–7 | Disabled | RW | RW | RW | — | Yes | **⚠** | Multi-EVSE power sharing role |
 
-## Solar and smart mode
+## Smart mode
+
+Solar mode was removed; the START, STOP, and IMPORT settings it used no longer
+exist. `Set/HomeBatteryCurrent` is kept for compatibility but the value is no
+longer applied to any calculation.
 
 | Setting | Range | Default | LCD | Web | REST | MQTT | Saved | ⚠ | Notes |
 |---------|-------|---------|-----|-----|------|------|-------|---|-------|
-| START (solar start) | 0–48 A | 4 A | RW | RW | RW | — | Yes | | Surplus threshold to begin |
-| STOP (solar stop time) | 0–60 min | 10 min | RW | RW | RW | — | Yes | | Minutes at MinCurrent before stop |
-| IMPORT (max import) | 0–48 A | 0 A | RW | RW | RW | — | Yes | | Allowed grid import in solar |
-| Home battery current | ±200 A | 0 | — | R | R | `Set/HomeBatteryCurrent` | No | | Positive=charging, negative=discharging |
-| Solar debug | 0 / 1 | 0 | — | — | — | `Set/SolarDebug` | No | | Verbose solar logging |
+| Home battery current | ±200 A | 0 | — | R | R | `Set/HomeBatteryCurrent` | No | | Accepted but currently unused |
 
 ## Access and security
 
@@ -68,7 +68,7 @@ safety, configure these on the device LCD during initial installation.
 
 | Setting | Range | Default | LCD | Web | REST | MQTT | Saved | ⚠ | Notes |
 |---------|-------|---------|-----|-----|------|------|-------|---|-------|
-| CONTACT 2 (C2) | Not present / Always Off / Solar Off / Always On / Auto | Always On | RW | RW | RW | `Set/EnableC2` | Yes | **⚠** | Controls 1P/3P switching |
+| CONTACT 2 (C2) | Not present / Always Off / Reserved / Always On / Auto | Always On | RW | RW | RW | `Set/EnableC2` | Yes | **⚠** | Controls 1P/3P switching; ordinal 2 (formerly "Solar Off") is reserved/unused |
 | Phase switch request | 1 / 3 | — | — | RW | RW | — | No | **⚠** | Requires C2 present + master |
 
 ## Meter configuration
@@ -92,7 +92,7 @@ safety, configure these on the device LCD during initial installation.
 | Setting | Range | Default | LCD | Web | REST | MQTT | Saved | ⚠ | Notes |
 |---------|-------|---------|-----|-----|------|------|-------|---|-------|
 | CONFIG | Socket / Fixed | Socket | RW | RW | RW | — | Yes | | Cable type |
-| SWITCH | Disabled / Access / Smart-Solar / ... | Disabled | RW | RW | RW | — | Yes | | External switch function |
+| SWITCH | Disabled / Access / ... | Disabled | RW | RW | RW | — | Yes | | External switch function; values 3/4 (formerly "Smart-Solar Button/Switch") are reserved/unused |
 | RCMON | Disabled / Enabled | Disabled | RW | RW | RW | — | Yes | **⚠** | Residual current monitor |
 | MAX TEMP | 40–75 °C | 65 °C | RW | RW | RW | — | Yes | **⚠** | Thermal protection threshold |
 
@@ -135,14 +135,13 @@ See [OCPP setup](ocpp.md) for provider-specific guides.
 | Color Off | R,G,B 0–255 | 0,0,0 | — | RW | RW | `Set/ColorOff` | Yes | | LED when disabled |
 | Color Normal | R,G,B 0–255 | 0,255,0 | — | RW | RW | `Set/ColorNormal` | Yes | | LED in Normal mode |
 | Color Smart | R,G,B 0–255 | 0,255,0 | — | RW | RW | `Set/ColorSmart` | Yes | | LED in Smart mode |
-| Color Solar | R,G,B 0–255 | 255,170,0 | — | RW | RW | `Set/ColorSolar` | Yes | | LED in Solar mode |
 | Color Custom | R,G,B 0–255 | 0,0,255 | — | RW | RW | `Set/ColorCustom` | Yes | | LED for custom button |
 
 ## Diagnostics
 
 | Setting | Range | Default | LCD | Web | REST | MQTT | Saved | ⚠ | Notes |
 |---------|-------|---------|-----|-----|------|------|-------|---|-------|
-| Diag profile | off / general / solar / loadbal / modbus / fast | off | — | — | — | `Set/DiagProfile` | No | | Diagnostic capture mode |
+| Diag profile | off / general / reserved / loadbal / modbus / fast | off | — | — | — | `Set/DiagProfile` | No | | Diagnostic capture mode; "reserved" was solar focus |
 
 ## Read-only status values
 
@@ -164,7 +163,6 @@ but cannot be changed by the user.
 | Meter timeout count | — | — | — | Published | CT_NOCOMM events since boot |
 | Meter recovery count | — | — | — | Published | CT_NOCOMM recoveries since boot |
 | API stale count | — | — | — | Published | API staleness events since boot |
-| Solar stop timer | — | R | R | Published | Seconds until solar stop |
 | OCPP status | — | R | R | Published | Connection state |
 | OCPP current limit | — | R | R | Published | Backend charging limit |
 

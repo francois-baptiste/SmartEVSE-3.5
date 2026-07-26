@@ -24,7 +24,7 @@ typedef struct __attribute__((packed)) {
     uint8_t  error_flags;         /* ErrorFlags (low byte)                   (1)  */
     uint8_t  charge_delay;        /* ChargeDelay countdown                   (1)  */
     uint8_t  access_status;       /* OFF/ON/PAUSE                            (1)  */
-    uint8_t  mode;                /* NORMAL/SMART/SOLAR                      (1)  */
+    uint8_t  mode;                /* NORMAL/SMART                            (1)  */
     /* Currents (14 bytes) */
     int16_t  mains_irms[3];      /* Mains L1/L2/L3 in deciamps             (6)  */
     int16_t  ev_irms[3];         /* EV meter L1/L2/L3 in deciamps          (6)  */
@@ -33,10 +33,6 @@ typedef struct __attribute__((packed)) {
     uint16_t charge_current;     /* Allocated charge current                (2)  */
     int16_t  iset_balanced;      /* IsetBalanced                            (2)  */
     uint16_t override_current;   /* OverrideCurrent                         (2)  */
-    /* Solar (6 bytes) */
-    uint16_t solar_stop_timer;   /* SolarStopTimer countdown                (2)  */
-    uint16_t import_current;     /* ImportCurrent setting                   (2)  */
-    uint16_t start_current;      /* StartCurrent setting                    (2)  */
     /* Timers (4 bytes) */
     uint8_t  state_timer;        /* StateTimer                              (1)  */
     uint8_t  c1_timer;           /* C1Timer                                 (1)  */
@@ -70,7 +66,7 @@ typedef struct __attribute__((packed)) {
 typedef enum {
     DIAG_PROFILE_OFF     = 0,   /* No capture (default)           */
     DIAG_PROFILE_GENERAL = 1,   /* 1 snapshot/second, all fields  */
-    DIAG_PROFILE_SOLAR   = 2,   /* 1 snapshot/second, solar focus */
+    DIAG_PROFILE_RESERVED = 2,  /* Reserved (was solar focus)     */
     DIAG_PROFILE_LOADBAL = 3,   /* 1 snapshot/second, LB focus    */
     DIAG_PROFILE_MODBUS  = 4,   /* 1 snapshot/100ms, meter focus  */
     DIAG_PROFILE_FAST    = 5    /* 1 snapshot/100ms, all fields   */

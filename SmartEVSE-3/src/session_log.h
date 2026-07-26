@@ -33,7 +33,7 @@ typedef struct {
     int32_t  energy_charged_wh;    /* end - start */
     uint16_t max_current_da;       /* Peak current during session (deciamps) */
     uint8_t  phases;               /* Nr_Of_Phases_Charging at session end */
-    uint8_t  mode;                 /* MODE_NORMAL / MODE_SMART / MODE_SOLAR */
+    uint8_t  mode;                 /* MODE_NORMAL / MODE_SMART / 2=solar (legacy, mode removed) */
     uint8_t  ocpp_active;          /* Was OCPP controlling this session? */
     uint8_t  _reserved[3];         /* Alignment padding */
     int32_t  circuit_start_energy_wh;  /* CircuitMeter energy at session start */

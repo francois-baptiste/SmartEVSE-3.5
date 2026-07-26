@@ -155,11 +155,6 @@ If available power increases (e.g., the oven turns off), paused EVSEs are
 immediately reactivated in priority order — no need to wait for a timer. Their
 idle timers are reset so they get a fresh anti-flap window.
 
-### Solar mode
-
-In Solar mode, paused EVSEs show "No Sun" instead of "Less 6A" since the
-shortage is caused by insufficient solar production, not a mains overload.
-
 ---
 
 ## MQTT topics
@@ -260,10 +255,10 @@ seconds). Active EVSEs are not immediately disrupted.
 A: The idle detection kicks in. After IDLE TMO seconds of the car drawing less
 than 1A, the next car in priority order is activated.
 
-**Q: Does priority scheduling work in Solar mode?**
-A: Yes. When solar production drops, only lower-priority EVSEs are paused. The
-highest-priority EVSEs keep charging as long as there is enough solar power for
-them.
+**Q: Does priority scheduling work in Smart mode?**
+A: Yes. When available mains capacity drops, only lower-priority EVSEs are
+paused. The highest-priority EVSEs keep charging as long as there is enough
+power for them.
 
 **Q: What about the existing NoCurrent error?**
 A: NoCurrent only triggers when even the highest-priority EVSE cannot get its

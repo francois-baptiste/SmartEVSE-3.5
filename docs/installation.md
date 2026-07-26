@@ -68,12 +68,12 @@ If you have other current-users on a Subpanel, use this wiring and the added con
 
    In this example you configure Mains to 25A, MaxCircuit to 16A; the charger will limit itself so that neither the 25A mains nor the 16A from the subpanel will be
    exceeded...
-   Note that for this functionality you will need to be in Smart or Solar mode; it is no longer necessary to enable Load Balancing for this function.
+   Note that for this functionality you will need to be in Smart mode; it is no longer necessary to enable Load Balancing for this function.
 
 # Second Contactor C2
-One can add a second contactor (C2) that switches off 2 of the 3 phases of a three-phase Mains installation; this can be useful if one wants to charge of off
-Solar; EV's have a minimal charge current of 6A, so switching off 2 phases allows you to charge with a current of 6-18A, while 3 phases have a minimum current
-of 3x6A=18A. This way you can still charge solar-only on smaller solar installations.
+One can add a second contactor (C2) that switches off 2 of the 3 phases of a three-phase Mains installation; this can be useful if the available mains capacity
+is limited. EV's have a minimal charge current of 6A, so switching off 2 phases allows you to charge with a current of 6-18A, while 3 phases have a minimum current
+of 3x6A=18A. This way you can still charge in Smart mode on installations with less headroom available.
 
 One should wire C2 according to this schema:
 

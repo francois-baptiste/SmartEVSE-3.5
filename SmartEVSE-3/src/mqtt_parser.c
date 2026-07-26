@@ -12,8 +12,10 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+/* Index 2 (formerly "Solar Off") is kept reserved so the positional index
+ * mapping for Always On (3) and Auto (4) doesn't shift for existing configs. */
 const char *mqtt_enable_c2_strings[MQTT_ENABLE_C2_COUNT] = {
-    "Not present", "Always Off", "Solar Off", "Always On", "Auto"
+    "Not present", "Always Off", "Reserved", "Always On", "Auto"
 };
 
 // Match topic against prefix + suffix. Returns pointer past prefix+suffix, or NULL.
@@ -80,7 +82,7 @@ bool mqtt_parse_rgb(const char *payload, uint8_t *r, uint8_t *g, uint8_t *b) {
  *   - Meter feeds:      /Set/MainsMeter (L1:L2:L3), /Set/EVMeter (L1:L2:L3:W:Wh)
  *   - Home battery:     /Set/HomeBatteryCurrent
  *   - Vehicle ID:       /Set/RequiredEVCCID
- *   - LED colors:       /Set/Color{Off,Normal,Smart,Solar,Custom} (R,G,B)
+ *   - LED colors:       /Set/Color{Off,Normal,Smart,Custom} (R,G,B)
  *   - Hardware config:  /Set/CableLock, /Set/EnableC2
  *   - Scheduling:       /Set/PrioStrategy, /Set/RotationInterval, /Set/IdleTimeout
  */
@@ -88,15 +90,13 @@ bool mqtt_parse_command(const char *prefix, const char *topic,
                         const char *payload, mqtt_command_t *out) {
     memset(out, 0, sizeof(*out));
 
-    /* Mode control: Off/Normal/Solar/Smart/Pause */
+    /* Mode control: Off/Normal/Smart/Pause */
     if (match_topic(prefix, topic, "/Set/Mode")) {
         out->cmd = MQTT_CMD_MODE;
         if (strcmp(payload, "Off") == 0)
             out->mode = MQTT_MODE_OFF;
         else if (strcmp(payload, "Normal") == 0)
             out->mode = MQTT_MODE_NORMAL;
-        else if (strcmp(payload, "Solar") == 0)
-            out->mode = MQTT_MODE_SOLAR;
         else if (strcmp(payload, "Smart") == 0)
             out->mode = MQTT_MODE_SMART;
         else if (strcmp(payload, "Pause") == 0)
@@ -193,15 +193,14 @@ bool mqtt_parse_command(const char *prefix, const char *topic,
         return true;
     }
 
-    // Color topics: ColorOff, ColorNormal, ColorSmart, ColorSolar, ColorCustom
+    // Color topics: ColorOff, ColorNormal, ColorSmart, ColorCustom
     static const struct { const char *suffix; uint8_t index; } color_topics[] = {
         { "/Set/ColorOff",    MQTT_COLOR_OFF },
         { "/Set/ColorNormal", MQTT_COLOR_NORMAL },
         { "/Set/ColorSmart",  MQTT_COLOR_SMART },
-        { "/Set/ColorSolar",  MQTT_COLOR_SOLAR },
         { "/Set/ColorCustom", MQTT_COLOR_CUSTOM },
     };
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 4; i++) {
         if (match_topic(prefix, topic, color_topics[i].suffix)) {
             out->cmd = MQTT_CMD_COLOR;
             out->color.index = color_topics[i].index;
@@ -291,19 +290,6 @@ bool mqtt_parse_command(const char *prefix, const char *topic,
         return false;
     }
 
-    if (match_topic(prefix, topic, "/Set/SolarDebug")) {
-        out->cmd = MQTT_CMD_SOLAR_DEBUG;
-        if (strcmp(payload, "1") == 0 || strcmp(payload, "ON") == 0) {
-            out->solar_debug = true;
-            return true;
-        }
-        if (strcmp(payload, "0") == 0 || strcmp(payload, "OFF") == 0) {
-            out->solar_debug = false;
-            return true;
-        }
-        return false;
-    }
-
     /* EV State of Charge and energy parameters */
     if (match_topic(prefix, topic, "/Set/InitialSoC")) {
         if (payload[0] == '\0') return false;
@@ -386,10 +372,6 @@ bool mqtt_parse_command(const char *prefix, const char *topic,
         }
         if (strcmp(payload, "general") == 0 || strcmp(payload, "1") == 0) {
             out->diag_profile = 1;
-            return true;
-        }
-        if (strcmp(payload, "solar") == 0 || strcmp(payload, "2") == 0) {
-            out->diag_profile = 2;
             return true;
         }
         if (strcmp(payload, "loadbal") == 0 || strcmp(payload, "3") == 0) {

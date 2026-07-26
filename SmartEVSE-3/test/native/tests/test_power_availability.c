@@ -3,7 +3,6 @@
  *
  * Tests the multi-layer power availability gate:
  *   - MaxMains / MaxCircuit / MaxSumMains limits
- *   - Solar surplus requirements
  *   - OCPP current limit
  *   - Mode-specific behavior
  */
@@ -198,83 +197,6 @@ void test_maxsummains_zero_disables_check(void) {
     TEST_ASSERT_EQUAL_INT(1, result);
 }
 
-// ---- Solar mode surplus ----
-
-/*
- * @feature Power Availability
- * @req REQ-PWR-010
- * @scenario Solar mode blocks current when no surplus is available
- * @given EVSE is in Solar mode with StartCurrent=6A and Isum=0 (no export)
- * @when evse_is_current_available is called
- * @then Returns 0 (unavailable) because there is no solar surplus for charging
- */
-void test_solar_no_surplus_blocks(void) {
-    setup_normal_standalone();
-    ctx.Mode = MODE_SOLAR;
-    ctx.StartCurrent = 6;
-    ctx.Isum = 0;  // No surplus
-    int result = evse_is_current_available(&ctx);
-    TEST_ASSERT_EQUAL_INT(0, result);
-}
-
-/*
- * @feature Power Availability
- * @req REQ-PWR-011
- * @scenario Solar mode allows current when surplus exceeds StartCurrent
- * @given EVSE is in Solar mode with StartCurrent=6A and Isum=-80 (8A export surplus)
- * @when evse_is_current_available is called
- * @then Returns 1 (available) because 8A surplus exceeds 6A StartCurrent threshold
- */
-void test_solar_surplus_allows(void) {
-    setup_normal_standalone();
-    ctx.Mode = MODE_SOLAR;
-    ctx.StartCurrent = 6;
-    ctx.Isum = -80;  // 8A export
-    int result = evse_is_current_available(&ctx);
-    TEST_ASSERT_EQUAL_INT(1, result);
-}
-
-/*
- * @feature Power Availability
- * @req REQ-PWR-012
- * @scenario Solar mode blocks current when surplus is below StartCurrent threshold
- * @given EVSE is in Solar mode with StartCurrent=10A and Isum=-80 (only 8A surplus)
- * @when evse_is_current_available is called
- * @then Returns 0 (unavailable) because 8A surplus is below the 10A StartCurrent threshold
- */
-void test_solar_insufficient_surplus_blocks(void) {
-    setup_normal_standalone();
-    ctx.Mode = MODE_SOLAR;
-    ctx.StartCurrent = 10;        // Need 10A surplus
-    ctx.Isum = -80;               // Only 8A surplus
-    int result = evse_is_current_available(&ctx);
-    TEST_ASSERT_EQUAL_INT(0, result);
-}
-
-/*
- * @feature Power Availability
- * @req REQ-PWR-013
- * @scenario Solar mode with active EVSE checks fair share before allowing more
- * @given EVSE is in Solar mode with one active EVSE at MinCurrent and Isum=10 (1A import)
- * @when evse_is_current_available is called
- * @then Returns 0 (unavailable) because grid import indicates insufficient surplus for another EVSE
- */
-void test_solar_with_active_evse_checks_fair_share(void) {
-    setup_normal_standalone();
-    ctx.Mode = MODE_SOLAR;
-    ctx.StartCurrent = 6;
-    ctx.MinCurrent = 6;
-    ctx.BalancedState[0] = STATE_C;
-    ctx.Balanced[0] = 60;  // 6A charging
-    ctx.Isum = 10;         // 1A import
-    // One active EVSE at min current, trying to add another
-    // Active * MinCurrent * 10 = 1 * 60 = 60, TotalCurrent = 60
-    // Check: Isum > ImportCurrent*10 + TotalCurrent - ActiveEVSE * MinCurrent * 10
-    // 10 > 0 + 60 - 60 = 0? Yes -> blocked
-    int result = evse_is_current_available(&ctx);
-    TEST_ASSERT_EQUAL_INT(0, result);
-}
-
 // ---- OCPP availability ----
 
 /*
@@ -430,10 +352,6 @@ int main(void) {
     RUN_TEST(test_maxsummains_allows_under_limit);
     RUN_TEST(test_maxsummains_blocks_over_limit);
     RUN_TEST(test_maxsummains_zero_disables_check);
-    RUN_TEST(test_solar_no_surplus_blocks);
-    RUN_TEST(test_solar_surplus_allows);
-    RUN_TEST(test_solar_insufficient_surplus_blocks);
-    RUN_TEST(test_solar_with_active_evse_checks_fair_share);
     RUN_TEST(test_ocpp_limit_blocks_when_below_min);
     RUN_TEST(test_ocpp_limit_allows_when_above_min);
     RUN_TEST(test_ocpp_no_limit_allows);

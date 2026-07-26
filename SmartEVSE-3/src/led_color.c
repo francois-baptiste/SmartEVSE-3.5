@@ -22,7 +22,6 @@
 #ifndef MODE_NORMAL
 #define MODE_NORMAL 0
 #define MODE_SMART  1
-#define MODE_SOLAR  2
 #endif
 
 /* Error flag bits */
@@ -66,8 +65,6 @@ static led_rgb_t apply_mode_color(uint8_t pwm, const led_state_t *state) {
 
     if (state->custom_button)
         color = state->color_custom;
-    else if (state->mode == MODE_SOLAR)
-        color = state->color_solar;
     else if (state->mode == MODE_SMART)
         color = state->color_smart;
     else
@@ -123,7 +120,7 @@ led_rgb_t led_compute_color(const led_state_t *state, led_context_t *ctx) {
         rgb.b = state->color_off[2];
 
     } else if (state->error_flags || state->charge_delay) {
-        /* Waiting for solar power or not enough current */
+        /* Waiting for enough current */
         ctx->led_count += 2;
         if (ctx->led_count > 230)
             ctx->led_pwm = WAITING_LED_BRIGHTNESS;
@@ -141,10 +138,7 @@ led_rgb_t led_compute_color(const led_state_t *state, led_context_t *ctx) {
             ctx->led_pwm = STATE_B_LED_BRIGHTNESS;
             ctx->led_count = 128;
         } else if (state->state == STATE_C) {
-            if (state->mode == MODE_SOLAR)
-                ctx->led_count++;
-            else
-                ctx->led_count += 2;
+            ctx->led_count += 2;
             ctx->led_pwm = led_ease8InOutQuad(led_triwave8(ctx->led_count));
         }
         rgb = apply_mode_color(ctx->led_pwm, state);

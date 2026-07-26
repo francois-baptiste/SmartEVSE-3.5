@@ -12,8 +12,7 @@
 /* EnableC2 enum values (must match main.h EnableC2_t) */
 #define ENABLE_C2_ALWAYS_OFF 1
 
-/* Mode and meter type constants for battery current logic */
-#define SP_MODE_SOLAR 2
+/* Meter type constant for battery current logic */
 #define SP_EM_API     9
 
 bool serial_parse_irms(const char *buf, serial_irms_t *out) {
@@ -64,7 +63,6 @@ bool serial_parse_node_status(const uint8_t *buf, uint8_t buf_len,
     out->state = buf[1];
     out->error = buf[3];
     out->mode = buf[7];
-    out->solar_timer = ((uint16_t)buf[8] << 8) | buf[9];
     out->config_changed = buf[13];
     out->max_current = (uint16_t)buf[15] * 10;
     return true;
@@ -89,9 +87,10 @@ calc_isum_result_t calc_isum(const calc_isum_input_t *input) {
     return result;
 }
 
-int16_t calc_battery_current(uint32_t time_since_update, uint8_t mode,
+int16_t calc_battery_current(uint32_t time_since_update,
+                              uint8_t mode __attribute__((unused)),
                               uint8_t mains_meter_type __attribute__((unused)),
-                              int16_t battery_current) {
+                              int16_t battery_current __attribute__((unused))) {
     /* Never updated (time_since_update == 0 with no prior update) */
     if (time_since_update == 0)
         return 0;
@@ -100,9 +99,7 @@ int16_t calc_battery_current(uint32_t time_since_update, uint8_t mode,
     if (time_since_update > 60)
         return 0;
 
-    /* Only use battery current in Solar mode */
-    if (mode == SP_MODE_SOLAR)
-        return battery_current;
-
+    /* Solar mode (the only mode that used battery current) has been removed;
+     * no remaining mode applies it. */
     return 0;
 }

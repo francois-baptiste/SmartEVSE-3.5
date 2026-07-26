@@ -132,7 +132,6 @@ Every requirement has a unique ID following the pattern `REQ-{AREA}-{NNN}`:
 | `REQ-SM-` | State machine transitions |
 | `REQ-ERR-` | Error handling & safety |
 | `REQ-LB-` | Load balancing |
-| `REQ-SOL-` | Solar mode / solar balancing |
 | `REQ-OCPP-` | OCPP integration |
 | `REQ-MQTT-` | MQTT command parsing |
 | `REQ-API-` | HTTP REST API |

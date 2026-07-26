@@ -394,7 +394,7 @@ void test_profile_resets_tick_counter(void)
     diag_ring_init(&ring, buf, 4);
     ring.tick_counter = 5;
 
-    diag_set_profile(&ring, DIAG_PROFILE_SOLAR);
+    diag_set_profile(&ring, DIAG_PROFILE_RESERVED);
     TEST_ASSERT_EQUAL(0, ring.tick_counter);
 }
 
@@ -469,14 +469,14 @@ void test_tick_off_profile(void)
 /*
  * @feature Diagnostic Telemetry
  * @req REQ-E2E-040
- * @scenario diag_snapshot_t is exactly 64 bytes
+ * @scenario diag_snapshot_t is exactly 58 bytes (Solar fields removed)
  * @given The diag_snapshot_t struct definition
  * @when sizeof is checked
- * @then The size is exactly 64 bytes
+ * @then The size is exactly 58 bytes
  */
 void test_snapshot_size(void)
 {
-    TEST_ASSERT_EQUAL(64, (int)sizeof(diag_snapshot_t));
+    TEST_ASSERT_EQUAL(58, (int)sizeof(diag_snapshot_t));
 }
 
 /* ---- Binary serialization ---- */
@@ -538,13 +538,13 @@ void test_serialize_with_data(void)
     uint8_t out[512];
     size_t n = diag_ring_serialize(&ring, out, sizeof(out), "v1.0", 99);
 
-    /* header(34) + 2*64 + CRC(4) = 166 */
-    TEST_ASSERT_EQUAL(166, (int)n);
+    /* header(34) + 2*58 + CRC(4) = 154 */
+    TEST_ASSERT_EQUAL(154, (int)n);
 
     /* Verify header count field (offset 8-9, little-endian uint16) */
     diag_file_header_t *hdr = (diag_file_header_t *)out;
     TEST_ASSERT_EQUAL(2, hdr->count);
-    TEST_ASSERT_EQUAL(64, hdr->snapshot_size);
+    TEST_ASSERT_EQUAL(58, hdr->snapshot_size);
     TEST_ASSERT_EQUAL(99, (int)hdr->serial_nr);
 }
 

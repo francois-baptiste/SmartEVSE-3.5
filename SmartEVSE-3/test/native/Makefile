@@ -31,7 +31,6 @@ P1_PARSE_SRC        := $(SRC_DIR)/p1_parse.c
 MODBUS_LOG_SRC      := $(SRC_DIR)/modbus_log.c
 OCPP_LOGIC_SRC     := $(SRC_DIR)/ocpp_logic.c
 OCPP_TELEMETRY_SRC := $(SRC_DIR)/ocpp_telemetry.c
-SOLAR_DEBUG_JSON_SRC := $(SRC_DIR)/solar_debug_json.c
 SESSION_LOG_SRC      := $(SRC_DIR)/session_log.c
 DIAG_TELEMETRY_SRC  := $(SRC_DIR)/diag_telemetry.c
 DIAG_MODBUS_SRC     := $(SRC_DIR)/diag_modbus.c
@@ -116,9 +115,6 @@ $(BUILD)/test_pin_rate_limit: $(TEST_DIR)/test_pin_rate_limit.c $(SRC_DIR)/pin_r
 
 $(BUILD)/test_reconnect_backoff: $(TEST_DIR)/test_reconnect_backoff.c $(SRC_DIR)/reconnect_backoff.c $(SRC_DIR)/reconnect_backoff.h include/*.h | $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(TEST_DIR)/test_reconnect_backoff.c $(SRC_DIR)/reconnect_backoff.c
-
-$(BUILD)/test_solar_debug_json: $(TEST_DIR)/test_solar_debug_json.c $(SOLAR_DEBUG_JSON_SRC) $(SRC_DIR)/solar_debug_json.h include/*.h | $(BUILD)
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(TEST_DIR)/test_solar_debug_json.c $(SOLAR_DEBUG_JSON_SRC)
 
 $(BUILD)/test_session_log: $(TEST_DIR)/test_session_log.c $(SESSION_LOG_SRC) $(SRC_DIR)/session_log.h include/*.h | $(BUILD)
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ $(TEST_DIR)/test_session_log.c $(SESSION_LOG_SRC)

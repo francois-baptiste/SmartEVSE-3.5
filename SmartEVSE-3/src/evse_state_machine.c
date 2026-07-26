@@ -149,8 +149,6 @@ void evse_init(evse_ctx_t *ctx, evse_hal_t *hal) {
 
     // Stop/start cycling prevention
     ctx->NoCurrentThreshold = NOCURRENT_THRESHOLD_DEFAULT;
-    ctx->SolarChargeDelay = SOLAR_CHARGE_DELAY_DEFAULT;
-    ctx->SolarMinRunTime = SOLAR_MIN_RUN_TIME_DEFAULT;
 
     // Phase switching
     ctx->EnableC2 = NOT_PRESENT;
@@ -164,23 +162,12 @@ void evse_init(evse_ctx_t *ctx, evse_hal_t *hal) {
     // Capacity tariff headroom (Plan 13)
     ctx->CapacityHeadroom_da = INT16_MAX;  // Unconstrained by default
 
-    // Phase switching timers
-    ctx->PhaseSwitchTimer = 0;
-    ctx->PhaseSwitchHoldDown = 0;
-    ctx->PhaseSwitchHoldDownTime = PHASE_SWITCH_HOLDDOWN_DEFAULT;
-    ctx->PhaseSwitchSevereTime = PHASE_SWITCH_SEVERE_DEFAULT;
-
     // Modem
     ctx->ModemEnabled = false;
     ctx->ModemStage = 0;
     ctx->DisconnectTimeCounter = -1;     // Disabled
     ctx->RequiredEVCCID[0] = '\0';
     ctx->EVCCID[0] = '\0';
-
-    // Solar config
-    ctx->StartCurrent = START_CURRENT;
-    ctx->StopTime = STOP_TIME;
-    ctx->ImportCurrent = IMPORT_CURRENT;
 
     // Slow EV compatibility
     ctx->SettlingWindow = SETTLING_WINDOW_DEFAULT;
@@ -193,7 +180,6 @@ void evse_init(evse_ctx_t *ctx, evse_hal_t *hal) {
     ctx->EmaAlpha = EMA_ALPHA_DEFAULT;
     ctx->SmartDeadBand = SMART_DEADBAND_DEFAULT;
     ctx->RampRateDivisor = RAMP_RATE_DIVISOR_DEFAULT;
-    ctx->SolarFineDeadBand = SOLAR_FINE_DEADBAND_DEFAULT;
 
     // Safety
     ctx->TempEVSE = 25;
@@ -224,18 +210,18 @@ void evse_init(evse_ctx_t *ctx, evse_hal_t *hal) {
 // cppcheck-suppress constParameterPointer
 uint8_t evse_force_single_phase(evse_ctx_t *ctx) {
     switch (ctx->EnableC2) {
-        case NOT_PRESENT: return 0;  // 3P
-        case ALWAYS_OFF:  return 1;  // 1P
-        case SOLAR_OFF:   return (ctx->Mode == MODE_SOLAR) ? 1 : 0;
-        case AUTO:        return (ctx->Nr_Of_Phases_Charging == 1) ? 1 : 0;
-        case ALWAYS_ON:   return 0;  // 3P
-        default:          return 0;
+        case NOT_PRESENT:   return 0;  // 3P
+        case ALWAYS_OFF:    return 1;  // 1P
+        case RESERVED_C2_2: return 0;  // formerly solar-only forced 1P; solar mode removed
+        case AUTO:          return (ctx->Nr_Of_Phases_Charging == 1) ? 1 : 0;
+        case ALWAYS_ON:     return 0;  // 3P
+        default:            return 0;
     }
 }
 
 // ---- Check switching phases (faithful to CheckSwitchingPhases() in main.cpp:542-575) ----
 static void check_switching_phases(evse_ctx_t *ctx) {
-    if (ctx->EnableC2 != AUTO || ctx->Mode == MODE_SOLAR) {
+    if (ctx->EnableC2 != AUTO) {
         if (evse_force_single_phase(ctx)) {
             if (ctx->Nr_Of_Phases_Charging != 1) {
                 if (ctx->State != STATE_A) {
@@ -427,7 +413,6 @@ void evse_set_state(evse_ctx_t *ctx, uint8_t new_state) {
                 ctx->Nr_Of_Phases_Charging = 1;
             }
 
-            ctx->SolarStopTimer = 0;
             ctx->MaxSumMainsTimer = 0;
             ctx->Switching_Phases_C2 = NO_SWITCH;
             break;
@@ -461,20 +446,6 @@ int evse_is_current_available(evse_ctx_t *ctx) {
         if (ctx->BalancedState[n] == STATE_C) {
             ActiveEVSE++;
             TotalCurrent += ctx->Balanced[n];
-        }
-    }
-
-    // Solar mode checks (lines 1078-1091)
-    if (ctx->Mode == MODE_SOLAR) {
-        if (ActiveEVSE == 0 && ctx->Isum >= ((int)ctx->StartCurrent * -10)) {
-            return 0;
-        }
-        if (((int32_t)ActiveEVSE * ctx->MinCurrent * 10) > TotalCurrent) {
-            return 0;
-        }
-        if (ActiveEVSE > 0 &&
-            ctx->Isum > ((int)ctx->ImportCurrent * 10) + TotalCurrent - ((int32_t)ActiveEVSE * ctx->MinCurrent * 10)) {
-            return 0;
         }
     }
 
@@ -584,16 +555,13 @@ static int32_t evse_schedule_priority(evse_ctx_t *ctx, int32_t available,
         if (available >= min_each) {
             ctx->Balanced[idx] = (uint16_t)min_each;
             ctx->ScheduleState[idx] = SCHED_ACTIVE;
-            ctx->BalancedError[idx] &= (uint16_t)~(LESS_6A | NO_SUN);
+            ctx->BalancedError[idx] &= (uint16_t)~LESS_6A;
             available -= min_each;
         } else {
             // Not enough power for this EVSE
             ctx->Balanced[idx] = 0;
             ctx->ScheduleState[idx] = SCHED_PAUSED;
-            if (ctx->Mode == MODE_SOLAR)
-                ctx->BalancedError[idx] |= NO_SUN;
-            else
-                ctx->BalancedError[idx] |= LESS_6A;
+            ctx->BalancedError[idx] |= LESS_6A;
         }
     }
 
@@ -656,7 +624,6 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
     int32_t ActiveMax = 0;
     int32_t Baseload, Baseload_EV;
     int32_t Idifference = 0; // cppcheck-suppress variableScope
-    int32_t IsumImport = 0;
     bool LimitedByMaxSumMains = false;
     bool priorityScheduled = false; // cppcheck-suppress variableScope
     char CurrentSet[NR_EVSES] = {0}; // cppcheck-suppress variableScope
@@ -713,20 +680,7 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
             ctx->Switching_Phases_C2 = GOING_TO_SWITCH_3P;  // line 1207
         }
     } else {
-        // Smart/Solar mode
-
-        // Solar B-state phase determination (lines 1212-1231)
-        if (ctx->Mode == MODE_SOLAR && ctx->State == STATE_B) {
-            if (ctx->EnableC2 == AUTO) {
-                if (-ctx->Isum >= (int32_t)(30 * ctx->MinCurrent + 30)) {
-                    if (ctx->Nr_Of_Phases_Charging != 3)
-                        ctx->Switching_Phases_C2 = GOING_TO_SWITCH_3P;
-                } else {
-                    if (ctx->Nr_Of_Phases_Charging != 1)
-                        ctx->Switching_Phases_C2 = GOING_TO_SWITCH_1P;
-                }
-            }
-        }
+        // Smart mode
 
         // Calculate Idifference (lines 1235-1250)
         if ((ctx->LoadBl == 0 && ctx->EVMeterType) || (ctx->LoadBl == 1 && ctx->EVMeterType))
@@ -800,17 +754,10 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
                 int32_t filteredIdiff = ctx->IdiffFiltered;
                 int32_t absFiltered = filteredIdiff < 0 ? -filteredIdiff : filteredIdiff;
 
-                if (ctx->Mode == MODE_SMART && absFiltered < ctx->SmartDeadBand) {
+                if (absFiltered < ctx->SmartDeadBand) {
                     // Within dead band: no adjustment
-                } else if (filteredIdiff > 0) {
-                    if (ctx->Mode == MODE_SMART)
-                        ctx->IsetBalanced += (filteredIdiff / divisor);
-                    // Solar increase is handled below in fine regulation
                 } else {
-                    if (ctx->Mode == MODE_SMART)
-                        ctx->IsetBalanced += (filteredIdiff / divisor);  // Symmetric ramp
-                    else
-                        ctx->IsetBalanced += Idifference;  // Solar: full-step decrease for safety (raw, not filtered)
+                    ctx->IsetBalanced += (filteredIdiff / divisor);  // Symmetric ramp
                 }
 
                 ctx->IsetBalancedPrev = ctx->IsetBalanced;
@@ -819,47 +766,24 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
             if (ctx->IsetBalanced > 800) ctx->IsetBalanced = 800;  // Hard limit 80A (line 1264)
         }
 
-        // Solar fine-grained regulation (lines 1268-1293)
-        // Issue #18: also suppressed during settling window
-        if (ctx->Mode == MODE_SOLAR && ctx->SettlingTimer == 0) {
-            IsumImport = ctx->Isum - (10 * ctx->ImportCurrent);
-            if (ActiveEVSE > 0 && Idifference > 0) {
-                if (ctx->phasesLastUpdateFlag) {
-                    if (IsumImport < 0) {
-                        if (IsumImport < -10 && Idifference > 10)
-                            ctx->IsetBalanced += 5;
-                        else
-                            ctx->IsetBalanced += 1;
-                    } else if (IsumImport > 0) {
-                        if (IsumImport > 20)
-                            ctx->IsetBalanced -= (IsumImport / 2);
-                        else if (IsumImport > 10)
-                            ctx->IsetBalanced -= 5;
-                        else if (IsumImport > (int32_t)ctx->SolarFineDeadBand)
-                            ctx->IsetBalanced -= 1;
-                    }
-                }
+        // Smart mode: new EVSE joining (lines 1296-1303)
+        if (mod && ActiveEVSE) {
+            ctx->IsetBalanced = min_int((ctx->MaxMains * 10) - Baseload,
+                                        (ctx->MaxCircuit * 10) - Baseload_EV);
+            if (ctx->MaxSumMains)
+                ctx->IsetBalanced = min_int(ctx->IsetBalanced,
+                                            ((int32_t)(ctx->MaxSumMains * 10) - ctx->Isum) / 3);
+            /* Capacity tariff headroom (Plan 13) */
+            if (ctx->CapacityHeadroom_da < INT16_MAX) {
+                int phases = evse_force_single_phase(ctx) ? 1 : 3;
+                ctx->IsetBalanced = min_int(ctx->IsetBalanced,
+                                            (int32_t)ctx->CapacityHeadroom_da / phases);
             }
-        } else {
-            // Smart mode: new EVSE joining (lines 1296-1303)
-            if (mod && ActiveEVSE) {
-                ctx->IsetBalanced = min_int((ctx->MaxMains * 10) - Baseload,
-                                            (ctx->MaxCircuit * 10) - Baseload_EV);
-                if (ctx->MaxSumMains)
-                    ctx->IsetBalanced = min_int(ctx->IsetBalanced,
-                                                ((int32_t)(ctx->MaxSumMains * 10) - ctx->Isum) / 3);
-                /* Capacity tariff headroom (Plan 13) */
-                if (ctx->CapacityHeadroom_da < INT16_MAX) {
-                    int phases = evse_force_single_phase(ctx) ? 1 : 3;
-                    ctx->IsetBalanced = min_int(ctx->IsetBalanced,
-                                                (int32_t)ctx->CapacityHeadroom_da / phases);
-                }
-                /* CircuitMeter subpanel limit (Plan 14) */
-                if (ctx->MaxCircuitMains) {
-                    int32_t circuit_phases = evse_force_single_phase(ctx) ? 1 : 3;
-                    ctx->IsetBalanced = min_int(ctx->IsetBalanced,
-                                                (((int32_t)(ctx->MaxCircuitMains * 10)) - ctx->CircuitMeterImeasured) / circuit_phases);
-                }
+            /* CircuitMeter subpanel limit (Plan 14) */
+            if (ctx->MaxCircuitMains) {
+                int32_t circuit_phases = evse_force_single_phase(ctx) ? 1 : 3;
+                ctx->IsetBalanced = min_int(ctx->IsetBalanced,
+                                            (((int32_t)(ctx->MaxCircuitMains * 10)) - ctx->CircuitMeterImeasured) / circuit_phases);
             }
         }
     }
@@ -909,48 +833,6 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
             if (actualAvailable < 0) actualAvailable = 0;
 
             ctx->IsetBalanced = (int32_t)ActiveEVSE * ctx->MinCurrent * 10;  // line 1336
-
-            // Solar shortage: 3P->1P switching (lines 1337-1370)
-            // Issue #16: tiered timer + separate PhaseSwitchTimer
-            if (ctx->Mode == MODE_SOLAR) {
-                // cppcheck-suppress knownConditionTrueFalse
-                // Fix: threshold uses single-EVSE minimum, not ActiveEVSE total.
-                // Priority scheduling handles which cars charge; SolarStopTimer
-                // only fires when there isn't enough solar for even one car.
-                // Old formula scaled with ActiveEVSE, making the threshold
-                // unreachable in multi-node setups (e.g. 2 EVSEs → 32A threshold).
-                if (ActiveEVSE && IsumImport > 0 &&
-                    (ctx->Isum > (int32_t)(((int32_t)ctx->MinCurrent * ctx->Nr_Of_Phases_Charging
-                                             - ctx->StartCurrent) * 10) ||
-                     (ctx->Nr_Of_Phases_Charging > 1 && ctx->EnableC2 == AUTO))) {
-
-                    if (ctx->Nr_Of_Phases_Charging > 1 && ctx->EnableC2 == AUTO &&
-                        ctx->State == STATE_C) {
-                        if (ctx->PhaseSwitchTimer == 0) {
-                            // Tiered timer: severe shortage = short, mild = long
-                            if (IsumImport >= (int32_t)(10 * ctx->MinCurrent))
-                                ctx->PhaseSwitchTimer = ctx->PhaseSwitchSevereTime;
-                            else
-                                ctx->PhaseSwitchTimer = ctx->StopTime * 60;
-                            if (ctx->PhaseSwitchTimer == 0)
-                                ctx->PhaseSwitchTimer = 30;
-                        }
-                        if (ctx->PhaseSwitchTimer <= 2) {
-                            ctx->Switching_Phases_C2 = GOING_TO_SWITCH_1P;
-                            evse_set_state(ctx, STATE_C1);
-                            ctx->PhaseSwitchTimer = 0;
-                            ctx->PhaseSwitchHoldDown = ctx->PhaseSwitchHoldDownTime;
-                        }
-                    } else {
-                        // Issue #20: suppress SolarStopTimer during startup settling
-                        if (ctx->SolarStopTimer == 0 &&
-                            ctx->Node[0].IntTimer >= SOLARSTARTTIME)
-                            ctx->SolarStopTimer = ctx->StopTime * 60;
-                    }
-                } else {
-                    ctx->PhaseSwitchTimer = 0;
-                }
-            }
 
             // Check for HARD shortage (lines 1376-1398)
             bool hardShortage = false;
@@ -1002,13 +884,8 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
             }
 
             // Issue #17: NoCurrent threshold triggers LESS_6A
-            // Solar min run time guard: don't trigger during initial charge
             if (ctx->NoCurrent >= ctx->NoCurrentThreshold) {
-                bool minRunTimePassed = true;
-                if (ctx->Mode == MODE_SOLAR && ctx->Node[0].IntTimer < ctx->SolarMinRunTime)
-                    minRunTimePassed = false;
-                if (minRunTimePassed)
-                    evse_set_error_flags(ctx, LESS_6A);
+                evse_set_error_flags(ctx, LESS_6A);
             }
 
         } else {
@@ -1019,39 +896,15 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
                 for (n = 0; n < NR_EVSES; n++) {
                     if (ctx->BalancedState[n] == STATE_C) {
                         ctx->ScheduleState[n] = SCHED_ACTIVE;
-                        ctx->BalancedError[n] &= (uint16_t)~(LESS_6A | NO_SUN);
+                        ctx->BalancedError[n] &= (uint16_t)~LESS_6A;
                         ctx->IdleTimer[n] = 0;
                     }
                 }
             }
 
-            // Solar 1P->3P upgrade (lines 1404-1432)
-            // Issue #16: hold-down guard + separate PhaseSwitchTimer
-            if (ctx->Mode == MODE_SOLAR && ctx->Nr_Of_Phases_Charging == 1 &&
-                ctx->EnableC2 == AUTO &&
-                ctx->PhaseSwitchHoldDown == 0 &&  // Hold-down must be expired
-                ctx->IsetBalanced + 8 >= (int32_t)(ctx->MaxCurrent * 10) &&
-                ctx->State == STATE_C) {
-
-                int spareCurrent = (3 * ((int)ctx->MinCurrent + 1) - (int)ctx->MaxCurrent);
-                if (spareCurrent < 0) spareCurrent = 3;
-                if (-ctx->Isum > (10 * spareCurrent)) {
-                    if (ctx->PhaseSwitchTimer == 0) ctx->PhaseSwitchTimer = 63;
-                    if (ctx->PhaseSwitchTimer <= 3) {
-                        ctx->Switching_Phases_C2 = GOING_TO_SWITCH_3P;
-                        evse_set_state(ctx, STATE_C1);
-                        ctx->PhaseSwitchTimer = 0;
-                    }
-                } else {
-                    ctx->PhaseSwitchTimer = 0;
-                }
-            } else {
-                ctx->SolarStopTimer = 0;
-                ctx->PhaseSwitchTimer = 0;
-                ctx->MaxSumMainsTimer = 0;
-                // Issue #17: decay NoCurrent gradually instead of instant reset
-                if (ctx->NoCurrent > 0) ctx->NoCurrent--;
-            }
+            ctx->MaxSumMainsTimer = 0;
+            // Issue #17: decay NoCurrent gradually instead of instant reset
+            if (ctx->NoCurrent > 0) ctx->NoCurrent--;
         }
 
         // ---- Distribution (lines 1442-1495) ----
@@ -1062,21 +915,12 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
         if (ctx->IsetBalanced > ActiveMax) ctx->IsetBalanced = ActiveMax;  // line 1444
         int32_t MaxBalanced = ctx->IsetBalanced;
 
-        // First pass: cap EVSEs at their max or solar startup min
+        // First pass: cap EVSEs at their max
         n = 0;
         while (n < NR_EVSES && ActiveEVSE) {
             int32_t Average = MaxBalanced / ActiveEVSE;
             if ((ctx->BalancedState[n] == STATE_C) && (!CurrentSet[n])) {
-                // Solar startup: force MinCurrent (lines 1457-1465)
-                if (ctx->Mode == MODE_SOLAR && ctx->Node[n].IntTimer < SOLARSTARTTIME) {
-                    ctx->Balanced[n] = ctx->MinCurrent * 10;
-                    CurrentSet[n] = 1;
-                    ActiveEVSE--;
-                    MaxBalanced -= ctx->Balanced[n];
-                    ctx->IsetBalanced = TotalCurrent;
-                    n = 0;
-                    continue;
-                } else if (Average >= (int32_t)ctx->BalancedMax[n]) {
+                if (Average >= (int32_t)ctx->BalancedMax[n]) {
                     ctx->Balanced[n] = ctx->BalancedMax[n];
                     CurrentSet[n] = 1;
                     ActiveEVSE--;
@@ -1145,27 +989,9 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
 
     // No active EVSEs: reset timers (lines 1497-1502)
     if (!saveActiveEVSE) {
-        ctx->SolarStopTimer = 0;
-        ctx->PhaseSwitchTimer = 0;
         ctx->MaxSumMainsTimer = 0;
         ctx->NoCurrent = 0;
     }
-
-    // Issue #19: populate solar debug snapshot
-    ctx->solar_debug.IsetBalanced = ctx->IsetBalanced;
-    ctx->solar_debug.IsetBalanced_ema = ctx->IsetBalanced_ema;
-    ctx->solar_debug.Idifference = Idifference;
-    ctx->solar_debug.IsumImport = IsumImport;
-    ctx->solar_debug.Isum = ctx->Isum;
-    ctx->solar_debug.MainsMeterImeasured = ctx->MainsMeterImeasured;
-    ctx->solar_debug.Balanced0 = ctx->Balanced[0];
-    ctx->solar_debug.SolarStopTimer = ctx->SolarStopTimer;
-    ctx->solar_debug.PhaseSwitchTimer = ctx->PhaseSwitchTimer;
-    ctx->solar_debug.PhaseSwitchHoldDown = ctx->PhaseSwitchHoldDown;
-    ctx->solar_debug.NoCurrent = ctx->NoCurrent;
-    ctx->solar_debug.SettlingTimer = ctx->SettlingTimer;
-    ctx->solar_debug.Nr_Of_Phases_Charging = ctx->Nr_Of_Phases_Charging;
-    ctx->solar_debug.ErrorFlags = ctx->ErrorFlags;
 
     // Issue #25: populate load balancing diagnostic snapshot
     ctx->lb_diag.IsetBalanced = ctx->IsetBalanced;
@@ -1567,25 +1393,6 @@ void evse_tick_1s(evse_ctx_t *ctx) {
         ctx->SettlingTimer--;
     }
 
-    // SolarStopTimer countdown (lines 1670-1679)
-    if (ctx->SolarStopTimer > 0) {
-        ctx->SolarStopTimer--;
-        if (ctx->SolarStopTimer == 0) {
-            if (ctx->State == STATE_C) evse_set_state(ctx, STATE_C1);
-            evse_set_error_flags(ctx, LESS_6A);
-        }
-    }
-
-    // PhaseSwitchTimer countdown (Issue #16)
-    if (ctx->PhaseSwitchTimer > 0) {
-        ctx->PhaseSwitchTimer--;
-    }
-
-    // PhaseSwitchHoldDown countdown (Issue #16)
-    if (ctx->PhaseSwitchHoldDown > 0) {
-        ctx->PhaseSwitchHoldDown--;
-    }
-
     // Pilot disconnect timer countdown (line 1682)
     // NOTE: Only decrement here. Reconnect (PILOT_CONNECTED, PilotDisconnected=false)
     // happens in tick_10ms when PilotDisconnectTime reaches 0, matching original.
@@ -1614,14 +1421,6 @@ void evse_tick_1s(evse_ctx_t *ctx) {
 
     // ChargeDelay countdown (line 1713)
     if (ctx->ChargeDelay > 0) ctx->ChargeDelay--;
-
-    // Upstream 74e20c8: re-set LESS_6A if solar power disappears during the
-    // ChargeDelay countdown. Without this, the countdown can expire and charging
-    // is attempted even though no solar is available → immediate LESS_6A → oscillation.
-    if (ctx->ChargeDelay && !(ctx->ErrorFlags & LESS_6A) && ctx->Mode == MODE_SOLAR &&
-            ctx->LoadBl < 2 && !evse_is_current_available(ctx)) {
-        evse_set_error_flags(ctx, LESS_6A);
-    }
 
     // AccessTimer (lines 1715-1719)
     if (ctx->AccessTimer > 0 && ctx->State == STATE_A) {
@@ -1723,13 +1522,9 @@ void evse_tick_1s(evse_ctx_t *ctx) {
     }
 
     // LESS_6A active: enforce power unavailable + charge delay (lines 1780-1787)
-    // Issue #17: solar mode uses shorter delay to resume faster
     if (ctx->ErrorFlags & LESS_6A) {
         evse_set_power_unavailable(ctx);
-        if (ctx->Mode == MODE_SOLAR)
-            ctx->ChargeDelay = ctx->SolarChargeDelay;
-        else
-            ctx->ChargeDelay = CHARGEDELAY;
+        ctx->ChargeDelay = CHARGEDELAY;
     }
 
     // Priority scheduling tick

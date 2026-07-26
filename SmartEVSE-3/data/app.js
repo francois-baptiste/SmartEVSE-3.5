@@ -56,7 +56,7 @@ var wsState = {
 function refreshSuspendRow() {
     var linkyHpGating  = wsState.linkyAvail && wsState.linkyIsHp && !wsState.linkyHpBypass;
     var linkyFailBlock = !wsState.linkyAvail && wsState.linkyFailSafe;
-    var evseModeStr = {1:'NORMAL', 2:'SOLAR', 3:'SMART'}[wsState.evseMode] || '';
+    var evseModeStr = {1:'NORMAL', 2:'SMART'}[wsState.evseMode] || '';
     var modeSub    = $id('mode_sub');
     var suspendRow = $id('suspend_reason_row');
     var modeEl     = $qs('#mode');
@@ -87,7 +87,7 @@ function refreshSuspendRow() {
         if (suspendRow) hideEl(suspendRow);
     }
     /* Dim-highlight the pending mode button while in HP pause */
-    for (var x of [0, 1, 2, 3, 4]) {
+    for (var x of [0, 1, 2, 4]) {
         var btn = $qs('#mode_' + x);
         if (btn) btn.classList.toggle('pending', linkyPaused && x === wsState.evseMode);
     }
@@ -126,21 +126,12 @@ function applyWsData(d) {
     }
     if (d.mode_id !== undefined) {
         wsState.modeId = d.mode_id;
-        var modeNames = {0:'OFF', 1:'NORMAL', 2:'SOLAR', 3:'SMART', 4:'PAUSE'};
+        var modeNames = {0:'OFF', 1:'NORMAL', 2:'SMART', 4:'PAUSE'};
         $qs('#mode').textContent = modeNames[d.mode_id] || 'N/A';
-        for (var x of [0, 1, 2, 3, 4]) {
+        for (var x of [0, 1, 2, 4]) {
             $qs('#mode_' + x).classList.toggle('active', x === d.mode_id);
         }
         syncMobileNav(d.mode_id);
-        if (d.mode_id == 2) {
-            showAll('.with_solar');
-            hideById('override_current_box');
-            hideById('override_current_box2');
-        } else {
-            hideAll('.with_solar');
-            showById('override_current_box');
-            showById('override_current_box2');
-        }
         refreshSuspendRow();
     }
     if (d.charge_current !== undefined)
@@ -208,11 +199,6 @@ function applyWsData(d) {
         $id('battery_current').textContent = (d.battery_current / 10).toFixed(1) + " A";
         if (d.battery_current == 0) $id('battery_status').textContent = "Idle";
         else $id('battery_status').textContent = d.battery_current < 0 ? "Discharging" : "Charging";
-    }
-    if (d.solar_stop_timer !== undefined && d.solar_stop_timer > 0) {
-        var stateEl = $id('state');
-        if (stateEl && stateEl.textContent.indexOf('Stopping') === -1)
-            stateEl.textContent += " (Stopping in " + d.solar_stop_timer + "s)";
     }
     if (d.loadbl !== undefined) {
         if (d.loadbl > 1) {
@@ -357,7 +343,7 @@ function updateNodeOverview(nodes, maxCurrent) {
 }
 
 function syncMobileNav(modeId) {
-    for (var x of [0, 1, 2, 3, 4]) {
+    for (var x of [0, 1, 2, 4]) {
         var btn = $id('mnav_' + x);
         if (btn) btn.classList.toggle('active', x === modeId);
     }
@@ -467,21 +453,12 @@ function loadData() {
 
             /* Mode display */
             $qs('#mode').textContent = data.mode;
-            for (var x of [0, 1, 2, 3, 4]) {
+            for (var x of [0, 1, 2, 4]) {
                 $qs('#mode_' + x).classList.toggle('active', x === data.mode_id);
             }
             syncMobileNav(data.mode_id);
 
             $id('dutycycle').textContent = (data.evse.pwm * 100 / 1024).toFixed(0) + " %";
-            if (data.mode_id == 2) { /* SOLAR MODE */
-                showAll('.with_solar');
-                hideById('override_current_box');
-                hideById('override_current_box2');
-            } else {
-                hideAll('.with_solar');
-                showById('override_current_box');
-                showById('override_current_box2');
-            }
 
             if (data.ev_state) {
                 var full_soc = data.ev_state.full_soc;
@@ -527,7 +504,6 @@ function loadData() {
                 $id('loadbl_node').textContent = "Slave Node " + (data.evse.loadbl - 1);
                 hideById('contactor2');
                 showById('mode_2');
-                showById('mode_3');
                 /* Show override current but grayed out on slave */
                 showById('override_current_box');
                 showById('override_current_box2');
@@ -538,14 +514,12 @@ function loadData() {
                 $id('loadbl_node').textContent = "Master";
                 hideById('contactor2');
                 showById('mode_2');
-                showById('mode_3');
                 $qa('#form_pwm input, #form_pwm button, #form_pwm select').forEach(function(el) { el.disabled = false; el.style.opacity = ''; el.title = ''; });
             } else {
                 hideById('loadbl');
                 hideById('loadbl_text');
                 showById('contactor2');
                 showById('mode_2');
-                showById('mode_3');
                 $qa('#form_pwm input, #form_pwm button, #form_pwm select').forEach(function(el) { el.disabled = false; el.style.opacity = ''; el.title = ''; });
             }
             /* Gray out slave-restricted settings. Also surface a visible
@@ -555,9 +529,6 @@ function loadData() {
             setSlaveRestricted('mode_override_current', isSlave);
             if (isSlave) showById('override_slave_note');
             else         hideById('override_slave_note');
-            setSlaveRestricted('solar_start_current', false); /* solar settings editable on all */
-            setSlaveRestricted('solar_max_import_current', false);
-            setSlaveRestricted('solar_stop_time', false);
 
             if (data.evse.loadbl == 1) {
                 showAll('.with_scheduling');
@@ -594,10 +565,6 @@ function loadData() {
                 showById('show_rfid');                /* fix: sibling to the hide branch — without this the RFID indicator stays hidden by HTML default */
             } else {
                 hideById('show_rfid');
-            }
-
-            if (data.evse.solar_stop_timer > 0) {
-                $id('state').textContent += " (Stopping in " + data.evse.solar_stop_timer + "s)";
             }
 
             $id('current_min').textContent = data.settings.current_min.toFixed(1) + " A";
@@ -727,10 +694,6 @@ function loadData() {
                 $id('evmeter_charged_kwh').textContent = (data.ev_meter.charged_wh / 1000).toFixed(1) + " kWh";
             }
 
-            $id('solar_start_current').value = data.settings.solar_start_current;
-            $id('solar_max_import_current').value = data.settings.solar_max_import;
-            $id('solar_stop_time').value = data.settings.solar_stop_time;
-
             if (data.settings.modem == "Experiment" || data.settings.modem == "QCA7000") {
                 showAll('.with_modem');
             } else {
@@ -826,15 +789,6 @@ function loadData() {
 }
 
 /* ========== Settings functions ========== */
-function SolStartCurr() {
-    fetch("/settings?solar_start_current=" + $id('solar_start_current').value, { method: 'POST' , body: '' });
-}
-function SolImportCurr() {
-    fetch("/settings?solar_max_import=" + $id('solar_max_import_current').value, { method: 'POST' , body: '' });
-}
-function SolStopTime() {
-    fetch("/settings?stop_timer=" + $id('solar_stop_time').value, { method: 'POST' , body: '' });
-}
 function setPrioStrategy() {
     fetch("/settings?prio_strategy=" + $id('prio_strategy').value, { method: 'POST' , body: '' });
 }
@@ -848,7 +802,7 @@ function setIdleTimeout() {
 /* ========== Mode activation ========== */
 function activate(mode) {
     var params = new URLSearchParams({ mode: '' + mode });
-    if ([1, 2, 3].includes(mode)) {
+    if ([1, 2].includes(mode)) {
         /* Only send override_current when the dropdown is NOT disabled.
          * On slave nodes (LoadBl >= 2) the dropdown is disabled via
          * setSlaveRestricted() — the backend would reject the value with
@@ -863,14 +817,14 @@ function activate(mode) {
 
     /* Immediate visual feedback */
     $qs('#mode').textContent = $qs('#mode_' + mode).textContent;
-    for (var x of [0, 1, 2, 3, 4]) {
+    for (var x of [0, 1, 2, 4]) {
         $qs('#mode_' + x).classList.toggle('active', x === mode);
     }
 
-    /* While in HP pause (mode_id=0), mode buttons 1-3 set the pending mode.
+    /* While in HP pause (mode_id=0), mode buttons 1-2 set the pending mode.
      * Update wsState immediately so the suspend row reflects the selection
      * before the WS round-trip arrives. */
-    if (mode >= 1 && mode <= 3 && wsState.modeId === 0) {
+    if (mode >= 1 && mode <= 2 && wsState.modeId === 0) {
         wsState.evseMode = mode;
         refreshSuspendRow();
     }
@@ -918,13 +872,10 @@ function configureMqtt() {
 
 /* ========== Control & Schedule save ========== */
 /* Batches all Control & Schedule settings into one POST — same pattern
- * as Save MQTT / Save OCPP. Includes solar thresholds, override current,
+ * as Save MQTT / Save OCPP. Includes override current,
  * Linky HP gate flags, and lock toggles. */
 function saveControlSchedule() {
     var params = {
-        solar_start_current: $id('solar_start_current').value,
-        solar_max_import:    $id('solar_max_import_current').value,
-        stop_timer:          $id('solar_stop_time').value,
         lcdlock:             $id('lcdlock').checked ? 1 : 0,
         linky_hp_bypass:     $id('linky_hp_bypass').checked ? 1 : 0,
         linky_failsafe:      $id('linky_failsafe').checked ? 1 : 0
@@ -942,12 +893,11 @@ function saveControlSchedule() {
         .then(function() { loadData(); alert('Settings saved'); });
 }
 
-/* ========== Disabled modes (bit 2 = Smart, bit 4 = Solar) ========== */
+/* ========== Disabled modes (bit 2 = Smart) ========== */
 function applyModesDisabled(mask) {
     $id('dis_smart').checked = !!(mask & 2);
-    $id('dis_solar').checked = !!(mask & 4);
     /* Hide mode buttons (top bar + mobile nav) for disabled modes */
-    [[2, 4], [3, 2]].forEach(function(p) {           /* [mode button id, mask bit] */
+    [[2, 2]].forEach(function(p) {           /* [mode button id, mask bit] */
         var off = !!(mask & p[1]);
         ['#mode_', '#mnav_'].forEach(function(prefix) {
             var btn = $qs(prefix + p[0]);
@@ -956,7 +906,7 @@ function applyModesDisabled(mask) {
     });
 }
 function setModesDisabled() {
-    var mask = ($id('dis_smart').checked ? 2 : 0) | ($id('dis_solar').checked ? 4 : 0);
+    var mask = ($id('dis_smart').checked ? 2 : 0);
     fetch("/settings?modes_disabled=" + mask, { method: 'POST' , body: '' })
         .then(function() { loadData(); });
     applyModesDisabled(mask);
@@ -1047,7 +997,7 @@ var diagWs = null;
 var diagMaxRows = 100;
 var diagActiveProfile = 'general';
 var diagStateNames = ['A','B','C','D','COMM_B','COMM_B_OK','COMM_C','COMM_C_OK','Activate','B1','C1','MODEM_REQ','MODEM_WAIT','MODEM_DONE','MODEM_DEN'];
-var diagModeNames = ['NRM','SMT','SOL'];
+var diagModeNames = ['NRM','SMT'];
 var diagAccessNames = ['OFF','ON','PAUSE'];
 var diagPrevState = -1;
 
@@ -1060,18 +1010,17 @@ function diagParseSnapshot(buf) {
         evL1: dv.getInt16(15, true), evL2: dv.getInt16(17, true), evL3: dv.getInt16(19, true),
         isum: dv.getInt16(21, true),
         chgA: dv.getUint16(23, true), isetBal: dv.getInt16(25, true), overrideA: dv.getUint16(27, true),
-        solTmr: dv.getUint16(29, true), importA: dv.getUint16(31, true), startA: dv.getUint16(33, true),
-        stateTmr: dv.getUint8(35), c1Tmr: dv.getUint8(36), accessTmr: dv.getUint8(37), noCurr: dv.getUint8(38),
-        phases: dv.getUint8(39), swC2: dv.getUint8(40), enC2: dv.getUint8(41),
-        loadBl: dv.getUint8(42), balSt0: dv.getUint8(43), bal0: dv.getUint16(44, true),
-        temp: dv.getInt8(46), rcmon: dv.getUint8(47), pilot: dv.getUint8(48),
-        mmTimeout: dv.getUint8(49), evmTimeout: dv.getUint8(50), mmType: dv.getUint8(51), evmType: dv.getUint8(52),
-        rssi: dv.getInt8(53), mqtt: dv.getUint8(54)
+        stateTmr: dv.getUint8(29), c1Tmr: dv.getUint8(30), accessTmr: dv.getUint8(31), noCurr: dv.getUint8(32),
+        phases: dv.getUint8(33), swC2: dv.getUint8(34), enC2: dv.getUint8(35),
+        loadBl: dv.getUint8(36), balSt0: dv.getUint8(37), bal0: dv.getUint16(38, true),
+        temp: dv.getInt8(40), rcmon: dv.getUint8(41), pilot: dv.getUint8(42),
+        mmTimeout: dv.getUint8(43), evmTimeout: dv.getUint8(44), mmType: dv.getUint8(45), evmType: dv.getUint8(46),
+        rssi: dv.getInt8(47), mqtt: dv.getUint8(48)
     };
 }
 
 function diagFormatRow(s) {
-    var sev = s.err > 0 ? ' sev-err' : (s.solTmr > 0 || s.delay > 0) ? ' sev-warn' : '';
+    var sev = s.err > 0 ? ' sev-err' : (s.delay > 0) ? ' sev-warn' : '';
     var stName = diagStateNames[s.state] || s.state;
     var stChanged = (diagPrevState !== -1 && s.state !== diagPrevState);
     diagPrevState = s.state;
@@ -1082,11 +1031,6 @@ function diagFormatRow(s) {
         (diagAccessNames[s.access] || '?') + '/' + (diagModeNames[s.mode] || '?');
     var detail = '';
     switch (diagActiveProfile) {
-    case 'solar':
-        detail = ' | ' + (s.chgA / 10).toFixed(1) + 'A | Isum:' + (s.isum / 10).toFixed(1) +
-            ' | sol:' + s.solTmr + 's imp:' + (s.importA / 10).toFixed(0) + ' start:' + (s.startA / 10).toFixed(0) +
-            ' | ' + s.phases + 'P sw:' + s.swC2;
-        break;
     case 'loadbal':
         detail = ' | ' + (s.chgA / 10).toFixed(1) + 'A Iset:' + (s.isetBal / 10).toFixed(1) +
             ' Bal[0]:' + (s.bal0 / 10).toFixed(1) + ' BS:' + s.balSt0 +
@@ -1518,15 +1462,14 @@ fetch('/diag/status').then(function(r) { return r.json(); }).then(function(d) {
     var TIPS = {
         /* Hero — tooltips on elements not covered by HTML title= attributes */
         '#state':                'IEC 61851 charging state: A = no car, B = connected, C = charging, E = error',
-        '#mode':                 'Active charging mode: Off, Normal, Solar, Smart, or Pause',
+        '#mode':                 'Active charging mode: Off, Normal, Smart, or Pause',
         '.power-big':            'Power being delivered to the car right now (W)',
         '.energy-row':           'Session energy (kWh) and current offered via the CP pilot (A)',
         /* Mode buttons */
         '#mode_0': 'Disable charging completely',
         '#mode_4': 'Pause active session without disconnecting the car',
         '#mode_1': 'Charge at a fixed current per phase (Override Current)',
-        '#mode_2': 'Charge from solar surplus only (requires mains meter)',
-        '#mode_3': 'Charge as fast as possible without overloading the mains (requires mains meter)',
+        '#mode_2': 'Charge as fast as possible without overloading the mains (requires mains meter)',
         /* Mains, EV meter, current limits, capacity detail items —
          * tooltips applied directly in HTML via title= on .detail-item
          * and .phase-bar-row elements. Not duplicated here. */
@@ -1546,10 +1489,6 @@ fetch('/diag/status').then(function(r) { return r.json(); }).then(function(d) {
         '#full_soc':         'Target state of charge for this session (%)',
         '#full_at':          'Estimated time until the target SoC is reached',
         '#energy_capacity':  'EV battery capacity as reported by the vehicle (kWh)',
-        /* Solar settings */
-        '#solar_start_current':      'Per-phase export (A) sustained before solar charging starts',
-        '#solar_max_import_current': 'Grid top-up per phase (A) to reach the 6 A minimum',
-        '#solar_stop_time':          'Minutes below threshold before solar charging stops',
         /* Override, schedule, locks — tooltips now in HTML title=
          * attributes on the .form-label spans. Not duplicated here. */
         /* Load balancing */
@@ -1579,7 +1518,7 @@ fetch('/diag/status').then(function(r) { return r.json(); }).then(function(d) {
         '#ocpp_auto_auth':         'Auto-authorize every plug-in without RFID (FreeVend mode)',
         '#ocpp_auto_auth_idtag':   'Default idTag sent for auto-authorized sessions',
         /* Diagnostics */
-        '#diag_profile': 'Capture profile: general, solar, loadbal, modbus, or fast'
+        '#diag_profile': 'Capture profile: general, loadbal, modbus, or fast'
     };
     /* Apply tooltips. For detail-item children, walk up to the parent row
      * so the tooltip fires on the label text, not only the value span. */
@@ -1610,7 +1549,6 @@ fetch('/diag/status').then(function(r) { return r.json(); }).then(function(d) {
      * appended as the LAST child of the row (right-aligned), not inline
      * between the input and adjacent elements. */
     var HELP = {
-        '#solar_start_current':      'solar-smart-stability.md#current-regulation',
         '#mode_override_current':    'guide-owner.md#3-starting-a-charge-session',
         '#linky_hp_bypass':          'guide-owner.md#linky-hphc-gate',
         '#linky_failsafe':           'guide-owner.md#linky-hphc-gate',

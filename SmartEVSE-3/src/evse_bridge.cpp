@@ -66,15 +66,11 @@ extern int16_t Isum;
 extern uint8_t ErrorFlags;
 extern uint8_t ChargeDelay;
 extern uint8_t NoCurrent;
-extern uint16_t SolarStopTimer;
 extern uint8_t AccessTimer;
 extern EnableC2_t EnableC2;
 extern uint8_t Nr_Of_Phases_Charging;
 extern Switch_Phase_t Switching_Phases_C2;
 extern bool phasesLastUpdateFlag;
-extern uint16_t StartCurrent;
-extern uint16_t StopTime;
-extern uint16_t ImportCurrent;
 extern int8_t TempEVSE;
 extern uint16_t maxTemp;
 #ifdef SMARTEVSE_VERSION
@@ -117,7 +113,6 @@ extern float OcppCurrentLimit;
 
 // Additional externs for state-change callback and bridge functions
 extern const char StrStateName[15][13];
-extern void setSolarStopTimer(uint16_t Timer);
 extern void setChargeDelay(uint8_t delay);
 #ifdef SMARTEVSE_VERSION
 extern struct tm timeinfo;
@@ -236,10 +231,6 @@ static void hal_on_state_change(uint8_t old_state, uint8_t new_state) {
                 Nr_Of_Phases_Charging = nrPhases;
                 SEND_TO_ESP32(Nr_Of_Phases_Charging);
             }
-            {
-                uint16_t newSolarStopTimer = g_evse_ctx.SolarStopTimer;
-                setSolarStopTimer(newSolarStopTimer);
-            }
             break;
 
         case STATE_C1:
@@ -347,7 +338,6 @@ void evse_sync_globals_to_ctx(void) {
     ctx->ChargeDelay = ChargeDelay;
     ctx->NoCurrent = NoCurrent;
 
-    ctx->SolarStopTimer = SolarStopTimer;
     ctx->MaxSumMainsTimer = MaxSumMainsTimer;
     ctx->AccessTimer = AccessTimer;
     ctx->C1Timer = C1Timer;
@@ -372,9 +362,6 @@ void evse_sync_globals_to_ctx(void) {
     ctx->PilotDisconnected = PilotDisconnected;
     ctx->PilotDisconnectTime = PilotDisconnectTime;
 
-    ctx->StartCurrent = StartCurrent;
-    ctx->StopTime = StopTime;
-    ctx->ImportCurrent = ImportCurrent;
 
     ctx->TempEVSE = TempEVSE;
     ctx->maxTemp = maxTemp;
@@ -404,7 +391,6 @@ void evse_sync_globals_to_ctx(void) {
         ctx->Node[i].Phases = Node[i].Phases;
         ctx->Node[i].Timer = Node[i].Timer;
         ctx->Node[i].IntTimer = Node[i].IntTimer;
-        ctx->Node[i].SolarTimer = Node[i].SolarTimer;
         ctx->Node[i].Mode = Node[i].Mode;
     }
 #ifdef SMARTEVSE_VERSION
@@ -437,7 +423,6 @@ void evse_sync_ctx_to_globals(void) {
     IsetBalanced = (int16_t)ctx->IsetBalanced;
     OverrideCurrent = ctx->OverrideCurrent;
 
-    SolarStopTimer = ctx->SolarStopTimer;
     MaxSumMainsTimer = ctx->MaxSumMainsTimer;
     AccessTimer = ctx->AccessTimer;
     C1Timer = ctx->C1Timer;
@@ -477,7 +462,6 @@ void evse_sync_ctx_to_globals(void) {
         Node[i].Phases = ctx->Node[i].Phases;
         Node[i].Timer = ctx->Node[i].Timer;
         Node[i].IntTimer = ctx->Node[i].IntTimer;
-        Node[i].SolarTimer = ctx->Node[i].SolarTimer;
         Node[i].Mode = ctx->Node[i].Mode;
     }
 #ifdef SMARTEVSE_VERSION
@@ -497,18 +481,6 @@ void evse_bridge_lock(void) {
 void evse_bridge_unlock(void) {
 #ifdef SMARTEVSE_VERSION
     xSemaphoreGive(evse_ctx_mutex);
-#endif
-}
-
-// ---- Solar debug snapshot reader (spinlock-protected) ----
-void evse_get_solar_debug(evse_solar_debug_t *out) {
-    if (!out) return;
-#ifdef SMARTEVSE_VERSION
-    portENTER_CRITICAL(&evse_sync_spinlock);
-#endif
-    *out = g_evse_ctx.solar_debug;
-#ifdef SMARTEVSE_VERSION
-    portEXIT_CRITICAL(&evse_sync_spinlock);
 #endif
 }
 

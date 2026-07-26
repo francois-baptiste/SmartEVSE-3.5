@@ -13,8 +13,8 @@ Automated native tests (50 suites, 1,096 scenarios) are excluded.
 | Item | Required for |
 |------|-------------|
 | SmartEVSE v3 or v4 with latest firmware flashed | All tests |
-| EV or EVSE simulator (CP pilot load) | Scenarios 3-5 |
-| MQTT broker (Mosquitto) | Scenarios 1-3, 5, 7 |
+| EV or EVSE simulator (CP pilot load) | Scenarios 3-4 |
+| MQTT broker (Mosquitto) | Scenarios 1-3, 7 |
 | Home Assistant instance | Scenario 2 (HA tests) |
 | Web browser (desktop + mobile) | Scenario 2 (UI tests) |
 | MID-certified EV meter (Eastron SDM630 or similar) | Session logging / ERE tests |
@@ -59,7 +59,7 @@ All tests in this scenario are **API-only** (no vehicle needed).
 | MT-010 | GET /settings returns full JSON | 1. `curl -s http://<ip>/settings \| jq .` | Valid JSON with all documented fields: `version`, `mode`, `evse`, `settings`, `mqtt`, `ev_meter`, `mains_meter`, `phase_currents`. | PR #10 | P1 |
 | MT-011 | IEC 61851 state field present | 1. `curl -s http://<ip>/settings \| jq .evse.iec61851_state` | Returns `"A"` (no vehicle connected). | Plan 04/PR #70 | P1 |
 | MT-012 | Charging enabled field present | 1. `curl -s http://<ip>/settings \| jq .evse.charging_enabled` | Returns boolean (`true` or `false`). | Plan 04/PR #70 | P1 |
-| MT-013 | POST mode change via API | 1. `curl -X POST "http://<ip>/settings?mode=2" -d ''` 2. `curl -s http://<ip>/settings \| jq .mode_id` | Mode changes to 2 (Solar). Second call confirms `"mode_id": 2`. | REST API | P1 |
+| MT-013 | POST mode change via API | 1. `curl -X POST "http://<ip>/settings?mode=2" -d ''` 2. `curl -s http://<ip>/settings \| jq .mode_id` | Mode changes to 2 (Smart). Second call confirms `"mode_id": 2`. | REST API | P1 |
 | MT-014 | POST invalid mode rejected | 1. `curl -X POST "http://<ip>/settings?mode=99" -d ''` | Returns error response (not 200 OK with mode=99). | PR #91 | P2 |
 | MT-015 | POST override_current | 1. Set mode=1 (Normal). 2. `curl -X POST "http://<ip>/settings?override_current=100" -d ''` 3. GET /settings | `override_current` shows 100 (10.0A). | REST API | P2 |
 | MT-016 | POST phase switch request (no vehicle) | 1. Ensure enable_C2 != 0. 2. `curl -X POST "http://<ip>/settings?phases=1" -d ''` | Returns JSON with `"phases": 1`. No crash. | Plan 04/PR #70 | P2 |
@@ -74,8 +74,7 @@ All tests in this scenario are **API-only** (no vehicle needed).
 |----|-------------|-------|-----------------|-----|-----|
 | MT-030 | Change-only publishing (idle) | 1. `mosquitto_sub -t "SmartEVSE-<serial>/#" -v > /tmp/mqtt.log`. 2. Wait 120s. 3. Count messages. | Far fewer than 360 msg/min. Expect ~1/min idle (heartbeat only). Values only re-published at heartbeat interval. | Plan 08/PR #64 | P1 |
 | MT-031 | Heartbeat re-publish | 1. Set `MQTTHeartbeat` to 30 via MQTT: `mosquitto_pub -t "SmartEVSE-<serial>/Set/MQTTHeartbeat" -m "30"`. 2. Monitor all topics for 60s. | All topics re-published at least once within 30s even though values unchanged. | Plan 08/PR #64 | P2 |
-| MT-032 | MQTT Set commands work | 1. `mosquitto_pub -t "SmartEVSE-<serial>/Set/Mode" -m "2"`. 2. Check mode via REST. | Mode changed to Solar (2). | PR #10 | P1 |
-| MT-033 | Solar debug MQTT topic | 1. `mosquitto_pub -t "SmartEVSE-<serial>/Set/SolarDebug" -m "1"`. 2. `mosquitto_sub -t "SmartEVSE-<serial>/Debug/Solar" -C 1` | JSON payload with solar debug fields (ImportCurrent, SunCurrent, etc.). | Plan 01/PR #83 | P2 |
+| MT-032 | MQTT Set commands work | 1. `mosquitto_pub -t "SmartEVSE-<serial>/Set/Mode" -m "2"`. 2. Check mode via REST. | Mode changed to Smart (2). | PR #10 | P1 |
 | MT-034 | HomeWizardIP via MQTT | 1. `mosquitto_pub -t "SmartEVSE-<serial>/Set/HomeWizardIP" -m "192.168.1.50"`. 2. Verify via REST or observe behavior. | IP accepted. (Clear with empty payload afterwards.) | Plan 09/PR #86 | P3 |
 | MT-035 | MainsMeterTimeout via MQTT | 1. `mosquitto_pub -t "SmartEVSE-<serial>/Set/MainsMeterTimeout" -m "120"`. | Accepted (no error). Value below 10 or above 3600 should be rejected. | Plan 09/PR #86 | P3 |
 | MT-036 | Per-phase energy MQTT topics | 1. Subscribe: `mosquitto_sub -t "SmartEVSE-<serial>/ev_meter/+energy+" -v`. 2. Wait for heartbeat cycle. | Per-phase energy topics published (L1/L2/L3 import/export energy). | Plan 08/PR #82 | P2 |
@@ -91,7 +90,6 @@ All tests in this scenario are **API-only** (no vehicle needed).
 | MT-041 | Energy entities on HA energy dashboard | 1. Add `EV Import Active Energy` to HA energy dashboard. | Entity has `state_class: total_increasing`, value > 0 (not zero on startup). | Plan 08/PR #64 | P1 |
 | MT-042 | MaxSumMains number entity bidirectional | 1. In HA, find `MaxSumMains` number entity. 2. Change value via HA UI slider. 3. Verify via REST API. | Value propagates to SmartEVSE. REST shows updated `current_max_sum_mains`. | Plan 08/PR #64 | P2 |
 | MT-043 | Diagnostic entities disabled by default | 1. Check HA for `FreeHeap` and `MQTTMsgCount` entities. | Entities exist but are disabled by default (HA shows "disabled entity" in device page). | PR #68 | P3 |
-| MT-044 | Solar Stop Timer has measurement state class | 1. Check HA entity details for Solar Stop Timer. | `state_class: measurement`, enables HA graph. | Plan 08/PR #64 | P3 |
 
 ### 2D — Web UI
 
@@ -103,8 +101,7 @@ All tests in this scenario are **API-only** (no vehicle needed).
 | MT-053 | Dark mode toggle | 1. Open dashboard. 2. Click dark mode toggle (sun/moon icon in header). | UI switches to dark theme. Preference persists across page reload (localStorage). | Plan 07/PR #85 | P2 |
 | MT-054 | Dark mode system preference | 1. Set OS to dark mode. 2. Open dashboard (fresh, no localStorage pref). | UI auto-detects and uses dark theme. | Plan 07/PR #85 | P3 |
 | MT-055 | Mobile layout | 1. Open dashboard on mobile device (or browser at 375px width). | Single-column layout. Bottom navigation bar. All controls accessible. No horizontal scroll. | Plan 07/PR #85 | P1 |
-| MT-056 | Mode buttons work | 1. Open UI. 2. Click each mode button (OFF, Normal, Solar, Smart). 3. Verify via REST. | Mode changes confirmed via API for each click. | Plan 07/PR #85 | P1 |
-| MT-057 | Settings page — solar parameters | 1. Navigate to settings page. 2. Change SolarStartCurrent. 3. Save. 4. Reload page. | Value persists after reload. Matches REST API value. | Plan 07/PR #85 | P2 |
+| MT-056 | Mode buttons work | 1. Open UI. 2. Click each mode button (OFF, Normal, Smart). 3. Verify via REST. | Mode changes confirmed via API for each click. | Plan 07/PR #85 | P1 |
 | MT-058 | Settings page — MQTT configuration | 1. Navigate to MQTT settings. 2. Verify host, port, prefix fields visible. | All MQTT settings editable. Password field shows "set" indicator (not plaintext). | Plan 07/PR #85 | P2 |
 | MT-059 | LCD remote widget | 1. Open UI. 2. Find LCD widget. 3. Press arrow keys or click buttons. | LCD widget responds. Keyboard shortcuts (arrows, enter) work. Widget scales responsively. | Plan 07/PR #85 | P3 |
 | MT-060 | Reboot button in UI | 1. Open UI. 2. Click reboot. 3. Confirm dialog. | Device reboots. UI reconnects after ~15s. | Plan 07/PR #85 | P2 |
@@ -183,33 +180,6 @@ Disconnect the vehicle after charging (continuing from Scenario 3).
 
 ---
 
-## Scenario 5: Solar Mode Charging
-
-Set SmartEVSE to Solar mode. Requires actual solar production or a way to inject
-mains meter readings via the API (`POST /currents` with L1/L2/L3) to simulate solar.
-
-**Setup:** Set mode=2 (Solar). Configure `MainsMeter = API` to allow current injection.
-Set `SolarStartCurrent`, `SolarMaxImport`, `SolarStopTime` to reasonable values.
-
-| ID | Description | Steps | Expected Result | Ref | Pri |
-|----|-------------|-------|-----------------|-----|-----|
-| MT-300 | Solar start on surplus | 1. Connect vehicle. 2. Inject export currents: `curl -X POST "http://<ip>/currents?L1=-100&L2=-100&L3=-100" -d ''` (30A export). 3. Wait for SolarStartTimer. | Charging starts when export exceeds `SolarStartCurrent`. IEC state goes B then C. | Plan 01/PR #65 | P1 |
-| MT-301 | Solar stop on insufficient power | 1. While solar charging, inject import: `curl -X POST "http://<ip>/currents?L1=100&L2=100&L3=100" -d ''`. 2. Wait for SolarStopTimer. | Charging stops after `SolarStopTime` seconds of import exceeding `SolarMaxImport`. | Plan 01/PR #65 | P1 |
-| MT-302 | EMA smoothing reduces oscillation | 1. Set `EmaAlpha=50` via MQTT. 2. Inject rapidly alternating currents (export/import every 2s). 3. Observe charge current via MQTT. | Charge current changes smoothly, no rapid oscillation. Compare with `EmaAlpha=100` (no smoothing). | Plan 01/PR #65 | P1 |
-| MT-303 | Dead band suppresses small adjustments | 1. Set `SmartDeadBand=10` (1.0A). 2. Inject currents that fluctuate within 1A. | Charge current remains stable. No adjustments for changes < 1A. | Plan 01/PR #65 | P2 |
-| MT-304 | Ramp rate limits current changes | 1. Set `RampRateDivisor=8`. 2. Inject sudden large surplus (0 to 30A export). 3. Observe current ramp. | Current ramps up gradually over multiple ticks, not instantly. | Plan 01/PR #65 | P2 |
-| MT-305 | Solar debug JSON during solar charge | 1. Enable solar debug: `mosquitto_pub -t "SmartEVSE-<serial>/Set/SolarDebug" -m "1"`. 2. Subscribe to `Debug/Solar`. | JSON shows `ImportCurrent`, `SunCurrent`, regulation decisions. Updates at rate-limited interval. | Plan 01/PR #83 | P2 |
-| MT-306 | Phase switching 1P to 3P on high surplus | 1. Set `EnableC2=4` (Auto). 2. Start solar charging on 1P with moderate surplus. 3. Inject large surplus (>3x MinCurrent). 4. Wait for switch timer. | SmartEVSE switches from 1P to 3P. Contactor sequence: stop charge, toggle C2, restart. | Plan 01/PR #65 | P1 |
-| MT-307 | Phase switching 3P to 1P on low surplus | 1. While charging 3P solar, reduce surplus to below MinCurrent * 3. 2. Wait for SevereTime + hold-down. | SmartEVSE switches from 3P to 1P. Charge continues on single phase. | Plan 01/PR #65 | P1 |
-| MT-308 | Phase switch hold-down timer | 1. After 3P→1P switch (MT-307), immediately inject large surplus. 2. Observe. | 1P→3P switch does NOT happen until `PhaseSwitchHoldDownTime` (default 300s) expires. Prevents rapid cycling. | Plan 01/PR #65 | P2 |
-| MT-309 | SolarMinRunTime prevents false stop | 1. Set `SolarMinRunTime=60`. 2. Start solar charge. 3. Immediately reduce surplus to trigger NoCurrent within 10s. | NoCurrent does NOT trigger LESS_6A error until 60s minimum run time elapsed. | Plan 01/PR #65 | P2 |
-| MT-310 | SolarChargeDelay after stop | 1. Trigger solar stop (MT-301). 2. Immediately inject large surplus. 3. Observe restart delay. | Charge does not restart for `SolarChargeDelay` seconds (default 15s). | Plan 01/PR #65 | P2 |
-| MT-311 | NoCurrentThreshold prevents premature stop | 1. Set `NoCurrentThreshold=10`. 2. During solar charge, inject brief shortage (2-3 ticks). | Charging continues (threshold not reached). Only stops after 10 shortage ticks. | Plan 01/PR #65 | P3 |
-| MT-312 | Session logged in solar mode | 1. Complete a solar charge session (start + disconnect). 2. Check `/session/last`. | Session JSON has `"mode": "solar"`, correct kwh and timestamps. | Plan 10/PR #89 | P2 |
-| MT-313 | API mains staleness fallback | 1. Set `MainsMeterTimeout=30` via MQTT. 2. Start solar charge with API currents. 3. Stop sending currents for 30s. | After timeout, mains readings fall back to MaxMains (conservative). Charging may stop or reduce. | Plan 09/PR #86 | P2 |
-
----
-
 ## Scenario 6: Load Balancing (Multi-EVSE)
 
 **HW req:** Two or more SmartEVSE nodes connected via RS485. One configured as Master.
@@ -282,12 +252,11 @@ to minimize physical actions:
 4. **Scenario 2E** (Diagnostics) — start captures before connecting vehicle
 5. **Scenario 3** (Vehicle Connect + Charge) — single connect, verify during charge
 6. **Scenario 4** (Vehicle Disconnect) — single disconnect, verify session data
-7. **Scenario 5** (Solar Mode) — set to solar, use API current injection
-8. **Scenario 7** (Error Recovery) — disconnect broker/WiFi, observe recovery
-9. **Scenario 6** (Load Balancing) — only if multi-EVSE hardware available
-10. **Scenario 9** (P1 Meter) — only if HomeWizard hardware available
+7. **Scenario 7** (Error Recovery) — disconnect broker/WiFi, observe recovery
+8. **Scenario 6** (Load Balancing) — only if multi-EVSE hardware available
+9. **Scenario 9** (P1 Meter) — only if HomeWizard hardware available
 
-**Estimated time:** ~3 hours for Scenarios 1-5, 7-8 (single EVSE).
+**Estimated time:** ~2 hours for Scenarios 1-4, 7-8 (single EVSE).
 Add ~1 hour each for Scenarios 6 and 9 with additional hardware.
 
 ---
@@ -296,17 +265,17 @@ Add ~1 hour each for Scenarios 6 and 9 with additional hardware.
 
 | Priority | Count | Description |
 |----------|-------|-------------|
-| P1 | 30 | Must-test: core charging, session logging, solar regulation, UI, security |
-| P2 | 42 | Should-test: secondary features, recovery, diagnostics, MQTT details |
-| P3 | 17 | Nice-to-have: edge cases, cosmetic, rarely-used features |
-| **Total** | **89** | |
+| P1 | 25 | Must-test: core charging, session logging, UI, security |
+| P2 | 32 | Should-test: secondary features, recovery, diagnostics, MQTT details |
+| P3 | 15 | Nice-to-have: edge cases, cosmetic, rarely-used features |
+| **Total** | **72** | |
 
 | Hardware Required | Tests |
 |-------------------|-------|
 | API-only (no vehicle) | MT-001 to MT-076, MT-600 to MT-611 (62 tests) |
-| Vehicle or simulator | MT-100 to MT-313 (27 tests) |
+| Vehicle or simulator | MT-100 to MT-207 (13 tests) |
 | Multi-EVSE | MT-400 to MT-405 (6 tests) |
 | OCPP backend | MT-110 to MT-113, MT-207 (5 tests) |
 | EVCC instance | MT-120 to MT-123 (4 tests) |
 | HomeWizard P1 | MT-700 to MT-702 (3 tests) |
-| Home Assistant | MT-040 to MT-044 (5 tests) |
+| Home Assistant | MT-040 to MT-043 (4 tests) |

@@ -25,19 +25,14 @@ hybrids:
 
 ---
 
-## Solar & Smart Mode
-
-### Smart Mode
+## Smart Mode
 
 Automatically adjusts charge current based on other household consumption to
 stay within mains capacity. Reads real-time consumption from the mains meter
 (Modbus, Sensorbox, HomeWizard P1, or API) and calculates available headroom.
 
-### Solar Mode
-
-Charges from solar surplus with configurable start/stop thresholds and import
-allowance. Supports automatic 1P/3P phase switching based on available power
-(requires CONTACT 2 wiring).
+> Solar mode (surplus-based charging) was removed. Only Normal and Smart
+> operating modes remain.
 
 ### Stability behaviour
 
@@ -55,16 +50,10 @@ Background — community reports that motivated the work:
 - **Symmetric ramp rates** — equal ramp-up and ramp-down speeds prevent the
   overshoot/undershoot oscillation caused by an asymmetric regulation profile
   (fast up, slow down).
-- **Tiered phase switching timers** — separate fast timer for severe overload
-  (e.g., 30s) and configurable hold-down guard (e.g., 5 minutes) to prevent
-  rapid 1P/3P cycling.
-- **Stop/start cycling prevention** — higher NoCurrent threshold, gradual
-  current decay before stopping, solar minimum run time, and shorter solar
-  charge delay reduce unnecessary stop/start cycles.
+- **Stop/start cycling prevention** — higher NoCurrent threshold and gradual
+  current decay before stopping reduce unnecessary stop/start cycles.
 - **Slow EV compatibility** — settling window and ramp rate limiter for EVs
   like the Renault Zoe that stall on rapid current changes.
-
-Configuration: [Solar & Smart Mode Stability](solar-smart-stability.md)
 
 ---
 
@@ -120,8 +109,8 @@ Configuration: [Load Balancing Stability](load-balancing-stability.md)
 - **LoadBl exclusivity enforcement** — OCPP Smart Charging and internal load
   balancing are mutually exclusive; now enforced at runtime with warnings when
   conflict detected (previously only checked at init).
-- **FreeVend solar safety** — auto-authorize (FreeVend) no longer bypasses
-  solar surplus checks or ChargeDelay, preventing charging without sunlight.
+- **FreeVend ChargeDelay safety** — auto-authorize (FreeVend) no longer
+  bypasses an active ChargeDelay countdown.
 - **OCPP settings validation** — backend URL (`ws://`/`wss://`), ChargeBoxId
   (max 20 chars, printable ASCII), and auth key validated before passing to
   MicroOcpp library.

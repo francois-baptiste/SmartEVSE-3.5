@@ -39,7 +39,7 @@ already.
 |---|---|---|
 | First-time WiFi setup | ✅ required | ❌ |
 | Select meter type / address | ✅ | ✅ |
-| Change mode (Normal/Smart/Solar) | ✅ | ✅ |
+| Change mode (Normal/Smart) | ✅ | ✅ |
 | Start/stop a charge session | ✅ | ✅ |
 | Adjust current on the fly | ❌ (reboot required) | ✅ |
 | Schedule a future charge | ❌ | ✅ |
@@ -51,16 +51,17 @@ already.
 
 ---
 
-## 2. The five modes
+## 2. The four modes
 
 Pick one based on what you want the charger to do when you plug in.
+
+> Solar mode was removed. Only Normal, Smart, Off, and Pause remain.
 
 | Mode | What it does | Use when |
 |---|---|---|
 | **Off** | Never charges, ignores the car | You're going away, want to be sure nothing starts |
-| **Normal** | Charges at a fixed current you set (Override Current) | You always want the same rate, don't care about solar or grid load |
+| **Normal** | Charges at a fixed current you set (Override Current) | You always want the same rate, don't care about grid load |
 | **Smart** | Charges as fast as possible without overloading the grid connection | You want fast charging but respect the house main (3×25 A etc.) |
-| **Solar** | Charges only from excess solar production, matches PV surplus | You have solar, want to self-consume before exporting |
 | **Pause** | Mid-session pause, keeps the car connection alive | You want to interrupt a running session without unplugging |
 
 ### Normal mode in detail
@@ -82,18 +83,6 @@ Pick one based on what you want the charger to do when you plug in.
   meter fastest, DSMR4 P1 meter slowest).
 - Will drop below 6 A? Pauses with `LESS_6A` until more power is
   available. This is not a bug — 6 A is the Mode-3 minimum.
-
-### Solar mode in detail
-
-- Needs the MainsMeter **and** requires that the meter sees export (negative Isum).
-- Starts charging only when solar export exceeds `StartCurrent` (A per
-  phase) for `StopTime` minutes.
-- Stops (or downshifts) when export drops below zero for long enough.
-- `ImportCurrent` lets you top up from grid to reach at least 6 A total —
-  useful for marginal-solar days where pure-solar can't sustain 6 A.
-- The most-discussed mode on the forum. Tuning is car-dependent. See
-  §10 and the [solar-smart-stability.md](solar-smart-stability.md) deep
-  dive.
 
 ### Off and Pause
 
@@ -165,12 +154,10 @@ car doesn't see a valid pilot signal. See troubleshooting.
 ### Mains currents (L1 / L2 / L3 / Isum)
 
 What the MainsMeter reports right now. Positive = import, negative =
-export (solar).
+export.
 
 - **Normal mode** ignores these.
 - **Smart mode** uses them to stay under `MaxMains`.
-- **Solar mode** waits for `Isum` to go sufficiently negative before
-  starting.
 
 ### EV currents (L1 / L2 / L3)
 
@@ -184,13 +171,6 @@ and you're on a 32 A setpoint that the cable caps.
 What the charger is *offering* the car via CP PWM. The car may draw
 less. If EV current ≪ offered, that's usually car behavior, not a
 charger fault.
-
-### Solar state (Solar mode only)
-
-- `SolarStopTimer`: seconds remaining before solar mode gives up on
-  insufficient export.
-- `StartCurrent` / `StopTime` / `ImportCurrent`: the thresholds you
-  configured. See §10.
 
 ---
 
@@ -273,23 +253,6 @@ Change `MaxMains`. LCD menu → Electrical → MaxMains. Or Web UI →
 Settings → Current Main. Set to the new rating minus 1–2 A of margin.
 Takes effect immediately, no reboot.
 
-### "Solar mode isn't starting even when I see export"
-
-Check `StartCurrent`. Default is 4 A/phase — that's 4 × 230 = ~920 W/phase
-of sustained export needed before it will engage. On a cloudy day with
-fluctuating export, the threshold may never be met for the required
-time. Lower `StartCurrent` to 2 A (requires ~460 W/phase). Trade-off:
-more false starts, more cycling of the contactor.
-
-### "Solar mode cycles on/off every few minutes"
-
-Increase `StopTime` (minutes of below-threshold before stopping). Default
-is often 10 minutes; if your solar fluctuates heavily, try 15 or 20. The
-contactor will stay closed through short cloud gaps.
-
-See [solar-smart-stability.md](solar-smart-stability.md) for the full
-tuning guide.
-
 ### "Smart mode is pulling too much, tripping something"
 
 Check `MaxMains` first. If that's correct, check that the MainsMeter is
@@ -300,8 +263,7 @@ state (stale data, wrong CT orientation) will make Smart mode overshoot.
 ### "I want to charge with less current for a night"
 
 Web UI → Normal mode → set Override Current to what you want (e.g. 10 A).
-Valid during that session only. Revert next time by picking Smart or
-Solar again.
+Valid during that session only. Revert next time by picking Smart again.
 
 ### "The car charges on one phase when I want three"
 
@@ -368,45 +330,7 @@ everyone) in [priority-scheduling.md](priority-scheduling.md).
 
 ---
 
-## 10. Solar mode tuning — first-time setup
-
-For most houses, the defaults are close enough. Tune only if the mode
-misbehaves.
-
-### The three knobs
-
-| Setting | What it does | Default | Lower this if | Raise this if |
-|---|---|---|---|---|
-| `StartCurrent` (A/phase) | How much export sustained before starting | 4 A | You want to catch more marginal export | False starts on brief sun gaps |
-| `StopTime` (minutes) | Below-threshold duration before stopping | 10 min | You want quick response to clouds | Too much cycling on/off |
-| `ImportCurrent` (A) | Grid top-up to reach 6 A minimum charge | 0 A | You want to guarantee 6 A even with less solar | You want pure-solar only |
-
-### Common pattern on Dutch summer day
-
-`StartCurrent=3 A`, `StopTime=15 min`, `ImportCurrent=0`. Will start
-around noon, run through mid-afternoon, survive short cloud periods,
-stop cleanly when sun drops below the threshold at ~17:00.
-
-### Common pattern on marginal-solar winter day
-
-`StartCurrent=2 A`, `StopTime=20 min`, `ImportCurrent=2 A`. Will grab
-whatever the array produces and top up to 6 A from grid so charging
-actually happens. Accept you're not 100% self-consumption, you're
-~80%+.
-
-### Car-specific quirks
-
-Some EVs don't like being offered less than 6 A/phase for extended
-periods — they drop the session. Others handle it fine. If your car
-keeps disconnecting in solar mode, raise `ImportCurrent` so the minimum
-offered stays ≥ 6 A.
-
-See [solar-smart-stability.md](solar-smart-stability.md) for the deep
-dive, including phase-switching (1P↔3P) and the `EnableC2=AUTO` option.
-
----
-
-## 11. Home Assistant / MQTT / REST — overview
+## 10. Home Assistant / MQTT / REST — overview
 
 If you run Home Assistant or want scripting, see
 [guide-integrator.md](guide-integrator.md). Short version:
@@ -425,7 +349,7 @@ public-charger setups and ToU-billing integrations.
 
 ---
 
-## 12. Backup and restore
+## 11. Backup and restore
 
 The device stores configuration in flash NVS. There is **no one-button
 export**. If you reflash or replace the PCB:
@@ -444,12 +368,11 @@ Settings → Reset. Use before hand-off if selling the device.
 
 ---
 
-## 13. When things go wrong
+## 12. When things go wrong
 
 | Symptom | First check | Doc |
 |---|---|---|
 | Car plugged in but never charges | State on the LCD / Web UI | [troubleshooting.md](troubleshooting.md) |
-| Solar mode cycles on/off | `StartCurrent` + `StopTime` | [solar-smart-stability.md](solar-smart-stability.md) |
 | Smart mode trips the main | `MaxMains` value, MainsMeter reading accuracy | [troubleshooting.md](troubleshooting.md) |
 | No MQTT entities in HA | Topic prefix, broker reachability, discovery prefix | [mqtt-home-assistant.md](mqtt-home-assistant.md) |
 | Web UI rejects your firmware upload | LCD PIN not verified / unsigned file | [security.md](security.md) |
@@ -462,11 +385,11 @@ Connect with any telnet client.
 
 ---
 
-## 14. Where next
+## 13. Where next
 
 - **[guide-integrator.md](guide-integrator.md)** — if you run Home Assistant or want REST/MQTT/OCPP.
 - **[configuration.md](configuration.md)** — full LCD menu reference.
-- **[solar-smart-stability.md](solar-smart-stability.md)** — solar mode
-  deep dive.
+- **[solar-smart-stability.md](solar-smart-stability.md)** — Smart mode
+  stability tuning (current smoothing, dead bands, ramp rate).
 - **[Tweakers "Zelfbouw Laadpaal" thread](https://gathering.tweakers.net/forum/list_messages/1648387)** —
   Dutch community support.

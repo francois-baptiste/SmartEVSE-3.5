@@ -49,7 +49,6 @@ extern "C" {
 #ifndef MODE_NORMAL
 #define MODE_NORMAL  0
 #define MODE_SMART   1
-#define MODE_SOLAR   2
 #endif
 
 // ---- Error flags (from main_c.h) ----
@@ -63,7 +62,6 @@ extern "C" {
 #define RCM_TEST    32
 #define Test_IO     64
 #define BL_FLASH   128
-#define NO_SUN     256
 #endif
 
 // ---- Priority scheduling constants ----
@@ -123,15 +121,17 @@ typedef enum { OFF = 0, ON = 1, PAUSE = 2 } AccessStatus_t;
 #endif
 
 // ---- EnableC2 values (from main.h) ----
-// Firmware: enum EnableC2_t { NOT_PRESENT, ALWAYS_OFF, SOLAR_OFF, ALWAYS_ON, AUTO };
+// Firmware: enum EnableC2_t { NOT_PRESENT, ALWAYS_OFF, RESERVED_C2_2, ALWAYS_ON, AUTO };
+// Ordinal 2 (formerly SOLAR_OFF) stays reserved/unused so persisted NVS
+// values for this setting don't silently remap to a different config.
 #ifndef EVSE_CTX_ENABLEC2_DEFINED
 #ifndef __cplusplus
 typedef enum {
-    NOT_PRESENT = 0,
-    ALWAYS_OFF  = 1,
-    SOLAR_OFF   = 2,
-    ALWAYS_ON   = 3,
-    AUTO        = 4
+    NOT_PRESENT   = 0,
+    ALWAYS_OFF    = 1,
+    RESERVED_C2_2 = 2,
+    ALWAYS_ON     = 3,
+    AUTO          = 4
 } EnableC2_t;
 #endif
 #define EVSE_CTX_ENABLEC2_DEFINED
@@ -177,9 +177,6 @@ typedef enum {
 #ifndef COMM_EVTIMEOUT
 #define COMM_EVTIMEOUT     64
 #endif
-#ifndef SOLARSTARTTIME
-#define SOLARSTARTTIME     40
-#endif
 #ifndef EMA_ALPHA_DEFAULT
 #define EMA_ALPHA_DEFAULT      100   /* 100 = no smoothing (opt-in via config) */
 #endif
@@ -195,29 +192,14 @@ typedef enum {
 #ifndef RAMP_RATE_DIVISOR_DEFAULT
 #define RAMP_RATE_DIVISOR_DEFAULT  4 /* Symmetric /4 for both up and down */
 #endif
-#ifndef SOLAR_FINE_DEADBAND_DEFAULT
-#define SOLAR_FINE_DEADBAND_DEFAULT 5 /* 0.5A in deciamps (was effectively 3) */
-#endif
 #ifndef NOCURRENT_THRESHOLD_DEFAULT
 #define NOCURRENT_THRESHOLD_DEFAULT    10 /* 10 ticks (~100ms) before LESS_6A (was 3) */
-#endif
-#ifndef SOLAR_CHARGE_DELAY_DEFAULT
-#define SOLAR_CHARGE_DELAY_DEFAULT     15 /* 15s charge delay after solar stop (was 60s) */
-#endif
-#ifndef SOLAR_MIN_RUN_TIME_DEFAULT
-#define SOLAR_MIN_RUN_TIME_DEFAULT     60 /* 60s min charge time before NoCurrent can trigger LESS_6A */
 #endif
 #ifndef SETTLING_WINDOW_DEFAULT
 #define SETTLING_WINDOW_DEFAULT         5 /* 5 seconds settling after current change */
 #endif
 #ifndef MAX_RAMP_RATE_DEFAULT
 #define MAX_RAMP_RATE_DEFAULT          30 /* Max 3.0A change per regulation cycle (deciamps) */
-#endif
-#ifndef PHASE_SWITCH_HOLDDOWN_DEFAULT
-#define PHASE_SWITCH_HOLDDOWN_DEFAULT  300 /* 5 min on 1P before allowing 3P upgrade */
-#endif
-#ifndef PHASE_SWITCH_SEVERE_DEFAULT
-#define PHASE_SWITCH_SEVERE_DEFAULT     30 /* 30s for severe shortage (fast switch) */
 #endif
 #ifndef MAX_DELTA_PER_CYCLE
 #define MAX_DELTA_PER_CYCLE            30 /* Max 3.0A Balanced[] change per cycle (deciamps) */
@@ -240,7 +222,6 @@ typedef struct {
     uint8_t  Phases;
     uint32_t Timer;
     uint32_t IntTimer;
-    uint16_t SolarTimer;
     uint8_t  Mode;
 } evse_node_t;
 #define EVSE_CTX_NODE_DEFINED
@@ -257,26 +238,6 @@ typedef struct evse_hal {
     void (*actuator_off)(void);
     void (*on_state_change)(uint8_t old_state, uint8_t new_state);
 } evse_hal_t;
-
-// ---- Solar debug snapshot (Issue #19) ----
-// Populated by evse_calc_balanced_current() each cycle.
-// Network layer can publish via MQTT/WebSocket without impacting 10ms tick.
-typedef struct {
-    int32_t  IsetBalanced;          /* Raw calculated value */
-    int32_t  IsetBalanced_ema;      /* EMA-smoothed value */
-    int32_t  Idifference;           /* Grid headroom */
-    int32_t  IsumImport;            /* Isum - ImportCurrent */
-    int16_t  Isum;                  /* Grid import (positive) / export (negative) */
-    int16_t  MainsMeterImeasured;   /* Measured mains current */
-    uint16_t Balanced0;             /* Distributed current for EVSE 0 */
-    uint16_t SolarStopTimer;        /* Solar stop countdown */
-    uint16_t PhaseSwitchTimer;      /* Phase switch countdown */
-    uint16_t PhaseSwitchHoldDown;   /* Hold-down countdown */
-    uint8_t  NoCurrent;             /* Shortage counter */
-    uint8_t  SettlingTimer;         /* Settling window countdown */
-    uint8_t  Nr_Of_Phases_Charging; /* Current phase count */
-    uint8_t  ErrorFlags;            /* Active error flags */
-} evse_solar_debug_t;
 
 // ---- Load balancing diagnostic snapshot (Plan 02, Issue #25) ----
 // Populated by evse_calc_balanced_current() each cycle when LoadBl == 1.
@@ -376,11 +337,8 @@ typedef struct {
 
     // --- Stop/start cycling prevention (Issue #17) ---
     uint8_t  NoCurrentThreshold;    /* NoCurrent ticks before triggering LESS_6A */
-    uint8_t  SolarChargeDelay;      /* Shorter charge delay for solar mode (seconds) */
-    uint16_t SolarMinRunTime;       /* Min charge time before NoCurrent can trigger LESS_6A (seconds) */
 
     // --- Timers ---
-    uint16_t SolarStopTimer;
     uint16_t MaxSumMainsTimer;
     uint8_t  StateTimer;
     uint8_t  AccessTimer;
@@ -396,12 +354,6 @@ typedef struct {
     // --- Capacity tariff headroom (Plan 13) ---
     int16_t CapacityHeadroom_da;  /* Remaining headroom in deciamps; INT16_MAX = unconstrained */
 
-    // --- Phase switching timers (Issue #16) ---
-    uint16_t PhaseSwitchTimer;          /* Countdown for 3P↔1P switching (separate from SolarStopTimer) */
-    uint16_t PhaseSwitchHoldDown;       /* Min time on 1P before allowing 3P upgrade (countdown) */
-    uint16_t PhaseSwitchHoldDownTime;   /* Configurable hold-down duration (seconds) */
-    uint16_t PhaseSwitchSevereTime;     /* Timer for severe shortage (seconds) */
-
     // --- Modem ---
     bool    ModemEnabled;
     uint8_t ModemStage;
@@ -413,11 +365,6 @@ typedef struct {
     char    RequiredEVCCID[32];
     char    EVCCID[32];
 
-    // --- Solar config ---
-    uint16_t StartCurrent;
-    uint16_t StopTime;
-    uint16_t ImportCurrent;
-
     // --- Slow EV compatibility (Issue #18) ---
     uint8_t  SettlingWindow;        /* Seconds to suppress regulation after current change */
     uint8_t  SettlingTimer;         /* Countdown: when >0, regulation is suppressed */
@@ -428,8 +375,7 @@ typedef struct {
     int32_t  IsetBalanced_ema;      /* EMA-smoothed IsetBalanced (deciamps) */
     uint8_t  EmaAlpha;              /* EMA weight 0-100: higher = more responsive */
     uint8_t  SmartDeadBand;         /* Dead band for smart mode regulation (deciamps) */
-    uint8_t  RampRateDivisor;       /* Symmetric ramp divisor for smart/solar (>=1) */
-    uint8_t  SolarFineDeadBand;     /* Dead band for solar fine regulation (deciamps) */
+    uint8_t  RampRateDivisor;       /* Symmetric ramp divisor for smart mode (>=1) */
 
     // --- Distribution smoothing (Plan 02, Issue #24) ---
     uint16_t BalancedPrev[NR_EVSES]; /* Previous cycle's Balanced[] (for delta clamping) */
@@ -460,9 +406,6 @@ typedef struct {
 
     // --- HAL ---
     evse_hal_t hal;
-
-    // --- Solar debug snapshot (Issue #19) ---
-    evse_solar_debug_t solar_debug;
 
     // --- Load balancing diagnostic snapshot (Issue #25) ---
     evse_lb_diag_t lb_diag;

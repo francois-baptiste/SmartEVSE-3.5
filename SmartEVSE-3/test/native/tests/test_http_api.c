@@ -239,93 +239,6 @@ void test_max_sum_mains_slave(void) {
     TEST_ASSERT_TRUE(http_api_validate_max_sum_mains(100, 2) != NULL);
 }
 
-// ---- Stop Timer Validation ----
-
-/*
- * @feature HTTP API Validation
- * @req REQ-API-007
- * @scenario Stop timer at zero is valid
- */
-void test_stop_timer_zero(void) {
-    TEST_ASSERT_TRUE(http_api_validate_stop_timer(0) == NULL);
-}
-
-/*
- * @feature HTTP API Validation
- * @req REQ-API-007
- * @scenario Stop timer at max (60) is valid
- */
-void test_stop_timer_max(void) {
-    TEST_ASSERT_TRUE(http_api_validate_stop_timer(60) == NULL);
-}
-
-/*
- * @feature HTTP API Input Validation
- * @req REQ-API-007
- * @scenario Stop timer above 60 is rejected
- */
-void test_stop_timer_too_high(void) {
-    TEST_ASSERT_TRUE(http_api_validate_stop_timer(61) != NULL);
-}
-
-/*
- * @feature HTTP API Input Validation
- * @req REQ-API-007
- * @scenario Negative stop timer is rejected
- */
-void test_stop_timer_negative(void) {
-    TEST_ASSERT_TRUE(http_api_validate_stop_timer(-1) != NULL);
-}
-
-// ---- Solar Start Current Validation ----
-
-/*
- * @feature HTTP API Validation
- * @req REQ-API-008
- * @scenario Solar start current at 0 is valid
- */
-void test_solar_start_zero(void) {
-    TEST_ASSERT_TRUE(http_api_validate_solar_start(0) == NULL);
-}
-
-/*
- * @feature HTTP API Validation
- * @req REQ-API-008
- * @scenario Solar start current at 48 is valid
- */
-void test_solar_start_max(void) {
-    TEST_ASSERT_TRUE(http_api_validate_solar_start(48) == NULL);
-}
-
-/*
- * @feature HTTP API Input Validation
- * @req REQ-API-008
- * @scenario Solar start current above 48 is rejected
- */
-void test_solar_start_too_high(void) {
-    TEST_ASSERT_TRUE(http_api_validate_solar_start(49) != NULL);
-}
-
-// ---- Solar Max Import Validation ----
-
-/*
- * @feature HTTP API Validation
- * @req REQ-API-009
- * @scenario Solar max import at 0 is valid
- */
-void test_solar_import_zero(void) {
-    TEST_ASSERT_TRUE(http_api_validate_solar_max_import(0) == NULL);
-}
-
-/*
- * @feature HTTP API Input Validation
- * @req REQ-API-009
- * @scenario Solar max import above 48 is rejected
- */
-void test_solar_import_too_high(void) {
-    TEST_ASSERT_TRUE(http_api_validate_solar_max_import(49) != NULL);
-}
-
 // ---- PrioStrategy Validation ----
 
 /*
@@ -556,8 +469,8 @@ void test_validate_settings_multiple_errors(void) {
     memset(&req, 0, sizeof(req));
     req.has_current_min = true;
     req.current_min = 3; // too low
-    req.has_stop_timer = true;
-    req.stop_timer = 99; // too high
+    req.has_max_sum_mains = true;
+    req.max_sum_mains = 5; // too low (must be 0 or 10..600)
 
     http_validation_error_t errors[10];
     int count = http_api_validate_settings(&req, 6, 32, 0, 0, errors, 10);
@@ -763,15 +676,14 @@ void test_iec61851_hard_error_overrides_state(void) {
 /*
  * @feature EVCC IEC 61851 State Mapping
  * @req REQ-API-022
- * @scenario Soft errors (LESS_6A, NO_SUN) do NOT override state
- * @given The EVSE is in STATE_C with LESS_6A or STATE_A with NO_SUN
+ * @scenario Soft errors (LESS_6A) do NOT override state
+ * @given The EVSE is in STATE_C with LESS_6A
  * @when evse_state_to_iec61851 is called
  * @then It returns the state-based letter, not 'E'
  */
 void test_iec61851_soft_errors_no_override(void) {
     TEST_ASSERT_EQUAL_INT('C', evse_state_to_iec61851(STATE_C, LESS_6A));
-    TEST_ASSERT_EQUAL_INT('A', evse_state_to_iec61851(STATE_A, NO_SUN));
-    TEST_ASSERT_EQUAL_INT('B', evse_state_to_iec61851(STATE_B, LESS_6A | NO_SUN));
+    TEST_ASSERT_EQUAL_INT('B', evse_state_to_iec61851(STATE_B, LESS_6A));
 }
 
 /*
@@ -917,14 +829,14 @@ void test_phase_switch_zero_phases(void) {
  * @feature EVCC Phase Switch Validation
  * @req REQ-API-024
  * @scenario Phase switch valid with all non-NOT_PRESENT EnableC2 values
- * @given A standalone EVSE with various EnableC2 settings (ALWAYS_OFF, SOLAR_OFF, ALWAYS_ON, AUTO)
+ * @given A standalone EVSE with various EnableC2 settings (ALWAYS_OFF, RESERVED_C2_2, ALWAYS_ON, AUTO)
  * @when A phase switch to 1 phase is requested
  * @then Validation passes for all C2 configurations that have hardware present
  */
 void test_phase_switch_all_c2_configs(void) {
     http_phase_switch_request_t req = { .phases = 1 };
     TEST_ASSERT_TRUE(http_api_validate_phase_switch(&req, ALWAYS_OFF, 0) == NULL);
-    TEST_ASSERT_TRUE(http_api_validate_phase_switch(&req, SOLAR_OFF, 0) == NULL);
+    TEST_ASSERT_TRUE(http_api_validate_phase_switch(&req, RESERVED_C2_2, 0) == NULL);
     TEST_ASSERT_TRUE(http_api_validate_phase_switch(&req, ALWAYS_ON, 0) == NULL);
     TEST_ASSERT_TRUE(http_api_validate_phase_switch(&req, AUTO, 0) == NULL);
 }
@@ -1111,19 +1023,6 @@ int main(void) {
     RUN_TEST(test_max_sum_mains_gap);
     RUN_TEST(test_max_sum_mains_too_high);
     RUN_TEST(test_max_sum_mains_slave);
-
-    // Stop timer
-    RUN_TEST(test_stop_timer_zero);
-    RUN_TEST(test_stop_timer_max);
-    RUN_TEST(test_stop_timer_too_high);
-    RUN_TEST(test_stop_timer_negative);
-
-    // Solar
-    RUN_TEST(test_solar_start_zero);
-    RUN_TEST(test_solar_start_max);
-    RUN_TEST(test_solar_start_too_high);
-    RUN_TEST(test_solar_import_zero);
-    RUN_TEST(test_solar_import_too_high);
 
     // PrioStrategy
     RUN_TEST(test_prio_strategy_valid_0);

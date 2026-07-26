@@ -45,7 +45,7 @@ under `mqtt.topic_prefix`).
   "end_energy_wh": 154645,
   "max_current_a": 16.0,
   "phases": 3,
-  "mode": "solar",
+  "mode": "smart",
   "ocpp_tx_id": null
 }
 ```
@@ -62,7 +62,7 @@ under `mqtt.topic_prefix`).
 | `end_energy_wh` | integer | EV meter reading at session end (Wh) |
 | `max_current_a` | number | Peak charge current during session (amps) |
 | `phases` | integer | Number of phases at session end (1 or 3) |
-| `mode` | string | Charging mode: `"normal"`, `"smart"`, or `"solar"` |
+| `mode` | string | Charging mode: `"normal"` or `"smart"`. `"solar"` can still appear on sessions logged before Solar mode was removed |
 | `ocpp_tx_id` | integer or null | OCPP transaction ID when OCPP is active, otherwise `null` |
 
 ### ERE field mapping
@@ -155,7 +155,7 @@ representing the total energy measured on the subpanel circuit during the sessio
   "circuit_kwh": 12.380,
   "max_current_a": 16.0,
   "phases": 3,
-  "mode": "solar",
+  "mode": "smart",
   "ocpp_tx_id": null
 }
 ```

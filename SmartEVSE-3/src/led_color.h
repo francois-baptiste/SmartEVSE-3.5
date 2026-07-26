@@ -28,12 +28,11 @@ typedef struct {
     uint8_t error_flags;        /* ErrorFlags bitmask */
     uint8_t access_status;      /* 0=OFF, 1=ON, 2=PAUSE */
     uint8_t state;              /* STATE_A..STATE_MODEM_DENIED */
-    uint8_t mode;               /* MODE_NORMAL, MODE_SMART, MODE_SOLAR */
+    uint8_t mode;               /* MODE_NORMAL, MODE_SMART */
     uint8_t charge_delay;       /* ChargeDelay > 0 means waiting */
     bool custom_button;         /* CustomButton state */
     uint8_t color_off[3];       /* ColorOff RGB */
     uint8_t color_custom[3];    /* ColorCustom RGB */
-    uint8_t color_solar[3];     /* ColorSolar RGB */
     uint8_t color_smart[3];     /* ColorSmart RGB */
     uint8_t color_normal[3];    /* ColorNormal RGB */
     /* CH32-specific error detection */

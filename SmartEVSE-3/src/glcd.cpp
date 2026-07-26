@@ -399,7 +399,7 @@ void GLCDHelp(void)                                                             
         case MENU_IDLE_TIMEOUT: desc = "Idle timeout in seconds (anti-flap)"; break;
         case MENU_CAPLIMIT:     desc = "Capacity tariff 15-min peak limit (kW)"; break;
         case MENU_LEDMODE:      desc = "LED color scheme (Standard / Public)";   break;
-        case MENU_MODESDIS:     desc = "Disable Smart and/or Solar mode";        break;
+        case MENU_MODESDIS:     desc = "Disable Smart mode";                     break;
         default:                desc = (LCDNav < MENU_EXIT) ? MenuStr[LCDNav].Desc : ""; break;
     }
     unsigned int x = strlen(desc);
@@ -458,7 +458,7 @@ void GLCD(void) {
         } else if (LCDNav == MENU_C2 && SubMenu) {
             if (EnableC2 == NOT_PRESENT)     GLCD_write_buf_str(0, 0, "Three-phase Charging", GLCD_ALIGN_LEFT);
             else if (EnableC2 == ALWAYS_OFF) GLCD_write_buf_str(0, 0, "Single-phase Charging", GLCD_ALIGN_LEFT);
-            else if (EnableC2 == SOLAR_OFF)  GLCD_write_buf_str(0, 0, "Solar 1P - Smart 3P", GLCD_ALIGN_LEFT);
+            else if (EnableC2 == RESERVED_C2_2) GLCD_write_buf_str(0, 0, "Three-phase Charging", GLCD_ALIGN_LEFT);
             else if (EnableC2 == ALWAYS_ON)  GLCD_write_buf_str(0, 0, "Three-phase Charging", GLCD_ALIGN_LEFT);
             else if (EnableC2 == AUTO)       GLCD_write_buf_str(0, 0, "Auto 3P <> 1P Charging", GLCD_ALIGN_LEFT);
         } else if (LCDNav == MENU_PAIRING && SubMenu) {
@@ -511,7 +511,7 @@ void GLCD(void) {
     }
 
     if (ErrorFlags) {                                                           // We switch backlight on, as we exit after displaying the error
-        if (ErrorFlags & ~LESS_6A) BacklightTimer = BACKLIGHT;                  // Backlight timer is set to 120 seconds, except while waiting for enough (solar) power
+        if (ErrorFlags & ~LESS_6A) BacklightTimer = BACKLIGHT;                  // Backlight timer is set to 120 seconds, except while waiting for enough power
 
         if (ErrorFlags & (CT_NOCOMM | EV_NOCOMM)) {                             // No serial communication for 10 seconds
             if (ErrorFlags & EV_NOCOMM) {
@@ -587,7 +587,6 @@ void GLCD(void) {
         const char *label;
         if (AccessStatus == OFF)        { icon = 0x04; label = "STOPPED"; }
         else if (AccessStatus == PAUSE) { icon = 0x05; label = "PAUSED";  }
-        else if (Mode == MODE_SOLAR)    { icon = 0x07; label = "SOLAR";   }
         else if (Mode == MODE_SMART)    { icon = 0x08; label = "SMART";   }
         else                             { icon = 0x06; label = "NORMAL";  }
 
@@ -673,7 +672,7 @@ void GLCD(void) {
         if (Str[0]) {
             // already set by an OCPP transaction notification above
         } else if (ErrorFlags & LESS_6A && AccessStatus == ON) {
-            snprintf(Str, sizeof(Str), "WAITING FOR %s", Mode == MODE_SOLAR ? "SOLAR" : "POWER");
+            snprintf(Str, sizeof(Str), "WAITING FOR POWER");
 #if MODEM
         } else if (State == STATE_MODEM_REQUEST || State == STATE_MODEM_WAIT || State == STATE_MODEM_DONE) {                                          // Modem states
             BacklightTimer = BACKLIGHT;
@@ -815,12 +814,11 @@ const char * getMenuItemOption(uint8_t nav) {
     const static char StrSocket[]  = "Socket";
     const static char StrSmart[]   = "Smart";
     const static char StrNormal[]  = "Normal";
-    const static char StrSolar[]   = "Solar";
     const static char StrSolenoid[] = "Solenoid";
     const static char StrMotor[]   = "Motor";
     const static char StrDisabled[] = "Disabled";
     const static char StrLoadBl[9][9]  = {"Disabled", "Master", "Node 1", "Node 2", "Node 3", "Node 4", "Node 5", "Node 6", "Node 7"};
-    const static char StrSwitch[8][11] = {"Disabled", "Access B", "Access S", "Sma-Sol B", "Sma-Sol S", "Grid Relay", "Custom B", "Custom S"};
+    const static char StrSwitch[8][11] = {"Disabled", "Access B", "Access S", "Reserved", "Reserved", "Grid Relay", "Custom B", "Custom S"};
     const static char StrGrid[2][10] = {"4Wire", "3Wire"};
     const static char StrEnabled[] = "Enabled";
     const static char StrExitMenu[] = "MENU";
@@ -840,20 +838,13 @@ const char * getMenuItemOption(uint8_t nav) {
             else return StrSocket;
         case MENU_MODE:
             if (Mode == MODE_SMART) return StrSmart;
-            else if (Mode == MODE_SOLAR) return StrSolar;
             else return StrNormal;
         case MENU_MODESDIS:
             switch (value) {
                 case MODE_DISABLE_SMART: return "No Smart";
-                case MODE_DISABLE_SOLAR: return "No Solar";
-                case MODE_DISABLE_ALL:   return "Norml only";
                 default:                 return "All modes";
             }
-        case MENU_START:
-                snprintf(Str, sizeof(Str), "-%2u A", value);
-                return Str;
         case MENU_SUMMAINSTIME:
-        case MENU_STOP:
             if (value) {
                 snprintf(Str, sizeof(Str), "%2u min", value);
                 return Str;
@@ -870,7 +861,6 @@ const char * getMenuItemOption(uint8_t nav) {
         case MENU_MIN:
         case MENU_MAX:
         case MENU_CIRCUIT:
-        case MENU_IMPORT:
             snprintf(Str, sizeof(Str), "%2u A", value);
             return Str;
         case MENU_LOCK:
@@ -982,13 +972,13 @@ const char * getMenuItemOption(uint8_t nav) {
 uint8_t getMenuItems (void) {
     uint8_t m = 0;
 
-    MenuItems[m++] = MENU_MODE;                                                 // EVSE mode (0:Normal / 1:Smart / 2: Solar)
+    MenuItems[m++] = MENU_MODE;                                                 // EVSE mode (0:Normal / 1:Smart)
     MenuItems[m++] = MENU_CONFIG;                                               // Configuration (0:Socket / 1:Fixed Cable)
     if (!getItemValue(MENU_CONFIG)) {                                                              // ? Fixed Cable?
         MenuItems[m++] = MENU_LOCK;                                             // - Cable lock (0:Disable / 1:Solenoid / 2:Motor)
     }
     MenuItems[m++] = MENU_LOADBL;                                               // Load Balance Setting (0:Disable / 1:Master / 2-8:Node)
-    if (Mode) {                                                                 // ? Smart or Solar mode?
+    if (Mode) {                                                                 // ? Smart mode?
         if (LoadBl < 2) {                                                       // - ? Load Balancing Disabled/Master?
             MenuItems[m++] = MENU_MAINSMETER;                                   // - - Type of Mains electric meter (0: Disabled / Constants EM_*)
             if (MainsMeter.Type == EM_SENSORBOX) {                              // - - ? Sensorbox?
@@ -1019,8 +1009,8 @@ uint8_t getMenuItems (void) {
                 MenuItems[m++] = MENU_EMCUSTOM_EDIVISOR;                        // - - Divisor for energy of custom electric meter
             }
             if (MainsMeter.Type) {                                              // Mainsmeter is configured and Load Balancing Disabled/Master?
-                MenuItems[m++] = MENU_MAINS;                                    // - Max Mains Amps (hard limit, limited by the MAINS connection) (A) (Mode:Smart/Solar)
-                MenuItems[m++] = MENU_MIN;                                      // - Minimal current the EV is happy with (A) (Mode:Smart/Solar or LoadBl:Master)
+                MenuItems[m++] = MENU_MAINS;                                    // - Max Mains Amps (hard limit, limited by the MAINS connection) (A) (Mode:Smart)
+                MenuItems[m++] = MENU_MIN;                                      // - Minimal current the EV is happy with (A) (Mode:Smart or LoadBl:Master)
             }
         }
     }
@@ -1030,14 +1020,9 @@ uint8_t getMenuItems (void) {
                                                                                 // the total current (subpanel configuration)
         MenuItems[m++] = MENU_CIRCUIT;                                          // - Max current of the EVSE circuit (A)
     }
-    if (Mode == MODE_SOLAR && LoadBl < 2) {                                     // ? Solar mode and Load Balancing Disabled/Master?
-        MenuItems[m++] = MENU_START;                                            // - Start Surplus Current (A)
-        MenuItems[m++] = MENU_STOP;                                             // - Stop time (min)
-        MenuItems[m++] = MENU_IMPORT;                                           // - Import Current from Grid (A)
-    }
     if (Mode != MODE_NORMAL)
         MenuItems[m++] = MENU_C2;
-    MenuItems[m++] = MENU_SWITCH;                                               // External Switch on SW (0:Disable / 1:Access / 2:Smart-Solar)
+    MenuItems[m++] = MENU_SWITCH;                                               // External Switch on SW (0:Disable / 1:Access / 2:Smart)
     MenuItems[m++] = MENU_RCMON;                                                // Residual Current Monitor on RCM (0:Disable / 1:Enable)
     MenuItems[m++] = MENU_RFIDREADER;                                           // RFID Reader connected to SW (0:Disable / 1:Enable / 2:Learn / 3:Delete / 4:Delate All)
     MenuItems[m++] = MENU_WIFI;                                                 // Wifi Disabled / Enabled / Portal
@@ -1060,7 +1045,7 @@ uint8_t getMenuItems (void) {
     }
     MenuItems[m++] = MENU_LCDPIN;
     MenuItems[m++] = MENU_LEDMODE;                                              // LED color scheme (0:Standard / 1:Public)
-    MenuItems[m++] = MENU_MODESDIS;                                             // Disable Smart/Solar modes (bitmask)
+    MenuItems[m++] = MENU_MODESDIS;                                             // Disable Smart mode (bitmask)
     MenuItems[m++] = MENU_EXIT;
 
     return m;
@@ -1106,9 +1091,6 @@ void GLCDMenu(uint8_t Buttons) {
         setAccess(OFF);
         ButtonRelease = 1;
     } else if ((LCDNav == MENU_OFF) && (Buttons == 0x7)) {                      // Button 1 released before entering menu?
-        //if < button is pressed shorter then 2 seconds we are switching from Smart mode to Solar mode and vice versa
-        if (Mode)
-            setMode(mode_policy_toggle_smart_solar(Mode, ModesDisabled));       // Change from Solar to Smart mode and vice versa (unless disabled).
         LCDNav = 0;
         ButtonRelease = 0;
         GLCD();
@@ -1213,7 +1195,7 @@ void GLCDMenu(uint8_t Buttons) {
                         } while (!mode_policy_allowed(value, ModesDisabled));
                         setItemValue(LCDNav, value);
                         break;
-                    case MENU_MODESDIS:                                         // only Smart/Solar bits may be set
+                    case MENU_MODESDIS:                                         // only Smart bit may be set
                         do {
                             value = MenuNavInt(Buttons, value, 0, MODE_DISABLE_ALL);
                         } while (!mode_policy_mask_valid(value));
@@ -1255,7 +1237,6 @@ void GLCDMenu(uint8_t Buttons) {
                 clearErrorFlags(!(NO_ERROR));                                           // Clear All Errors when exiting the Main Menu
                 TestState = 0;                                                  // Clear TestState
                 setChargeDelay(0);                                              // Clear ChargeDelay
-                setSolarStopTimer(0);                                           // Disable Solar Timer
                 GLCD();
                 write_settings();                                               // Write immediately to nvs when exiting menu
                 ButtonRelease = 2;                                              // Skip updating of the LCD 

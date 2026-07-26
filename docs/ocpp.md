@@ -82,9 +82,9 @@ OCPP Smart Charging and SmartEVSE internal load balancing are **mutually exclusi
 
 If you change LoadBl while OCPP is active, the firmware detects the conflict and disables OCPP current limiting. You must disable and re-enable OCPP for the new setting to take full effect.
 
-### OCPP and Solar/Smart Mode
+### OCPP and ChargeDelay
 
-When Auto Authorize (FreeVend) is enabled together with Solar mode, the firmware defers granting charge permission until solar surplus is available. This prevents FreeVend from bypassing the solar surplus check. The same applies when a ChargeDelay is active.
+When Auto Authorize (FreeVend) is enabled and a `ChargeDelay` is active, the firmware defers granting charge permission until the delay expires. This prevents FreeVend from bypassing an active charge delay.
 
 ### OCPP Telemetry
 
