@@ -351,6 +351,35 @@
   </div>
 </div>
 
+<!-- Charge Sessions -->
+<div class="card">
+  <div class="section-toggle collapsed" onclick="toggleSection(this)">
+    <span class="card-title" style="margin-bottom:0">Charge Sessions</span>
+  </div>
+  <div class="section-body collapsed">
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.82rem" id="sessions_table">
+        <thead>
+          <tr style="text-align:left;color:var(--fg2);border-bottom:1px solid var(--bg3)">
+            <th style="padding:4px 6px">Start</th>
+            <th style="padding:4px 6px">Duration</th>
+            <th style="padding:4px 6px">kWh</th>
+            <th style="padding:4px 6px">Peak A</th>
+            <th style="padding:4px 6px">Phases</th>
+            <th style="padding:4px 6px">Mode</th>
+          </tr>
+        </thead>
+        <tbody id="sessions_tbody">
+          <tr><td colspan="6" style="padding:8px 6px;color:var(--fg2)">No sessions loaded yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:8px">
+      <button type="button" class="btn btn-sm" onclick="loadSessions()">Refresh</button>
+    </div>
+  </div>
+</div>
+
 <!-- LCD Remote -->
 <div class="card">
   <div class="section-toggle collapsed" onclick="toggleSection(this)">

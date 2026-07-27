@@ -16,12 +16,28 @@ static uint8_t s_session_active;        /* 1 if session in progress */
 static uint8_t s_has_last;              /* 1 if s_last contains valid data */
 static uint32_t s_next_id;             /* Next session ID to assign */
 
+/* History ring buffer — newest entry is written at s_history_head - 1 */
+static session_record_t s_history[SESSION_HISTORY_MAX];
+static uint16_t s_history_head;         /* Next write position */
+static uint16_t s_history_count;        /* Valid entries, 0..SESSION_HISTORY_MAX */
+
+static void history_push(const session_record_t *rec) {
+    s_history[s_history_head] = *rec;
+    s_history_head = (uint16_t)((s_history_head + 1) % SESSION_HISTORY_MAX);
+    if (s_history_count < SESSION_HISTORY_MAX) {
+        s_history_count++;
+    }
+}
+
 void session_init(void) {
     memset(&s_active, 0, sizeof(s_active));
     memset(&s_last, 0, sizeof(s_last));
     s_session_active = 0;
     s_has_last = 0;
     s_next_id = 1;
+    memset(s_history, 0, sizeof(s_history));
+    s_history_head = 0;
+    s_history_count = 0;
 }
 
 void session_start(uint32_t timestamp, int32_t start_energy_wh, uint8_t mode) {
@@ -61,6 +77,7 @@ void session_end(uint32_t timestamp, int32_t end_energy_wh,
     /* Move to last-completed slot */
     memcpy(&s_last, &s_active, sizeof(s_last));
     s_has_last = 1;
+    history_push(&s_active);
     s_session_active = 0;
     memset(&s_active, 0, sizeof(s_active));
 }
@@ -95,6 +112,54 @@ const session_record_t *session_get_last(void) {
         return NULL;
     }
     return &s_last;
+}
+
+uint16_t session_history_count(void) {
+    return s_history_count;
+}
+
+const session_record_t *session_history_get(uint16_t index_from_newest) {
+    if (index_from_newest >= s_history_count) {
+        return NULL;
+    }
+    /* Newest entry lives at s_history_head - 1 (mod MAX) */
+    uint16_t pos = (uint16_t)((s_history_head + SESSION_HISTORY_MAX - 1 - index_from_newest) % SESSION_HISTORY_MAX);
+    return &s_history[pos];
+}
+
+uint16_t session_history_export(session_record_t *out, uint16_t max_count) {
+    if (!out || max_count == 0) {
+        return 0;
+    }
+    uint16_t n = (max_count < s_history_count) ? max_count : s_history_count;
+    /* Oldest kept entry: the slot that's about to be overwritten next when full,
+     * or slot 0 when the buffer hasn't wrapped yet. */
+    uint16_t oldest = (uint16_t)((s_history_head + SESSION_HISTORY_MAX - s_history_count) % SESSION_HISTORY_MAX);
+    for (uint16_t k = 0; k < n; k++) {
+        out[k] = s_history[(oldest + k) % SESSION_HISTORY_MAX];
+    }
+    return n;
+}
+
+void session_history_restore(const session_record_t *records, uint16_t count, uint32_t next_id_hint) {
+    memset(s_history, 0, sizeof(s_history));
+    s_history_head = 0;
+    s_history_count = 0;
+
+    if (records && count > 0) {
+        uint16_t n = (count < SESSION_HISTORY_MAX) ? count : SESSION_HISTORY_MAX;
+        for (uint16_t k = 0; k < n; k++) {
+            history_push(&records[k]); /* records[] is oldest-first */
+        }
+    }
+
+    if (next_id_hint > s_next_id) {
+        s_next_id = next_id_hint;
+    }
+}
+
+uint32_t session_history_next_id(void) {
+    return s_next_id;
 }
 
 /*
@@ -220,4 +285,39 @@ int session_to_json(const session_record_t *rec, char *buf, size_t bufsz) {
     }
 
     return n;
+}
+
+int session_history_to_json(char *buf, size_t bufsz) {
+    if (!buf || bufsz == 0) {
+        return -1;
+    }
+    if (bufsz < 3) { /* not even enough room for "[]" + NUL */
+        return -1;
+    }
+
+    buf[0] = '[';
+    size_t n = 1;
+
+    for (uint16_t i = 0; i < s_history_count; i++) {
+        const session_record_t *rec = session_history_get(i);
+        if (i > 0) {
+            if (n + 1 >= bufsz) {
+                return -1;
+            }
+            buf[n++] = ',';
+        }
+        int obj_n = session_to_json(rec, buf + n, bufsz - n);
+        if (obj_n < 0) {
+            return -1;
+        }
+        n += (size_t)obj_n;
+    }
+
+    if (n + 2 > bufsz) { /* need room for ']' + NUL */
+        return -1;
+    }
+    buf[n++] = ']';
+    buf[n] = '\0';
+
+    return (int)n;
 }

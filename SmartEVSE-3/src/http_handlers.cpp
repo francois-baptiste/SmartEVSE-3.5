@@ -1589,6 +1589,16 @@ bool handle_URI(struct mg_connection *c, struct mg_http_message *hm,  webServerR
         }
         return true;
 
+    } else if (mg_http_match_uri(hm, "/sessions") && !memcmp("GET", hm->method.buf, hm->method.len)) {
+        static char sessions_json[SESSION_HISTORY_MAX * 220 + 16];
+        int n = session_history_to_json(sessions_json, sizeof(sessions_json));
+        if (n > 0) {
+            mg_http_reply(c, 200, "Content-Type: application/json\r\n", "%s\r\n", sessions_json);
+        } else {
+            mg_http_reply(c, 500, "", "");
+        }
+        return true;
+
 #if MODEM && SMARTEVSE_VERSION >= 40
     } else if (mg_http_match_uri(hm, "/ev_state") && !memcmp("GET", hm->method.buf, hm->method.len)) {
         //this can be activated by: curl -X GET "http://smartevse-xxxx.lan/ev_state?update_ev_state=1" -d ''

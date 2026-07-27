@@ -1,6 +1,6 @@
 # SmartEVSE-3 Test Specification
 
-**75 features** | **1095 scenarios** | **1095 with requirement IDs**
+**76 features** | **1104 scenarios** | **1104 with requirement IDs**
 
 ---
 
@@ -78,9 +78,10 @@
 70. [Current Sum Calculation](#current-sum-calculation)
 71. [Charge Session Logging](#charge-session-logging)
 72. [Charge Session JSON Export](#charge-session-json-export)
-73. [IEC 61851-1 State Transitions](#iec-61851-1-state-transitions)
-74. [10ms Tick Processing](#10ms-tick-processing)
-75. [1-Second Tick Processing](#1-second-tick-processing)
+73. [Charge Session History](#charge-session-history)
+74. [IEC 61851-1 State Transitions](#iec-61851-1-state-transitions)
+75. [10ms Tick Processing](#10ms-tick-processing)
+76. [1-Second Tick Processing](#1-second-tick-processing)
 
 ## API Mains Staleness Detection
 
@@ -10260,6 +10261,100 @@
 - **Then** mode field is "smart"
 
 > Test: `test_session_json_smart_mode` in `test_session_log.c:304`
+
+---
+
+## Charge Session History
+
+### History accumulates completed sessions newest-first
+
+**Requirement:** `REQ-ERE-030`
+
+- **Given** The session logger is initialized
+- **When** Three sessions are started and ended in sequence
+- **Then** session_history_count is 3 and session_history_get(0) is the most
+
+> Test: `test_session_history_accumulates` in `test_session_log.c:521`
+
+### Ring buffer wraps once SESSION_HISTORY_MAX is exceeded
+
+**Requirement:** `REQ-ERE-031`
+
+- **Given** The session logger is initialized
+- **When** SESSION_HISTORY_MAX + 1 sessions are completed
+- **Then** session_history_count caps at SESSION_HISTORY_MAX and the oldest
+
+> Test: `test_session_history_wraps_after_max` in `test_session_log.c:543`
+
+### JSON array output is newest-first with correct element count
+
+**Requirement:** `REQ-ERE-032`
+
+- **Given** Two completed sessions in history
+- **When** session_history_to_json is called
+- **Then** The output is a JSON array containing both session_id values with
+
+> Test: `test_session_history_json_array` in `test_session_log.c:565`
+
+### JSON array output on an empty history is an empty array
+
+**Requirement:** `REQ-ERE-033`
+
+- **Given** The session logger is initialized with no completed sessions
+- **When** session_history_to_json is called
+- **Then** The output is exactly "[]"
+
+> Test: `test_session_history_json_empty` in `test_session_log.c:590`
+
+### Too-small buffer for JSON array returns -1
+
+**Requirement:** `REQ-ERE-034`
+
+- **Given** Several completed sessions in history
+- **When** session_history_to_json is called with a buffer too small to hold
+- **Then** It returns -1 rather than emitting truncated JSON
+
+> Test: `test_session_history_json_small_buffer` in `test_session_log.c:605`
+
+### Export then restore reproduces identical history and next_id
+
+**Requirement:** `REQ-ERE-035`
+
+- **Given** Three completed sessions in history
+- **When** session_history_export copies them oldest-first and
+- **Then** The restored history has the same count/order/ids as before, and a
+
+> Test: `test_session_history_export_restore_roundtrip` in `test_session_log.c:621`
+
+### Restoring with a next_id hint lower than the current counter
+
+**Requirement:** `REQ-ERE-036`
+
+- **Given** A freshly initialized logger (next id already at 1)
+- **When** session_history_restore is called with next_id_hint 0
+- **Then** The next started session still receives id 1, not an id derived
+
+> Test: `test_session_history_restore_no_id_regression` in `test_session_log.c:657`
+
+### Bounds checks on an empty history
+
+**Requirement:** `REQ-ERE-037`
+
+- **Given** The session logger is freshly initialized
+- **When** session_history_get is called with index 0
+- **Then** NULL is returned and session_history_count is 0
+
+> Test: `test_session_history_bounds_empty` in `test_session_log.c:677`
+
+### Out-of-range index returns NULL
+
+**Requirement:** `REQ-ERE-038`
+
+- **Given** Two completed sessions in history
+- **When** session_history_get is called with an index beyond the count
+- **Then** NULL is returned
+
+> Test: `test_session_history_bounds_out_of_range` in `test_session_log.c:691`
 
 ---
 

@@ -1973,6 +1973,45 @@ void request_write_settings(void) {
 }
 
 
+/* Persist the charge session history ring buffer to NVS. Called once per
+ * completed charge session (a rare, few-times-a-day event), so a blocking
+ * flash write here is not a hot-path concern. */
+void session_persist_history(void) {
+    if (!preferences.begin("settings", false)) {
+        _LOG_A("Can not open preferences to persist session history!\n");
+        return;
+    }
+    session_record_t buf[SESSION_HISTORY_MAX];
+    uint16_t n = session_history_export(buf, SESSION_HISTORY_MAX);
+    preferences.putUShort("SessHistCnt", n);
+    preferences.putULong("SessHistNID", session_history_next_id());
+    if (n > 0) {
+        preferences.putBytes("SessHistData", buf, n * sizeof(session_record_t));
+    }
+    preferences.end();
+}
+
+/* Restore the charge session history ring buffer from NVS at boot.
+ * Must be called AFTER session_init(), which clears all session state. */
+void session_restore_history_from_nvs(void) {
+    if (!preferences.begin("settings", true)) {   // read-only
+        return;
+    }
+    uint16_t count = preferences.getUShort("SessHistCnt", 0);
+    uint32_t next_id = preferences.getULong("SessHistNID", 1);
+    if (count > SESSION_HISTORY_MAX) count = SESSION_HISTORY_MAX;
+    if (count > 0) {
+        session_record_t buf[SESSION_HISTORY_MAX];
+        size_t expected = (size_t)count * sizeof(session_record_t);
+        size_t got = preferences.getBytes("SessHistData", buf, expected);
+        if (got == expected) {
+            session_history_restore(buf, count, next_id);
+        }
+    }
+    preferences.end();
+}
+
+
 /* Takes TimeString in format
  * String = "2023-04-14T11:31"
  * and store it in the DelayedTimeStruct
@@ -2940,6 +2979,7 @@ extern void Timer20ms(void * parameter);
     // Must be called after read_settings() so globals are ready for evse_sync_globals_to_ctx()
     evse_bridge_init();
     session_init();
+    session_restore_history_from_nvs();
     {
         // Preserve monthly peak loaded from NVS across capacity_init()
         capacity_monthly_t saved_monthly = CapacityState.monthly;

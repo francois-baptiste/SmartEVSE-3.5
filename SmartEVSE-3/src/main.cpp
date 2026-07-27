@@ -349,6 +349,7 @@ extern void CheckRFID(void);
 extern void mqttPublishData();
 extern void mqttSmartEVSEPublishData();
 extern void mqttPublishSessionComplete(void);
+extern void session_persist_history(void);
 extern bool MQTTclientSmartEVSE_AppConnected;
 extern void DisconnectEvent(void);
 extern char EVCCID[32];
@@ -2449,6 +2450,9 @@ static void timer10ms_ev_metering(uint8_t oldState, uint8_t pilot_val) {
             }
             session_end((uint32_t)time(NULL), EVMeter.Import_active_energy,
                         (uint16_t)(Balanced[0]), Nr_Of_Phases_Charging);
+#ifdef SMARTEVSE_VERSION   // NVS persistence is ESP32-only (esp32.cpp); not available on CH32
+            session_persist_history();
+#endif
 #if MQTT
             mqttPublishSessionComplete();
 #endif

@@ -91,6 +91,22 @@ Example:
 curl -s http://smartevse-XXXX.local/session/last | jq .
 ```
 
+The last 20 completed sessions are available as a JSON array, newest first:
+
+```
+GET /sessions
+```
+
+Example:
+```bash
+curl -s http://smartevse-XXXX.local/sessions | jq .
+```
+
+This history is also shown in the web UI under the "Charge Sessions" card, and
+is persisted to flash — it survives a reboot, OTA update, or power loss (unlike
+`/session/last` and the MQTT retained message, which only reflect sessions
+completed since the last boot).
+
 ## Collecting sessions with Home Assistant
 
 Since the MQTT message is **retained**, Home Assistant will receive the last session
@@ -211,29 +227,34 @@ To use SmartEVSE session data for ERE certificate submission:
   certification, the session kWh values are not accepted by the NEa.
 - **Accurate time** — SmartEVSE synchronizes its clock via NTP when connected to WiFi.
   Ensure your network allows NTP traffic so timestamps are accurate.
-- **MQTT backend** — sessions must be collected and stored externally (Home Assistant,
-  Node-RED, or any MQTT logger). SmartEVSE does not store session history on-device.
+- **MQTT backend** — for long-term ERE archival, sessions should still be collected
+  and stored externally (Home Assistant, Node-RED, or any MQTT logger). SmartEVSE
+  itself only retains the last 20 sessions on-device (see `GET /sessions` below).
 
 ## Considerations
 
 ### Data persistence
 
-SmartEVSE does **not** store session history in flash or RAM beyond the single
-last-completed session. The MQTT retained message ensures the most recent session
-survives MQTT broker restarts, but historical sessions must be collected by an
-external system (Home Assistant, database, file logger) as they are published.
+SmartEVSE stores the last 20 completed sessions in flash (NVS), written once per
+session end — see `GET /sessions` above. This is enough for casual on-device
+review, not a substitute for long-term ERE archival: for full history retention,
+historical sessions should still be collected by an external system (Home
+Assistant, database, file logger) as they are published over MQTT.
 
 If your MQTT broker or Home Assistant is offline when a session completes, that
-session's MQTT message will be lost. For reliable ERE reporting, ensure your MQTT
-infrastructure has high availability, or consider using OCPP with a cloud backend
-as the primary data source.
+session's MQTT message will be lost (though it will still be present in the
+on-device 20-session history until it ages out). For reliable long-term ERE
+reporting, ensure your MQTT infrastructure has high availability, or consider
+using OCPP with a cloud backend as the primary data source.
 
 ### Session ID counter
 
-The `session_id` is an auto-incrementing counter that resets to 1 on every SmartEVSE
-reboot. It is intended for correlation within a single uptime period, not as a
-globally unique identifier. For ERE reporting, use the combination of `start` timestamp
-and your chargepoint serial number as the unique session identifier.
+The `session_id` is an auto-incrementing counter. It is restored from the
+persisted history at boot (so it keeps counting up across reboots as long as at
+least one session has ever completed), but it is still intended for correlation
+purposes, not as a globally unique identifier. For ERE reporting, use the
+combination of `start` timestamp and your chargepoint serial number as the
+unique session identifier.
 
 ### Time accuracy
 

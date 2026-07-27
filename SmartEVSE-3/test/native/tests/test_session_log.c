@@ -507,6 +507,202 @@ void test_session_exact_min_duration_kept(void) {
     TEST_ASSERT_EQUAL_INT(1000, last->energy_charged_wh);
 }
 
+/* ---- Session history ring buffer tests ---- */
+
+static char history_json_buf[8192];
+
+static void end_n_sessions(uint32_t n, uint32_t base_time) {
+    for (uint32_t i = 0; i < n; i++) {
+        session_start(base_time + i * 1000, (int32_t)(i * 1000), 0);
+        session_end(base_time + i * 1000 + 120, (int32_t)(i * 1000 + 500), 100, 1);
+    }
+}
+
+/*
+ * @feature Charge Session History
+ * @req REQ-ERE-030
+ * @scenario History accumulates completed sessions newest-first
+ * @given The session logger is initialized
+ * @when Three sessions are started and ended in sequence
+ * @then session_history_count is 3 and session_history_get(0) is the most
+ *       recently completed session while get(2) is the first
+ */
+void test_session_history_accumulates(void) {
+    session_init();
+    end_n_sessions(3, 1710000000);
+
+    TEST_ASSERT_EQUAL_INT(3, session_history_count());
+    const session_record_t *newest = session_history_get(0);
+    const session_record_t *oldest = session_history_get(2);
+    TEST_ASSERT_TRUE(newest != NULL);
+    TEST_ASSERT_TRUE(oldest != NULL);
+    TEST_ASSERT_EQUAL_INT(3, (int)newest->session_id);
+    TEST_ASSERT_EQUAL_INT(1, (int)oldest->session_id);
+}
+
+/*
+ * @feature Charge Session History
+ * @req REQ-ERE-031
+ * @scenario Ring buffer wraps once SESSION_HISTORY_MAX is exceeded
+ * @given The session logger is initialized
+ * @when SESSION_HISTORY_MAX + 1 sessions are completed
+ * @then session_history_count caps at SESSION_HISTORY_MAX and the oldest
+ *       session (id 1) has been evicted
+ */
+void test_session_history_wraps_after_max(void) {
+    session_init();
+    end_n_sessions(SESSION_HISTORY_MAX + 1, 1710000000);
+
+    TEST_ASSERT_EQUAL_INT(SESSION_HISTORY_MAX, session_history_count());
+    const session_record_t *newest = session_history_get(0);
+    const session_record_t *oldest_kept = session_history_get(SESSION_HISTORY_MAX - 1);
+    TEST_ASSERT_TRUE(newest != NULL);
+    TEST_ASSERT_TRUE(oldest_kept != NULL);
+    TEST_ASSERT_EQUAL_INT(SESSION_HISTORY_MAX + 1, (int)newest->session_id);
+    TEST_ASSERT_EQUAL_INT(2, (int)oldest_kept->session_id); /* id 1 evicted */
+}
+
+/*
+ * @feature Charge Session History
+ * @req REQ-ERE-032
+ * @scenario JSON array output is newest-first with correct element count
+ * @given Two completed sessions in history
+ * @when session_history_to_json is called
+ * @then The output is a JSON array containing both session_id values with
+ *       the newest session's id appearing before the oldest's
+ */
+void test_session_history_json_array(void) {
+    session_init();
+    end_n_sessions(2, 1710000000);
+
+    int n = session_history_to_json(history_json_buf, sizeof(history_json_buf));
+    TEST_ASSERT_GREATER_THAN(0, n);
+    TEST_ASSERT_EQUAL_INT('[', history_json_buf[0]);
+    TEST_ASSERT_EQUAL_INT(']', history_json_buf[n - 1]);
+
+    char *pos_id2 = strstr(history_json_buf, "\"session_id\":2");
+    char *pos_id1 = strstr(history_json_buf, "\"session_id\":1");
+    TEST_ASSERT_TRUE(pos_id2 != NULL);
+    TEST_ASSERT_TRUE(pos_id1 != NULL);
+    TEST_ASSERT_TRUE(pos_id2 < pos_id1); /* newest (id 2) comes first */
+}
+
+/*
+ * @feature Charge Session History
+ * @req REQ-ERE-033
+ * @scenario JSON array output on an empty history is an empty array
+ * @given The session logger is initialized with no completed sessions
+ * @when session_history_to_json is called
+ * @then The output is exactly "[]"
+ */
+void test_session_history_json_empty(void) {
+    session_init();
+    int n = session_history_to_json(history_json_buf, sizeof(history_json_buf));
+    TEST_ASSERT_EQUAL_INT(2, n);
+    TEST_ASSERT_EQUAL_INT(0, strcmp(history_json_buf, "[]"));
+}
+
+/*
+ * @feature Charge Session History
+ * @req REQ-ERE-034
+ * @scenario Too-small buffer for JSON array returns -1
+ * @given Several completed sessions in history
+ * @when session_history_to_json is called with a buffer too small to hold
+ *       even one record
+ * @then It returns -1 rather than emitting truncated JSON
+ */
+void test_session_history_json_small_buffer(void) {
+    session_init();
+    end_n_sessions(3, 1710000000);
+    int n = session_history_to_json(history_json_buf, 4);
+    TEST_ASSERT_EQUAL_INT(-1, n);
+}
+
+/*
+ * @feature Charge Session History
+ * @req REQ-ERE-035
+ * @scenario Export then restore reproduces identical history and next_id
+ * @given Three completed sessions in history
+ * @when session_history_export copies them oldest-first and
+ *       session_history_restore repopulates a freshly-initialized logger
+ * @then The restored history has the same count/order/ids as before, and a
+ *       newly started session continues the id sequence rather than
+ *       restarting at 1
+ */
+void test_session_history_export_restore_roundtrip(void) {
+    session_init();
+    end_n_sessions(3, 1710000000);
+    uint32_t saved_next_id = session_history_next_id();
+
+    session_record_t exported[SESSION_HISTORY_MAX];
+    uint16_t exported_count = session_history_export(exported, SESSION_HISTORY_MAX);
+    TEST_ASSERT_EQUAL_INT(3, exported_count);
+    TEST_ASSERT_EQUAL_INT(1, (int)exported[0].session_id); /* oldest-first */
+    TEST_ASSERT_EQUAL_INT(3, (int)exported[2].session_id);
+
+    session_init(); /* simulate reboot */
+    TEST_ASSERT_EQUAL_INT(0, session_history_count());
+
+    session_history_restore(exported, exported_count, saved_next_id);
+    TEST_ASSERT_EQUAL_INT(3, session_history_count());
+    TEST_ASSERT_EQUAL_INT(3, (int)session_history_get(0)->session_id);
+    TEST_ASSERT_EQUAL_INT(1, (int)session_history_get(2)->session_id);
+
+    /* New session after restore continues the id sequence */
+    session_start(1710010000, 0, 0);
+    session_end(1710010200, 500, 100, 1);
+    TEST_ASSERT_EQUAL_INT((int)saved_next_id, (int)session_history_get(0)->session_id);
+}
+
+/*
+ * @feature Charge Session History
+ * @req REQ-ERE-036
+ * @scenario Restoring with a next_id hint lower than the current counter
+ *           does not regress the id sequence backward
+ * @given A freshly initialized logger (next id already at 1)
+ * @when session_history_restore is called with next_id_hint 0
+ * @then The next started session still receives id 1, not an id derived
+ *       from the bogus lower hint
+ */
+void test_session_history_restore_no_id_regression(void) {
+    session_init();
+    session_record_t empty[1];
+    session_history_restore(empty, 0, 0); /* bogus/lower hint */
+
+    session_start(1710000000, 0, 0);
+    session_end(1710000200, 500, 100, 1);
+    TEST_ASSERT_EQUAL_INT(1, (int)session_history_get(0)->session_id);
+}
+
+/*
+ * @feature Charge Session History
+ * @req REQ-ERE-037
+ * @scenario Bounds checks on an empty history
+ * @given The session logger is freshly initialized
+ * @when session_history_get is called with index 0
+ * @then NULL is returned and session_history_count is 0
+ */
+void test_session_history_bounds_empty(void) {
+    session_init();
+    TEST_ASSERT_EQUAL_INT(0, session_history_count());
+    TEST_ASSERT_TRUE(session_history_get(0) == NULL);
+}
+
+/*
+ * @feature Charge Session History
+ * @req REQ-ERE-038
+ * @scenario Out-of-range index returns NULL
+ * @given Two completed sessions in history
+ * @when session_history_get is called with an index beyond the count
+ * @then NULL is returned
+ */
+void test_session_history_bounds_out_of_range(void) {
+    session_init();
+    end_n_sessions(2, 1710000000);
+    TEST_ASSERT_TRUE(session_history_get(2) == NULL);
+    TEST_ASSERT_TRUE(session_history_get(99) == NULL);
+}
+
 int main(void) {
     TEST_SUITE_BEGIN("Charge Session Logging");
 
@@ -544,6 +740,17 @@ int main(void) {
     RUN_TEST(test_session_start_rejects_zero_timestamp);
     RUN_TEST(test_session_start_rejects_pre2024_timestamp);
     RUN_TEST(test_session_start_accepts_valid_timestamp);
+
+    /* Session history ring buffer tests */
+    RUN_TEST(test_session_history_accumulates);
+    RUN_TEST(test_session_history_wraps_after_max);
+    RUN_TEST(test_session_history_json_array);
+    RUN_TEST(test_session_history_json_empty);
+    RUN_TEST(test_session_history_json_small_buffer);
+    RUN_TEST(test_session_history_export_restore_roundtrip);
+    RUN_TEST(test_session_history_restore_no_id_regression);
+    RUN_TEST(test_session_history_bounds_empty);
+    RUN_TEST(test_session_history_bounds_out_of_range);
 
     TEST_SUITE_RESULTS();
 }

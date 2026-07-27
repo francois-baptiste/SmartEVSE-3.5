@@ -344,9 +344,16 @@ Configuration: [Configuration](configuration.md#circuitmeter),
   Dutch ERE (Emissie Reductie Eenheden) certificate submission.
 - **MQTT session publish** — retained JSON message on `<prefix>/Session/Complete`
   on session end.
-- **REST endpoint** — `GET /session/last` returns the last completed session.
+- **REST endpoints** — `GET /session/last` returns the last completed session;
+  `GET /sessions` returns the last 20 completed sessions as a JSON array
+  (newest first).
+- **Web UI history** — the "Charge Sessions" card shows the last 20 sessions
+  (start time, duration, kWh, peak current, phases, mode) for at-a-glance review.
+- **Persisted across reboots** — the 20-session history is written to NVS once
+  per completed session (a few-times-a-day event), so it survives a reboot,
+  OTA update, or power loss. Only the history ring buffer touches flash; the
+  live "last session" MQTT publish itself still requires no flash write.
 - **OCPP alignment** — sessions flagged when OCPP manages the transaction.
-- **Zero flash wear** — MQTT-only persistence; no flash writes.
 
 Configuration: [ERE Session Logging](ere-session-logging.md)
 

@@ -18,6 +18,7 @@
 
 #define SESSION_MIN_VALID_TIME 1704067200  /* 2024-01-01T00:00:00Z */
 #define SESSION_MIN_DURATION_S 60  /* Ignore sessions shorter than 60 seconds */
+#define SESSION_HISTORY_MAX 20     /* Number of completed sessions retained in the ring buffer */
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,6 +74,48 @@ const session_record_t *session_get_last(void);
  * Output includes ISO 8601 timestamps and kWh value for ERE compatibility.
  */
 int session_to_json(const session_record_t *rec, char *buf, size_t bufsz);
+
+/*
+ * Session history — a ring buffer of the last SESSION_HISTORY_MAX completed
+ * sessions, populated automatically by session_end(). Used to back a web UI
+ * / API view of recent charge sessions; persistence across reboots (if any)
+ * is the caller's responsibility via session_history_export/_restore.
+ */
+
+/* Number of valid entries currently in the history ring buffer (0..SESSION_HISTORY_MAX). */
+uint16_t session_history_count(void);
+
+/*
+ * Get a completed session from history by recency. index 0 is the most
+ * recently completed session. Returns NULL if index >= session_history_count().
+ */
+const session_record_t *session_history_get(uint16_t index_from_newest);
+
+/*
+ * Format the full history as a JSON array (newest session first), into buf.
+ * Returns the number of bytes written (excluding NUL), or -1 on error
+ * (NULL buf, bufsz == 0, or buf too small to hold the array).
+ */
+int session_history_to_json(char *buf, size_t bufsz);
+
+/*
+ * Copy up to max_count history records, oldest-first, into out. Intended for
+ * persisting the history (e.g. to NVS). Returns the number of records copied.
+ */
+uint16_t session_history_export(session_record_t *out, uint16_t max_count);
+
+/*
+ * Repopulate the history ring buffer from a caller-provided oldest-first
+ * array of count records (e.g. loaded back from NVS at boot), discarding any
+ * existing history. Also restores the next session_id counter to
+ * next_id_hint, unless next_id_hint is lower than the current counter (in
+ * which case the current counter is kept, to avoid ever handing out a
+ * session_id that collides with one already in history).
+ */
+void session_history_restore(const session_record_t *records, uint16_t count, uint32_t next_id_hint);
+
+/* Get the next session_id that will be assigned. Intended for persistence. */
+uint32_t session_history_next_id(void);
 
 #ifdef __cplusplus
 }

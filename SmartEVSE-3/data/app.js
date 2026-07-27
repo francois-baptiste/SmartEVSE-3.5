@@ -423,6 +423,48 @@ function toggleCertVisibility() {
         $id('mqtt_tls').checked ? '' : 'none';
 }
 
+/* ========== Charge session history ========== */
+function formatSessionDuration(startIso, endIso) {
+    var start = Date.parse(startIso);
+    var end = Date.parse(endIso);
+    if (isNaN(start) || isNaN(end) || end < start) return '-';
+    var totalMin = Math.round((end - start) / 60000);
+    var h = Math.floor(totalMin / 60);
+    var m = totalMin % 60;
+    return h + 'h' + (m < 10 ? '0' : '') + m + 'm';
+}
+
+function formatSessionStart(startIso) {
+    var d = new Date(startIso);
+    if (isNaN(d.getTime())) return startIso;
+    return d.toLocaleString();
+}
+
+function loadSessions() {
+    fetch('/sessions')
+        .then(function(r) { return r.json(); })
+        .then(function(sessions) {
+            var tbody = $id('sessions_tbody');
+            if (!tbody) return;
+            if (!sessions || !sessions.length) {
+                tbody.innerHTML = '<tr><td colspan="6" style="padding:8px 6px;color:var(--fg2)">No sessions yet</td></tr>';
+                return;
+            }
+            var rows = sessions.map(function(s) {
+                return '<tr style="border-bottom:1px solid var(--bg3)">' +
+                    '<td style="padding:4px 6px">' + formatSessionStart(s.start) + '</td>' +
+                    '<td style="padding:4px 6px">' + formatSessionDuration(s.start, s.end) + '</td>' +
+                    '<td style="padding:4px 6px">' + s.kwh.toFixed(2) + '</td>' +
+                    '<td style="padding:4px 6px">' + s.max_current_a + '</td>' +
+                    '<td style="padding:4px 6px">' + s.phases + '</td>' +
+                    '<td style="padding:4px 6px">' + s.mode + '</td>' +
+                    '</tr>';
+            });
+            tbody.innerHTML = rows.join('');
+        })
+        .catch(function() { /* /sessions unavailable — leave existing table content */ });
+}
+
 /* ========== Data loading ========== */
 function loadData() {
     fetch(endpoint)
@@ -449,6 +491,7 @@ function loadData() {
                     }
                 }
                 $id('required_evccid').value = data.settings.required_evccid || "";
+                loadSessions();
             }
 
             /* Mode display */

@@ -124,9 +124,9 @@ footer {
 <body>
 <h1>SmartEVSE-3 Traceability Report</h1>
 <div class="summary">
-<div class="stat"><div class="number">75</div><div class="label">Features</div></div>
-<div class="stat"><div class="number">1095</div><div class="label">Test Scenarios</div></div>
-<div class="stat"><div class="number">1095</div><div class="label">With Requirements</div></div>
+<div class="stat"><div class="number">76</div><div class="label">Features</div></div>
+<div class="stat"><div class="number">1104</div><div class="label">Test Scenarios</div></div>
+<div class="stat"><div class="number">1104</div><div class="label">With Requirements</div></div>
 <div class="stat"><div class="number">100%</div><div class="label">Requirement Coverage</div></div>
 </div>
 <div class="feature-section">
@@ -8193,6 +8193,81 @@ footer {
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A completed session in MODE_SMART</li><li class="step-when"><span class="step-keyword">When</span> session_to_json is called</li><li class="step-then"><span class="step-keyword">Then</span> mode field is &quot;smart&quot;</li></ul></td>
 <td><code>test_session_json_smart_mode</code></td>
 <td><span class="file-ref">test_session_log.c:304</span></td>
+</tr>
+</tbody></table>
+</div>
+<div class="feature-section">
+<div class="feature-title">Charge Session History (9 scenarios)</div>
+<div class="coverage-bar">
+<div class="coverage-fill" style="width:100.0%"></div>
+</div>
+<table>
+<thead><tr>
+<th>Requirement</th><th>Scenario</th><th>Steps</th><th>Test Function</th><th>Source</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><span class="req-tag">REQ-ERE-030</span></td>
+<td>History accumulates completed sessions newest-first</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The session logger is initialized</li><li class="step-when"><span class="step-keyword">When</span> Three sessions are started and ended in sequence</li><li class="step-then"><span class="step-keyword">Then</span> session_history_count is 3 and session_history_get(0) is the most</li></ul></td>
+<td><code>test_session_history_accumulates</code></td>
+<td><span class="file-ref">test_session_log.c:521</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-ERE-031</span></td>
+<td>Ring buffer wraps once SESSION_HISTORY_MAX is exceeded</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The session logger is initialized</li><li class="step-when"><span class="step-keyword">When</span> SESSION_HISTORY_MAX + 1 sessions are completed</li><li class="step-then"><span class="step-keyword">Then</span> session_history_count caps at SESSION_HISTORY_MAX and the oldest</li></ul></td>
+<td><code>test_session_history_wraps_after_max</code></td>
+<td><span class="file-ref">test_session_log.c:543</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-ERE-032</span></td>
+<td>JSON array output is newest-first with correct element count</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Two completed sessions in history</li><li class="step-when"><span class="step-keyword">When</span> session_history_to_json is called</li><li class="step-then"><span class="step-keyword">Then</span> The output is a JSON array containing both session_id values with</li></ul></td>
+<td><code>test_session_history_json_array</code></td>
+<td><span class="file-ref">test_session_log.c:565</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-ERE-033</span></td>
+<td>JSON array output on an empty history is an empty array</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The session logger is initialized with no completed sessions</li><li class="step-when"><span class="step-keyword">When</span> session_history_to_json is called</li><li class="step-then"><span class="step-keyword">Then</span> The output is exactly &quot;[]&quot;</li></ul></td>
+<td><code>test_session_history_json_empty</code></td>
+<td><span class="file-ref">test_session_log.c:590</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-ERE-034</span></td>
+<td>Too-small buffer for JSON array returns -1</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Several completed sessions in history</li><li class="step-when"><span class="step-keyword">When</span> session_history_to_json is called with a buffer too small to hold</li><li class="step-then"><span class="step-keyword">Then</span> It returns -1 rather than emitting truncated JSON</li></ul></td>
+<td><code>test_session_history_json_small_buffer</code></td>
+<td><span class="file-ref">test_session_log.c:605</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-ERE-035</span></td>
+<td>Export then restore reproduces identical history and next_id</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Three completed sessions in history</li><li class="step-when"><span class="step-keyword">When</span> session_history_export copies them oldest-first and</li><li class="step-then"><span class="step-keyword">Then</span> The restored history has the same count/order/ids as before, and a</li></ul></td>
+<td><code>test_session_history_export_restore_roundtrip</code></td>
+<td><span class="file-ref">test_session_log.c:621</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-ERE-036</span></td>
+<td>Restoring with a next_id hint lower than the current counter</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A freshly initialized logger (next id already at 1)</li><li class="step-when"><span class="step-keyword">When</span> session_history_restore is called with next_id_hint 0</li><li class="step-then"><span class="step-keyword">Then</span> The next started session still receives id 1, not an id derived</li></ul></td>
+<td><code>test_session_history_restore_no_id_regression</code></td>
+<td><span class="file-ref">test_session_log.c:657</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-ERE-037</span></td>
+<td>Bounds checks on an empty history</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> The session logger is freshly initialized</li><li class="step-when"><span class="step-keyword">When</span> session_history_get is called with index 0</li><li class="step-then"><span class="step-keyword">Then</span> NULL is returned and session_history_count is 0</li></ul></td>
+<td><code>test_session_history_bounds_empty</code></td>
+<td><span class="file-ref">test_session_log.c:677</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-ERE-038</span></td>
+<td>Out-of-range index returns NULL</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> Two completed sessions in history</li><li class="step-when"><span class="step-keyword">When</span> session_history_get is called with an index beyond the count</li><li class="step-then"><span class="step-keyword">Then</span> NULL is returned</li></ul></td>
+<td><code>test_session_history_bounds_out_of_range</code></td>
+<td><span class="file-ref">test_session_log.c:691</span></td>
 </tr>
 </tbody></table>
 </div>
