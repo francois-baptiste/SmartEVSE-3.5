@@ -1,6 +1,6 @@
 # SmartEVSE-3 Traceability Report
 
-**75 features** | **1074 scenarios** | **1074 with requirement IDs** | **100% coverage**
+**76 features** | **1104 scenarios** | **1104 with requirement IDs** | **100% coverage**
 
 ---
 
@@ -36,7 +36,7 @@
 | Unsigned firmware upload | 1 | 1 | 100% |
 | HTTP API Phase Key Building | 6 | 6 | 100% |
 | HTTP Auth | 24 | 24 | 100% |
-| LB Convergence | 45 | 45 | 100% |
+| LB Convergence | 50 | 50 | 100% |
 | LED Status Indication | 14 | 14 | 100% |
 | LED Color Configuration | 4 | 4 | 100% |
 | LED Color — Public Scheme | 14 | 14 | 100% |
@@ -49,8 +49,8 @@
 | Modbus Frame Logging | 10 | 10 | 100% |
 | Operating Modes | 25 | 25 | 100% |
 | Modem / ISO15118 Negotiation | 29 | 29 | 100% |
-| MQTT Command Parsing | 35 | 35 | 100% |
-| MQTT Input Validation | 46 | 46 | 100% |
+| MQTT Command Parsing | 43 | 43 | 100% |
+| MQTT Input Validation | 54 | 54 | 100% |
 | MQTT Meter Parsing | 7 | 7 | 100% |
 | MQTT Color Parsing | 4 | 4 | 100% |
 | Capacity Tariff MQTT | 7 | 7 | 100% |
@@ -80,10 +80,11 @@
 | Current Sum Calculation | 5 | 5 | 100% |
 | Charge Session Logging | 18 | 18 | 100% |
 | Charge Session JSON Export | 7 | 7 | 100% |
+| Charge Session History | 9 | 9 | 100% |
 | IEC 61851-1 State Transitions | 29 | 29 | 100% |
 | 10ms Tick Processing | 20 | 20 | 100% |
 | 1-Second Tick Processing | 17 | 17 | 100% |
-| **TOTAL** | **1074** | **1074** | **100%** |
+| **TOTAL** | **1104** | **1104** | **100%** |
 
 ## API Mains Staleness Detection
 
@@ -2778,33 +2779,38 @@
 | `REQ-LB-040` | OscillationCount decays when no sign flip occurs | `test_oscillation_count_decays_when_stable` | `test_lb_convergence.c:648` |
 | `REQ-LB-041` | Adaptive gain improves convergence under alternating load | `test_adaptive_gain_dampens_noisy_load` | `test_lb_convergence.c:677` |
 | `REQ-LB-042` | Normal mode is unaffected by adaptive gain | `test_normal_mode_no_adaptive_gain` | `test_lb_convergence.c:711` |
-| `REQ-LB-043` | EMA filter smooths Idifference spikes | `test_ema_filter_smooths_spike` | `test_lb_convergence.c:748` |
-| `REQ-LB-044` | EMA filter preserves convergence (no regression) | `test_ema_filter_still_converges` | `test_lb_convergence.c:779` |
-| `REQ-LB-045` | EMA filter reduces peak-to-peak swing under noisy measurements | `test_ema_filter_reduces_noise_swing` | `test_lb_convergence.c:798` |
-| `REQ-LB-046` | EMA filter tracks sustained load change within 10 cycles | `test_ema_filter_tracks_sustained_change` | `test_lb_convergence.c:828` |
-| `REQ-LB-047` | Distribution smoothing clamps per-EVSE current change | `test_distribution_smoothing_clamps_increase` | `test_lb_convergence.c:859` |
-| `REQ-LB-048` | Distribution smoothing clamps per-EVSE current decrease | `test_distribution_smoothing_clamps_decrease` | `test_lb_convergence.c:889` |
-| `REQ-LB-049` | Distribution smoothing is skipped for mod=1 (new EVSE joining) | `test_distribution_smoothing_skipped_on_mod1` | `test_lb_convergence.c:918` |
-| `REQ-LB-050` | Distribution smoothing still converges within 20 cycles | `test_distribution_smoothing_still_converges` | `test_lb_convergence.c:952` |
-| `REQ-LB-051` | BalancedPrev tracks previous cycle values | `test_balanced_prev_tracks_previous` | `test_lb_convergence.c:971` |
-| `REQ-LB-052` | LB diagnostic snapshot populated after regulation cycle | `test_lb_diag_snapshot_populated` | `test_lb_convergence.c:1003` |
-| `REQ-LB-053` | LB diagnostic captures shortage state | `test_lb_diag_captures_shortage` | `test_lb_convergence.c:1021` |
-| `REQ-LB-054` | LB diagnostic captures oscillation count | `test_lb_diag_captures_oscillation` | `test_lb_convergence.c:1039` |
-| `REQ-LB-055` | LB diagnostic captures delta clamping state | `test_lb_diag_captures_delta_clamped` | `test_lb_convergence.c:1061` |
-| `REQ-LB-056` | Eight EVSEs in Normal mode receive fair distribution | `test_eight_evse_normal_fair` | `test_lb_convergence.c:1092` |
-| `REQ-LB-057` | Eight EVSEs in Smart mode converge with sufficient headroom | `test_eight_evse_smart_converges` | `test_lb_convergence.c:1133` |
-| `REQ-LB-058` | Eight EVSEs with varying BalancedMax distribute fairly | `test_eight_evse_varying_max` | `test_lb_convergence.c:1159` |
-| `REQ-LB-059` | Eight EVSEs: sequential join cycle | `test_eight_evse_sequential_join` | `test_lb_convergence.c:1204` |
-| `REQ-LB-060` | Eight EVSEs: sequential leave cycle | `test_eight_evse_sequential_leave` | `test_lb_convergence.c:1249` |
-| `REQ-LB-061` | Eight EVSEs under tight capacity: priority scheduling | `test_eight_evse_tight_capacity_priority` | `test_lb_convergence.c:1275` |
-| `REQ-LB-062` | EVSE converges with 2-cycle vehicle response delay | `test_vehicle_response_delay_converges` | `test_lb_convergence.c:1304` |
-| `REQ-LB-063` | Vehicle lag with noise does not cause LESS_6A error | `test_vehicle_response_stable_with_noise` | `test_lb_convergence.c:1371` |
-| `REQ-LB-064` | Two EVSEs converge with vehicle response model | `test_two_evse_vehicle_response_converges` | `test_lb_convergence.c:1397` |
-| `REQ-LB-065` | Vehicle response model with load step recovers | `test_vehicle_response_load_step_recovery` | `test_lb_convergence.c:1420` |
-| `REQ-LB-066` | Heavy measurement noise with vehicle lag doesn't cause NoCurrent | `test_vehicle_response_noise_no_false_shortage` | `test_lb_convergence.c:1443` |
+| `REQ-LB-180` | Standalone EVSE decays OscillationCount twice as fast as a master | `test_standalone_oscillation_decays_faster_than_master` | `test_lb_convergence.c:758` |
+| `REQ-LB-181` | Master OscillationCount decay rate is unchanged (non-regression) | `test_master_oscillation_decay_unchanged` | `test_lb_convergence.c:800` |
+| `REQ-LB-182` | OscillationBoostMax caps the adaptive divisor boost | `test_oscillation_boost_max_configurable` | `test_lb_convergence.c:825` |
+| `REQ-LB-183` | Default IdiffEmaWeight (1) reproduces the prior hardcoded 25% EMA | `test_idiff_ema_weight_default_matches_prior_formula` | `test_lb_convergence.c:852` |
+| `REQ-LB-184` | IdiffEmaWeight=4 tracks a step change within a single cycle | `test_idiff_ema_weight_four_tracks_immediately` | `test_lb_convergence.c:875` |
+| `REQ-LB-043` | EMA filter smooths Idifference spikes | `test_ema_filter_smooths_spike` | `test_lb_convergence.c:897` |
+| `REQ-LB-044` | EMA filter preserves convergence (no regression) | `test_ema_filter_still_converges` | `test_lb_convergence.c:996` |
+| `REQ-LB-045` | EMA filter reduces peak-to-peak swing under noisy measurements | `test_ema_filter_reduces_noise_swing` | `test_lb_convergence.c:1015` |
+| `REQ-LB-046` | EMA filter tracks sustained load change within 10 cycles | `test_ema_filter_tracks_sustained_change` | `test_lb_convergence.c:1045` |
+| `REQ-LB-047` | Distribution smoothing clamps per-EVSE current change | `test_distribution_smoothing_clamps_increase` | `test_lb_convergence.c:1076` |
+| `REQ-LB-048` | Distribution smoothing clamps per-EVSE current decrease | `test_distribution_smoothing_clamps_decrease` | `test_lb_convergence.c:1106` |
+| `REQ-LB-049` | Distribution smoothing is skipped for mod=1 (new EVSE joining) | `test_distribution_smoothing_skipped_on_mod1` | `test_lb_convergence.c:1135` |
+| `REQ-LB-050` | Distribution smoothing still converges within 20 cycles | `test_distribution_smoothing_still_converges` | `test_lb_convergence.c:1169` |
+| `REQ-LB-051` | BalancedPrev tracks previous cycle values | `test_balanced_prev_tracks_previous` | `test_lb_convergence.c:1188` |
+| `REQ-LB-052` | LB diagnostic snapshot populated after regulation cycle | `test_lb_diag_snapshot_populated` | `test_lb_convergence.c:1220` |
+| `REQ-LB-053` | LB diagnostic captures shortage state | `test_lb_diag_captures_shortage` | `test_lb_convergence.c:1238` |
+| `REQ-LB-054` | LB diagnostic captures oscillation count | `test_lb_diag_captures_oscillation` | `test_lb_convergence.c:1256` |
+| `REQ-LB-055` | LB diagnostic captures delta clamping state | `test_lb_diag_captures_delta_clamped` | `test_lb_convergence.c:1278` |
+| `REQ-LB-056` | Eight EVSEs in Normal mode receive fair distribution | `test_eight_evse_normal_fair` | `test_lb_convergence.c:1309` |
+| `REQ-LB-057` | Eight EVSEs in Smart mode converge with sufficient headroom | `test_eight_evse_smart_converges` | `test_lb_convergence.c:1350` |
+| `REQ-LB-058` | Eight EVSEs with varying BalancedMax distribute fairly | `test_eight_evse_varying_max` | `test_lb_convergence.c:1376` |
+| `REQ-LB-059` | Eight EVSEs: sequential join cycle | `test_eight_evse_sequential_join` | `test_lb_convergence.c:1421` |
+| `REQ-LB-060` | Eight EVSEs: sequential leave cycle | `test_eight_evse_sequential_leave` | `test_lb_convergence.c:1466` |
+| `REQ-LB-061` | Eight EVSEs under tight capacity: priority scheduling | `test_eight_evse_tight_capacity_priority` | `test_lb_convergence.c:1492` |
+| `REQ-LB-062` | EVSE converges with 2-cycle vehicle response delay | `test_vehicle_response_delay_converges` | `test_lb_convergence.c:1521` |
+| `REQ-LB-063` | Vehicle lag with noise does not cause LESS_6A error | `test_vehicle_response_stable_with_noise` | `test_lb_convergence.c:1588` |
+| `REQ-LB-064` | Two EVSEs converge with vehicle response model | `test_two_evse_vehicle_response_converges` | `test_lb_convergence.c:1614` |
+| `REQ-LB-065` | Vehicle response model with load step recovers | `test_vehicle_response_load_step_recovery` | `test_lb_convergence.c:1637` |
+| `REQ-LB-066` | Heavy measurement noise with vehicle lag doesn't cause NoCurrent | `test_vehicle_response_noise_no_false_shortage` | `test_lb_convergence.c:1660` |
 
 <details>
-<summary>Detailed steps (45 scenarios)</summary>
+<summary>Detailed steps (50 scenarios)</summary>
 
 ### Standalone Smart mode converges to target within 20 cycles
 **Requirement:** `REQ-LB-020`
@@ -2953,11 +2959,49 @@
 - **When** Regulation cycles run
 - **Then** OscillationCount remains 0 (adaptive gain only applies to Smart mode)
 
+### Standalone EVSE decays OscillationCount twice as fast as a master
+**Requirement:** `REQ-LB-180`
+
+- **Given** A standalone EVSE (LoadBl=0) and a master (LoadBl=1, 2 EVSEs), both
+- **When** 3 consecutive stable regulation cycles run on each
+- **Then** The standalone EVSE's OscillationCount reaches 0 (decay=2/cycle)
+
+### Master OscillationCount decay rate is unchanged (non-regression)
+**Requirement:** `REQ-LB-181`
+
+- **Given** A master (LoadBl=1, 2 EVSEs) with OscillationCount=5
+- **When** 4 consecutive stable regulation cycles run
+- **Then** OscillationCount decays by exactly 1 per cycle, reaching 1
+
+### OscillationBoostMax caps the adaptive divisor boost
+**Requirement:** `REQ-LB-182`
+
+- **Given** Standalone EVSE with OscillationBoostMax=2 and repeated sign flips
+- **When** 8 regulation cycles alternate Idifference sign (worst-case hunting)
+- **Then** OscillationCount never exceeds the configured cap of 2 (default is 10)
+
+### Default IdiffEmaWeight (1) reproduces the prior hardcoded 25% EMA
+**Requirement:** `REQ-LB-183`
+
+- **Given** Standalone EVSE with IdiffEmaWeight left at its default (1)
+- **When** A regulation cycle runs with a known Idifference
+- **Then** IdiffFiltered equals the previous hardcoded formula (old*3 + new)/4 exactly
+
+### IdiffEmaWeight=4 tracks a step change within a single cycle
+**Requirement:** `REQ-LB-184`
+
+- **Given** Standalone EVSE with IdiffEmaWeight=4 (no filtering)
+- **When** A regulation cycle runs with a known Idifference
+- **Then** IdiffFiltered equals the raw Idifference exactly (immediate tracking)
+
 ### EMA filter smooths Idifference spikes
 **Requirement:** `REQ-LB-043`
 
+- **Given** Two identical standalone EVSEs converged at 200dA at the production
 - **Given** Standalone EVSE in Smart mode converged at stable load
+- **When** Both experience 3 on/off load toggles (baseload flips 250<->50,
 - **When** A single large Idifference spike occurs (sudden mains change)
+- **Then** The relaxed configuration has recovered further toward the 200dA
 - **Then** The filtered Idifference used for regulation is less than the raw spike
 
 ### EMA filter preserves convergence (no regression)
@@ -4973,9 +5017,17 @@
 | `REQ-CIR-010` | Set MaxCircuitMains to boundary max (600) via MQTT | `test_max_circuit_mains_max` | `test_mqtt_parser.c:1173` |
 | `REQ-CIR-011` | Set CircuitMeter API feed via MQTT with L1:L2:L3 format | `test_circuit_meter_valid` | `test_mqtt_parser.c:1213` |
 | `REQ-CIR-011` | CircuitMeter API feed with negative values (export) | `test_circuit_meter_negative` | `test_mqtt_parser.c:1229` |
+| `REQ-MQTT-040` | Set RampRateDivisor to a valid value via MQTT | `test_ramp_rate_divisor_valid` | `test_mqtt_parser.c:1291` |
+| `REQ-MQTT-041` | Set EmaAlpha to a valid value via MQTT | `test_ema_alpha_valid` | `test_mqtt_parser.c:1327` |
+| `REQ-MQTT-041` | EmaAlpha accepts 0 (fully damped) as a valid boundary | `test_ema_alpha_zero_valid` | `test_mqtt_parser.c:1351` |
+| `REQ-MQTT-042` | Set SmartDeadBand to a valid value via MQTT | `test_smart_deadband_valid` | `test_mqtt_parser.c:1363` |
+| `REQ-MQTT-043` | Set MaxRampRate to a valid value via MQTT | `test_max_ramp_rate_valid` | `test_mqtt_parser.c:1387` |
+| `REQ-MQTT-043` | MaxRampRate accepts 0 (disabled) as a valid boundary | `test_max_ramp_rate_zero_valid` | `test_mqtt_parser.c:1400` |
+| `REQ-MQTT-044` | Set OscillationBoostMax to a valid value via MQTT | `test_oscillation_boost_max_valid` | `test_mqtt_parser.c:1423` |
+| `REQ-MQTT-045` | Set IdiffEmaWeight to a valid value via MQTT | `test_idiff_ema_weight_valid` | `test_mqtt_parser.c:1447` |
 
 <details>
-<summary>Detailed steps (35 scenarios)</summary>
+<summary>Detailed steps (43 scenarios)</summary>
 
 ### Set mode to Normal via MQTT
 **Requirement:** `REQ-MQTT-001`
@@ -5153,6 +5205,55 @@
 - **When** Topic is prefix/Set/CircuitMeter with payload "-50:100:-25"
 - **Then** Command type is MQTT_CMD_CIRCUIT_METER with correct phase currents
 
+### Set RampRateDivisor to a valid value via MQTT
+**Requirement:** `REQ-MQTT-040`
+
+- **Given** A valid MQTT prefix
+- **When** Topic is prefix/Set/RampRateDivisor with payload "6"
+- **Then** Command type is MQTT_CMD_RAMP_RATE_DIVISOR with value 6
+
+### Set EmaAlpha to a valid value via MQTT
+**Requirement:** `REQ-MQTT-041`
+
+- **When** Topic is prefix/Set/EmaAlpha with payload "50"
+- **Then** Command type is MQTT_CMD_EMA_ALPHA with value 50
+
+### EmaAlpha accepts 0 (fully damped) as a valid boundary
+**Requirement:** `REQ-MQTT-041`
+
+- **When** Topic is prefix/Set/EmaAlpha with payload "0"
+- **Then** Command type is MQTT_CMD_EMA_ALPHA with value 0
+
+### Set SmartDeadBand to a valid value via MQTT
+**Requirement:** `REQ-MQTT-042`
+
+- **When** Topic is prefix/Set/SmartDeadBand with payload "5"
+- **Then** Command type is MQTT_CMD_SMART_DEADBAND with value 5
+
+### Set MaxRampRate to a valid value via MQTT
+**Requirement:** `REQ-MQTT-043`
+
+- **When** Topic is prefix/Set/MaxRampRate with payload "40"
+- **Then** Command type is MQTT_CMD_MAX_RAMP_RATE with value 40
+
+### MaxRampRate accepts 0 (disabled) as a valid boundary
+**Requirement:** `REQ-MQTT-043`
+
+- **When** Topic is prefix/Set/MaxRampRate with payload "0"
+- **Then** Command type is MQTT_CMD_MAX_RAMP_RATE with value 0
+
+### Set OscillationBoostMax to a valid value via MQTT
+**Requirement:** `REQ-MQTT-044`
+
+- **When** Topic is prefix/Set/OscillationBoostMax with payload "3"
+- **Then** Command type is MQTT_CMD_OSCILLATION_BOOST_MAX with value 3
+
+### Set IdiffEmaWeight to a valid value via MQTT
+**Requirement:** `REQ-MQTT-045`
+
+- **When** Topic is prefix/Set/IdiffEmaWeight with payload "3"
+- **Then** Command type is MQTT_CMD_IDIFF_EMA_WEIGHT with value 3
+
 </details>
 
 ---
@@ -5207,9 +5308,17 @@
 | `REQ-CIR-011` | Reject CircuitMeter with missing fields | `test_circuit_meter_missing_fields` | `test_mqtt_parser.c:1257` |
 | `REQ-MQTT-014` | Unrecognized topic returns false | `test_unrecognized_topic` | `test_mqtt_parser.c:1271` |
 | `REQ-MQTT-014` | Wrong prefix returns false | `test_wrong_prefix` | `test_mqtt_parser.c:1280` |
+| `REQ-MQTT-040` | Reject RampRateDivisor below minimum (must be >=1) | `test_ramp_rate_divisor_below_min` | `test_mqtt_parser.c:1305` |
+| `REQ-MQTT-040` | Reject RampRateDivisor above maximum (20) | `test_ramp_rate_divisor_above_max` | `test_mqtt_parser.c:1316` |
+| `REQ-MQTT-041` | Reject EmaAlpha above maximum (100) | `test_ema_alpha_above_max` | `test_mqtt_parser.c:1340` |
+| `REQ-MQTT-042` | Reject SmartDeadBand above maximum (50) | `test_smart_deadband_above_max` | `test_mqtt_parser.c:1376` |
+| `REQ-MQTT-043` | Reject MaxRampRate above maximum (100) | `test_max_ramp_rate_above_max` | `test_mqtt_parser.c:1412` |
+| `REQ-MQTT-044` | Reject OscillationBoostMax above maximum (20) | `test_oscillation_boost_max_above_max` | `test_mqtt_parser.c:1436` |
+| `REQ-MQTT-045` | Reject IdiffEmaWeight below minimum (must be >=1) | `test_idiff_ema_weight_below_min` | `test_mqtt_parser.c:1460` |
+| `REQ-MQTT-045` | Reject IdiffEmaWeight above maximum (4) | `test_idiff_ema_weight_above_max` | `test_mqtt_parser.c:1471` |
 
 <details>
-<summary>Detailed steps (46 scenarios)</summary>
+<summary>Detailed steps (54 scenarios)</summary>
 
 ### Invalid mode string is rejected
 **Requirement:** `REQ-MQTT-002`
@@ -5460,6 +5569,54 @@
 ### Wrong prefix returns false
 **Requirement:** `REQ-MQTT-014`
 
+
+### Reject RampRateDivisor below minimum (must be >=1)
+**Requirement:** `REQ-MQTT-040`
+
+- **When** Topic is prefix/Set/RampRateDivisor with payload "0"
+- **Then** Parsing returns false
+
+### Reject RampRateDivisor above maximum (20)
+**Requirement:** `REQ-MQTT-040`
+
+- **When** Topic is prefix/Set/RampRateDivisor with payload "21"
+- **Then** Parsing returns false
+
+### Reject EmaAlpha above maximum (100)
+**Requirement:** `REQ-MQTT-041`
+
+- **When** Topic is prefix/Set/EmaAlpha with payload "101"
+- **Then** Parsing returns false
+
+### Reject SmartDeadBand above maximum (50)
+**Requirement:** `REQ-MQTT-042`
+
+- **When** Topic is prefix/Set/SmartDeadBand with payload "51"
+- **Then** Parsing returns false
+
+### Reject MaxRampRate above maximum (100)
+**Requirement:** `REQ-MQTT-043`
+
+- **When** Topic is prefix/Set/MaxRampRate with payload "101"
+- **Then** Parsing returns false
+
+### Reject OscillationBoostMax above maximum (20)
+**Requirement:** `REQ-MQTT-044`
+
+- **When** Topic is prefix/Set/OscillationBoostMax with payload "21"
+- **Then** Parsing returns false
+
+### Reject IdiffEmaWeight below minimum (must be >=1)
+**Requirement:** `REQ-MQTT-045`
+
+- **When** Topic is prefix/Set/IdiffEmaWeight with payload "0"
+- **Then** Parsing returns false
+
+### Reject IdiffEmaWeight above maximum (4)
+**Requirement:** `REQ-MQTT-045`
+
+- **When** Topic is prefix/Set/IdiffEmaWeight with payload "5"
+- **Then** Parsing returns false
 
 </details>
 
@@ -8623,6 +8780,90 @@
 - **Given** A completed session in MODE_SMART
 - **When** session_to_json is called
 - **Then** mode field is "smart"
+
+</details>
+
+---
+
+## Charge Session History
+
+| Requirement | Scenario | Test Function | Source |
+|-------------|----------|---------------|--------|
+| `REQ-ERE-030` | History accumulates completed sessions newest-first | `test_session_history_accumulates` | `test_session_log.c:521` |
+| `REQ-ERE-031` | Ring buffer wraps once SESSION_HISTORY_MAX is exceeded | `test_session_history_wraps_after_max` | `test_session_log.c:543` |
+| `REQ-ERE-032` | JSON array output is newest-first with correct element count | `test_session_history_json_array` | `test_session_log.c:565` |
+| `REQ-ERE-033` | JSON array output on an empty history is an empty array | `test_session_history_json_empty` | `test_session_log.c:590` |
+| `REQ-ERE-034` | Too-small buffer for JSON array returns -1 | `test_session_history_json_small_buffer` | `test_session_log.c:605` |
+| `REQ-ERE-035` | Export then restore reproduces identical history and next_id | `test_session_history_export_restore_roundtrip` | `test_session_log.c:621` |
+| `REQ-ERE-036` | Restoring with a next_id hint lower than the current counter | `test_session_history_restore_no_id_regression` | `test_session_log.c:657` |
+| `REQ-ERE-037` | Bounds checks on an empty history | `test_session_history_bounds_empty` | `test_session_log.c:677` |
+| `REQ-ERE-038` | Out-of-range index returns NULL | `test_session_history_bounds_out_of_range` | `test_session_log.c:691` |
+
+<details>
+<summary>Detailed steps (9 scenarios)</summary>
+
+### History accumulates completed sessions newest-first
+**Requirement:** `REQ-ERE-030`
+
+- **Given** The session logger is initialized
+- **When** Three sessions are started and ended in sequence
+- **Then** session_history_count is 3 and session_history_get(0) is the most
+
+### Ring buffer wraps once SESSION_HISTORY_MAX is exceeded
+**Requirement:** `REQ-ERE-031`
+
+- **Given** The session logger is initialized
+- **When** SESSION_HISTORY_MAX + 1 sessions are completed
+- **Then** session_history_count caps at SESSION_HISTORY_MAX and the oldest
+
+### JSON array output is newest-first with correct element count
+**Requirement:** `REQ-ERE-032`
+
+- **Given** Two completed sessions in history
+- **When** session_history_to_json is called
+- **Then** The output is a JSON array containing both session_id values with
+
+### JSON array output on an empty history is an empty array
+**Requirement:** `REQ-ERE-033`
+
+- **Given** The session logger is initialized with no completed sessions
+- **When** session_history_to_json is called
+- **Then** The output is exactly "[]"
+
+### Too-small buffer for JSON array returns -1
+**Requirement:** `REQ-ERE-034`
+
+- **Given** Several completed sessions in history
+- **When** session_history_to_json is called with a buffer too small to hold
+- **Then** It returns -1 rather than emitting truncated JSON
+
+### Export then restore reproduces identical history and next_id
+**Requirement:** `REQ-ERE-035`
+
+- **Given** Three completed sessions in history
+- **When** session_history_export copies them oldest-first and
+- **Then** The restored history has the same count/order/ids as before, and a
+
+### Restoring with a next_id hint lower than the current counter
+**Requirement:** `REQ-ERE-036`
+
+- **Given** A freshly initialized logger (next id already at 1)
+- **When** session_history_restore is called with next_id_hint 0
+- **Then** The next started session still receives id 1, not an id derived
+
+### Bounds checks on an empty history
+**Requirement:** `REQ-ERE-037`
+
+- **Given** The session logger is freshly initialized
+- **When** session_history_get is called with index 0
+- **Then** NULL is returned and session_history_count is 0
+
+### Out-of-range index returns NULL
+**Requirement:** `REQ-ERE-038`
+
+- **Given** Two completed sessions in history
+- **When** session_history_get is called with an index beyond the count
+- **Then** NULL is returned
 
 </details>
 
