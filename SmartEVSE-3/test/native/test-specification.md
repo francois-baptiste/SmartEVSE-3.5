@@ -1,6 +1,6 @@
 # SmartEVSE-3 Test Specification
 
-**76 features** | **1104 scenarios** | **1104 with requirement IDs**
+**76 features** | **1114 scenarios** | **1114 with requirement IDs**
 
 ---
 
@@ -6074,7 +6074,7 @@
 - **When** Topic is prefix/Set/RampRateDivisor with payload "6"
 - **Then** Command type is MQTT_CMD_RAMP_RATE_DIVISOR with value 6
 
-> Test: `test_ramp_rate_divisor_valid` in `test_mqtt_parser.c:1291`
+> Test: `test_ramp_rate_divisor_valid` in `test_mqtt_parser.c:1433`
 
 ### Set EmaAlpha to a valid value via MQTT
 
@@ -6083,7 +6083,7 @@
 - **When** Topic is prefix/Set/EmaAlpha with payload "50"
 - **Then** Command type is MQTT_CMD_EMA_ALPHA with value 50
 
-> Test: `test_ema_alpha_valid` in `test_mqtt_parser.c:1327`
+> Test: `test_ema_alpha_valid` in `test_mqtt_parser.c:1469`
 
 ### EmaAlpha accepts 0 (fully damped) as a valid boundary
 
@@ -6092,7 +6092,7 @@
 - **When** Topic is prefix/Set/EmaAlpha with payload "0"
 - **Then** Command type is MQTT_CMD_EMA_ALPHA with value 0
 
-> Test: `test_ema_alpha_zero_valid` in `test_mqtt_parser.c:1351`
+> Test: `test_ema_alpha_zero_valid` in `test_mqtt_parser.c:1493`
 
 ### Set SmartDeadBand to a valid value via MQTT
 
@@ -6101,7 +6101,7 @@
 - **When** Topic is prefix/Set/SmartDeadBand with payload "5"
 - **Then** Command type is MQTT_CMD_SMART_DEADBAND with value 5
 
-> Test: `test_smart_deadband_valid` in `test_mqtt_parser.c:1363`
+> Test: `test_smart_deadband_valid` in `test_mqtt_parser.c:1505`
 
 ### Set MaxRampRate to a valid value via MQTT
 
@@ -6110,7 +6110,7 @@
 - **When** Topic is prefix/Set/MaxRampRate with payload "40"
 - **Then** Command type is MQTT_CMD_MAX_RAMP_RATE with value 40
 
-> Test: `test_max_ramp_rate_valid` in `test_mqtt_parser.c:1387`
+> Test: `test_max_ramp_rate_valid` in `test_mqtt_parser.c:1529`
 
 ### MaxRampRate accepts 0 (disabled) as a valid boundary
 
@@ -6119,7 +6119,7 @@
 - **When** Topic is prefix/Set/MaxRampRate with payload "0"
 - **Then** Command type is MQTT_CMD_MAX_RAMP_RATE with value 0
 
-> Test: `test_max_ramp_rate_zero_valid` in `test_mqtt_parser.c:1400`
+> Test: `test_max_ramp_rate_zero_valid` in `test_mqtt_parser.c:1542`
 
 ### Set OscillationBoostMax to a valid value via MQTT
 
@@ -6128,7 +6128,7 @@
 - **When** Topic is prefix/Set/OscillationBoostMax with payload "3"
 - **Then** Command type is MQTT_CMD_OSCILLATION_BOOST_MAX with value 3
 
-> Test: `test_oscillation_boost_max_valid` in `test_mqtt_parser.c:1423`
+> Test: `test_oscillation_boost_max_valid` in `test_mqtt_parser.c:1565`
 
 ### Set IdiffEmaWeight to a valid value via MQTT
 
@@ -6137,7 +6137,7 @@
 - **When** Topic is prefix/Set/IdiffEmaWeight with payload "3"
 - **Then** Command type is MQTT_CMD_IDIFF_EMA_WEIGHT with value 3
 
-> Test: `test_idiff_ema_weight_valid` in `test_mqtt_parser.c:1447`
+> Test: `test_idiff_ema_weight_valid` in `test_mqtt_parser.c:1589`
 
 ---
 
@@ -6517,19 +6517,56 @@
 
 > Test: `test_circuit_meter_missing_fields` in `test_mqtt_parser.c:1257`
 
+### Linky telemetry rejects simultaneous HP and HC tariff flags
+
+**Requirement:** `REQ-MQTT-046`
+
+- **Given** A payload claiming both is_hp=1 and is_hc=1
+- **Then** Parsing returns false (mutually exclusive tariff states)
+
+> Test: `test_linky_meter_hp_and_hc_rejected` in `test_mqtt_parser.c:1313`
+
+### Linky telemetry rejects voltage out of plausible range (>300V)
+
+**Requirement:** `REQ-MQTT-046`
+
+
+> Test: `test_linky_meter_voltage_out_of_range` in `test_mqtt_parser.c:1328`
+
+### Linky telemetry rejects negative apparent power
+
+**Requirement:** `REQ-MQTT-046`
+
+
+> Test: `test_linky_meter_negative_apparent_power` in `test_mqtt_parser.c:1341`
+
+### Linky telemetry rejects missing fields
+
+**Requirement:** `REQ-MQTT-046`
+
+
+> Test: `test_linky_meter_missing_fields` in `test_mqtt_parser.c:1354`
+
+### Linky telemetry rejects is_hp values other than 0/1
+
+**Requirement:** `REQ-MQTT-046`
+
+
+> Test: `test_linky_meter_invalid_boolean` in `test_mqtt_parser.c:1367`
+
 ### Unrecognized topic returns false
 
 **Requirement:** `REQ-MQTT-014`
 
 
-> Test: `test_unrecognized_topic` in `test_mqtt_parser.c:1271`
+> Test: `test_unrecognized_topic` in `test_mqtt_parser.c:1413`
 
 ### Wrong prefix returns false
 
 **Requirement:** `REQ-MQTT-014`
 
 
-> Test: `test_wrong_prefix` in `test_mqtt_parser.c:1280`
+> Test: `test_wrong_prefix` in `test_mqtt_parser.c:1422`
 
 ### Reject RampRateDivisor below minimum (must be >=1)
 
@@ -6538,7 +6575,7 @@
 - **When** Topic is prefix/Set/RampRateDivisor with payload "0"
 - **Then** Parsing returns false
 
-> Test: `test_ramp_rate_divisor_below_min` in `test_mqtt_parser.c:1305`
+> Test: `test_ramp_rate_divisor_below_min` in `test_mqtt_parser.c:1447`
 
 ### Reject RampRateDivisor above maximum (20)
 
@@ -6547,7 +6584,7 @@
 - **When** Topic is prefix/Set/RampRateDivisor with payload "21"
 - **Then** Parsing returns false
 
-> Test: `test_ramp_rate_divisor_above_max` in `test_mqtt_parser.c:1316`
+> Test: `test_ramp_rate_divisor_above_max` in `test_mqtt_parser.c:1458`
 
 ### Reject EmaAlpha above maximum (100)
 
@@ -6556,7 +6593,7 @@
 - **When** Topic is prefix/Set/EmaAlpha with payload "101"
 - **Then** Parsing returns false
 
-> Test: `test_ema_alpha_above_max` in `test_mqtt_parser.c:1340`
+> Test: `test_ema_alpha_above_max` in `test_mqtt_parser.c:1482`
 
 ### Reject SmartDeadBand above maximum (50)
 
@@ -6565,7 +6602,7 @@
 - **When** Topic is prefix/Set/SmartDeadBand with payload "51"
 - **Then** Parsing returns false
 
-> Test: `test_smart_deadband_above_max` in `test_mqtt_parser.c:1376`
+> Test: `test_smart_deadband_above_max` in `test_mqtt_parser.c:1518`
 
 ### Reject MaxRampRate above maximum (100)
 
@@ -6574,7 +6611,7 @@
 - **When** Topic is prefix/Set/MaxRampRate with payload "101"
 - **Then** Parsing returns false
 
-> Test: `test_max_ramp_rate_above_max` in `test_mqtt_parser.c:1412`
+> Test: `test_max_ramp_rate_above_max` in `test_mqtt_parser.c:1554`
 
 ### Reject OscillationBoostMax above maximum (20)
 
@@ -6583,7 +6620,7 @@
 - **When** Topic is prefix/Set/OscillationBoostMax with payload "21"
 - **Then** Parsing returns false
 
-> Test: `test_oscillation_boost_max_above_max` in `test_mqtt_parser.c:1436`
+> Test: `test_oscillation_boost_max_above_max` in `test_mqtt_parser.c:1578`
 
 ### Reject IdiffEmaWeight below minimum (must be >=1)
 
@@ -6592,7 +6629,7 @@
 - **When** Topic is prefix/Set/IdiffEmaWeight with payload "0"
 - **Then** Parsing returns false
 
-> Test: `test_idiff_ema_weight_below_min` in `test_mqtt_parser.c:1460`
+> Test: `test_idiff_ema_weight_below_min` in `test_mqtt_parser.c:1602`
 
 ### Reject IdiffEmaWeight above maximum (4)
 
@@ -6601,7 +6638,7 @@
 - **When** Topic is prefix/Set/IdiffEmaWeight with payload "5"
 - **Then** Parsing returns false
 
-> Test: `test_idiff_ema_weight_above_max` in `test_mqtt_parser.c:1471`
+> Test: `test_idiff_ema_weight_above_max` in `test_mqtt_parser.c:1613`
 
 ---
 
@@ -6661,6 +6698,46 @@
 - **Then** L1=100, L2=200, L3=300 (extra data ignored by sscanf)
 
 > Test: `test_mains_meter_extra_fields_ignored` in `test_mqtt_parser.c:790`
+
+### Linky telemetry format is parsed correctly via full command parse
+
+**Requirement:** `REQ-MQTT-046`
+
+- **Given** A valid MQTT prefix
+- **When** Topic is prefix/Set/LinkyMeter with payload "0:1:0:230.5:6.2:1420.0:15422403.0:9.0:8123456.0:7298947.0"
+- **Then** Command type is MQTT_CMD_LINKY_METER with all ten fields parsed
+
+> Test: `test_linky_meter_command` in `test_mqtt_parser.c:1271`
+
+### Linky telemetry with HP tariff and power overrun active
+
+**Requirement:** `REQ-MQTT-046`
+
+
+> Test: `test_linky_meter_hp_overflow` in `test_mqtt_parser.c:1297`
+
+### Linky-over-MQTT feed is fresh when just updated
+
+**Requirement:** `REQ-MQTT-047`
+
+- **Given** elapsed_s = 0
+- **Then** mqtt_linky_meter_is_stale returns false
+
+> Test: `test_linky_meter_stale_fresh` in `test_mqtt_parser.c:1382`
+
+### Linky-over-MQTT feed just inside the staleness timeout is not stale
+
+**Requirement:** `REQ-MQTT-047`
+
+
+> Test: `test_linky_meter_stale_boundary_fresh` in `test_mqtt_parser.c:1393`
+
+### Linky-over-MQTT feed past the staleness timeout is stale
+
+**Requirement:** `REQ-MQTT-047`
+
+
+> Test: `test_linky_meter_stale_past_timeout` in `test_mqtt_parser.c:1402`
 
 ---
 

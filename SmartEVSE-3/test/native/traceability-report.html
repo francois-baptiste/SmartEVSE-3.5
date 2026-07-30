@@ -125,8 +125,8 @@ footer {
 <h1>SmartEVSE-3 Traceability Report</h1>
 <div class="summary">
 <div class="stat"><div class="number">76</div><div class="label">Features</div></div>
-<div class="stat"><div class="number">1104</div><div class="label">Test Scenarios</div></div>
-<div class="stat"><div class="number">1104</div><div class="label">With Requirements</div></div>
+<div class="stat"><div class="number">1114</div><div class="label">Test Scenarios</div></div>
+<div class="stat"><div class="number">1114</div><div class="label">With Requirements</div></div>
 <div class="stat"><div class="number">100%</div><div class="label">Requirement Coverage</div></div>
 </div>
 <div class="feature-section">
@@ -4857,61 +4857,61 @@ footer {
 <td>Set RampRateDivisor to a valid value via MQTT</td>
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/RampRateDivisor with payload &quot;6&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_RAMP_RATE_DIVISOR with value 6</li></ul></td>
 <td><code>test_ramp_rate_divisor_valid</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1291</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1433</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MQTT-041</span></td>
 <td>Set EmaAlpha to a valid value via MQTT</td>
 <td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EmaAlpha with payload &quot;50&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_EMA_ALPHA with value 50</li></ul></td>
 <td><code>test_ema_alpha_valid</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1327</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1469</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MQTT-041</span></td>
 <td>EmaAlpha accepts 0 (fully damped) as a valid boundary</td>
 <td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EmaAlpha with payload &quot;0&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_EMA_ALPHA with value 0</li></ul></td>
 <td><code>test_ema_alpha_zero_valid</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1351</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1493</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MQTT-042</span></td>
 <td>Set SmartDeadBand to a valid value via MQTT</td>
 <td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/SmartDeadBand with payload &quot;5&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_SMART_DEADBAND with value 5</li></ul></td>
 <td><code>test_smart_deadband_valid</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1363</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1505</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MQTT-043</span></td>
 <td>Set MaxRampRate to a valid value via MQTT</td>
 <td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/MaxRampRate with payload &quot;40&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_MAX_RAMP_RATE with value 40</li></ul></td>
 <td><code>test_max_ramp_rate_valid</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1387</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1529</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MQTT-043</span></td>
 <td>MaxRampRate accepts 0 (disabled) as a valid boundary</td>
 <td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/MaxRampRate with payload &quot;0&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_MAX_RAMP_RATE with value 0</li></ul></td>
 <td><code>test_max_ramp_rate_zero_valid</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1400</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1542</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MQTT-044</span></td>
 <td>Set OscillationBoostMax to a valid value via MQTT</td>
 <td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/OscillationBoostMax with payload &quot;3&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_OSCILLATION_BOOST_MAX with value 3</li></ul></td>
 <td><code>test_oscillation_boost_max_valid</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1423</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1565</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MQTT-045</span></td>
 <td>Set IdiffEmaWeight to a valid value via MQTT</td>
 <td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/IdiffEmaWeight with payload &quot;3&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_IDIFF_EMA_WEIGHT with value 3</li></ul></td>
 <td><code>test_idiff_ema_weight_valid</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1447</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1589</span></td>
 </tr>
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">MQTT Input Validation (54 scenarios)</div>
+<div class="feature-title">MQTT Input Validation (59 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -5229,79 +5229,114 @@ footer {
 <td><span class="file-ref">test_mqtt_parser.c:1257</span></td>
 </tr>
 <tr>
+<td><span class="req-tag">REQ-MQTT-046</span></td>
+<td>Linky telemetry rejects simultaneous HP and HC tariff flags</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A payload claiming both is_hp=1 and is_hc=1</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false (mutually exclusive tariff states)</li></ul></td>
+<td><code>test_linky_meter_hp_and_hc_rejected</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1313</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-046</span></td>
+<td>Linky telemetry rejects voltage out of plausible range (&gt;300V)</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_linky_meter_voltage_out_of_range</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1328</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-046</span></td>
+<td>Linky telemetry rejects negative apparent power</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_linky_meter_negative_apparent_power</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1341</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-046</span></td>
+<td>Linky telemetry rejects missing fields</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_linky_meter_missing_fields</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1354</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-046</span></td>
+<td>Linky telemetry rejects is_hp values other than 0/1</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_linky_meter_invalid_boolean</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1367</span></td>
+</tr>
+<tr>
 <td><span class="req-tag">REQ-MQTT-014</span></td>
 <td>Unrecognized topic returns false</td>
 <td><ul class="scenario-steps"></ul></td>
 <td><code>test_unrecognized_topic</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1271</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1413</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MQTT-014</span></td>
 <td>Wrong prefix returns false</td>
 <td><ul class="scenario-steps"></ul></td>
 <td><code>test_wrong_prefix</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1280</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1422</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MQTT-040</span></td>
 <td>Reject RampRateDivisor below minimum (must be &gt;=1)</td>
 <td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/RampRateDivisor with payload &quot;0&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
 <td><code>test_ramp_rate_divisor_below_min</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1305</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1447</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MQTT-040</span></td>
 <td>Reject RampRateDivisor above maximum (20)</td>
 <td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/RampRateDivisor with payload &quot;21&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
 <td><code>test_ramp_rate_divisor_above_max</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1316</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1458</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MQTT-041</span></td>
 <td>Reject EmaAlpha above maximum (100)</td>
 <td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/EmaAlpha with payload &quot;101&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
 <td><code>test_ema_alpha_above_max</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1340</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1482</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MQTT-042</span></td>
 <td>Reject SmartDeadBand above maximum (50)</td>
 <td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/SmartDeadBand with payload &quot;51&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
 <td><code>test_smart_deadband_above_max</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1376</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1518</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MQTT-043</span></td>
 <td>Reject MaxRampRate above maximum (100)</td>
 <td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/MaxRampRate with payload &quot;101&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
 <td><code>test_max_ramp_rate_above_max</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1412</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1554</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MQTT-044</span></td>
 <td>Reject OscillationBoostMax above maximum (20)</td>
 <td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/OscillationBoostMax with payload &quot;21&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
 <td><code>test_oscillation_boost_max_above_max</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1436</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1578</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MQTT-045</span></td>
 <td>Reject IdiffEmaWeight below minimum (must be &gt;=1)</td>
 <td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/IdiffEmaWeight with payload &quot;0&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
 <td><code>test_idiff_ema_weight_below_min</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1460</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1602</span></td>
 </tr>
 <tr>
 <td><span class="req-tag">REQ-MQTT-045</span></td>
 <td>Reject IdiffEmaWeight above maximum (4)</td>
 <td><ul class="scenario-steps"><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/IdiffEmaWeight with payload &quot;5&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Parsing returns false</li></ul></td>
 <td><code>test_idiff_ema_weight_above_max</code></td>
-<td><span class="file-ref">test_mqtt_parser.c:1471</span></td>
+<td><span class="file-ref">test_mqtt_parser.c:1613</span></td>
 </tr>
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">MQTT Meter Parsing (7 scenarios)</div>
+<div class="feature-title">MQTT Meter Parsing (12 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -5358,6 +5393,41 @@ footer {
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Payload is &quot;100:200:300:extra&quot;</li><li class="step-then"><span class="step-keyword">Then</span> L1=100, L2=200, L3=300 (extra data ignored by sscanf)</li></ul></td>
 <td><code>test_mains_meter_extra_fields_ignored</code></td>
 <td><span class="file-ref">test_mqtt_parser.c:790</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-046</span></td>
+<td>Linky telemetry format is parsed correctly via full command parse</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A valid MQTT prefix</li><li class="step-when"><span class="step-keyword">When</span> Topic is prefix/Set/LinkyMeter with payload &quot;0:1:0:230.5:6.2:1420.0:15422403.0:9.0:8123456.0:7298947.0&quot;</li><li class="step-then"><span class="step-keyword">Then</span> Command type is MQTT_CMD_LINKY_METER with all ten fields parsed</li></ul></td>
+<td><code>test_linky_meter_command</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1271</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-046</span></td>
+<td>Linky telemetry with HP tariff and power overrun active</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_linky_meter_hp_overflow</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1297</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-047</span></td>
+<td>Linky-over-MQTT feed is fresh when just updated</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> elapsed_s = 0</li><li class="step-then"><span class="step-keyword">Then</span> mqtt_linky_meter_is_stale returns false</li></ul></td>
+<td><code>test_linky_meter_stale_fresh</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1382</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-047</span></td>
+<td>Linky-over-MQTT feed just inside the staleness timeout is not stale</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_linky_meter_stale_boundary_fresh</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1393</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-MQTT-047</span></td>
+<td>Linky-over-MQTT feed past the staleness timeout is stale</td>
+<td><ul class="scenario-steps"></ul></td>
+<td><code>test_linky_meter_stale_past_timeout</code></td>
+<td><span class="file-ref">test_mqtt_parser.c:1402</span></td>
 </tr>
 </tbody></table>
 </div>
