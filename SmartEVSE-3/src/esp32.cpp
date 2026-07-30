@@ -341,6 +341,7 @@ extern bool phasesLastUpdateFlag;
 extern int16_t IrmsOriginal[3];
 extern int16_t homeBatteryCurrent;
 extern time_t homeBatteryLastUpdate;
+extern time_t linkyMqttLastUpdate;
 // set by EXTERNAL logic through MQTT/REST to indicate cheap tariffs ahead until unix time indicated
 extern uint8_t ColorOff[3] ;
 extern uint8_t ColorNormal[3] ;
@@ -736,6 +737,24 @@ void mqtt_receive_callback(const String topic, const String payload) {
                 EVMeter.Export_active_energy = 0;
                 EVMeter.UpdateEnergies();
             }
+            break;
+
+        case MQTT_CMD_LINKY_METER:
+            // Supplemental telemetry only (tariff/voltage/energy display + HP/HC access
+            // gating in the ESP32-local per-second loop) — independent of MainsMeter.Type,
+            // so it works whether currents come from Modbus or the API/MQTT mains feed.
+            MainsMeter.linky.is_hp = cmd.linky_meter.is_hp;
+            MainsMeter.linky.is_hc = cmd.linky_meter.is_hc;
+            MainsMeter.linky.is_power_overflow = cmd.linky_meter.is_power_overflow;
+            MainsMeter.linky.voltage_l1 = cmd.linky_meter.voltage_l1;
+            MainsMeter.linky.current_l1 = cmd.linky_meter.current_l1;
+            MainsMeter.linky.apparent_power = cmd.linky_meter.apparent_power;
+            MainsMeter.linky.active_energy_total = cmd.linky_meter.active_energy_total;
+            MainsMeter.linky.contracted_power = cmd.linky_meter.contracted_power;
+            MainsMeter.linky.total_hp = cmd.linky_meter.total_hp;
+            MainsMeter.linky.total_hc = cmd.linky_meter.total_hc;
+            MainsMeter.linky.available = true;
+            linkyMqttLastUpdate = time(NULL);
             break;
 
         case MQTT_CMD_HOME_BATTERY_CURRENT:
@@ -3176,6 +3195,12 @@ void loop() {
                     DelayedStopTime.epoch2 = DELAYEDSTOPTIME;
                 setAccess(OFF);                     //switch to OFF, stoptime reached
             }
+        }
+
+        // Clear stale Linky-over-MQTT telemetry so a lost bridge/gateway connection
+        // doesn't leave last-known HP/HC state gating charge access forever.
+        if (linkyMqttLastUpdate && mqtt_linky_meter_is_stale((uint32_t)(time(NULL) - linkyMqttLastUpdate))) {
+            MainsMeter.linky.available = false;
         }
 
         // Linky HP/HC gate — an explicit delayed-charging schedule takes precedence,

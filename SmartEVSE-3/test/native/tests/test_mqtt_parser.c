@@ -1266,6 +1266,148 @@ void test_circuit_meter_missing_fields(void) {
     TEST_ASSERT_FALSE(mqtt_parse_command(PREFIX, PREFIX "/Set/CircuitMeter", "100:200", &cmd));
 }
 
+// ---- Linky Meter Parsing (external teleinfo-to-MQTT bridge feed) ----
+
+/*
+ * @feature MQTT Meter Parsing
+ * @req REQ-MQTT-046
+ * @scenario Linky telemetry format is parsed correctly via full command parse
+ * @given A valid MQTT prefix
+ * @when Topic is prefix/Set/LinkyMeter with payload "0:1:0:230.5:6.2:1420.0:15422403.0:9.0:8123456.0:7298947.0"
+ * @then Command type is MQTT_CMD_LINKY_METER with all ten fields parsed
+ */
+void test_linky_meter_command(void) {
+    TEST_ASSERT_TRUE(mqtt_parse_command(PREFIX, PREFIX "/Set/LinkyMeter",
+        "0:1:0:230.5:6.2:1420.0:15422403.0:9.0:8123456.0:7298947.0", &cmd));
+    TEST_ASSERT_EQUAL_INT(MQTT_CMD_LINKY_METER, cmd.cmd);
+    TEST_ASSERT_EQUAL_INT(0, cmd.linky_meter.is_hp);
+    TEST_ASSERT_EQUAL_INT(1, cmd.linky_meter.is_hc);
+    TEST_ASSERT_EQUAL_INT(0, cmd.linky_meter.is_power_overflow);
+    TEST_ASSERT_EQUAL_INT(2305, (int)(cmd.linky_meter.voltage_l1 * 10 + 0.5f));
+    TEST_ASSERT_EQUAL_INT(62, (int)(cmd.linky_meter.current_l1 * 10 + 0.5f));
+    TEST_ASSERT_EQUAL_INT(1420, (int)(cmd.linky_meter.apparent_power + 0.5f));
+    /* Values are exact integers stored in float (well under the 2^24 exact-integer
+     * limit), so no +0.5f rounding fudge is needed or safe at this magnitude. */
+    TEST_ASSERT_EQUAL_INT(15422403, (int)cmd.linky_meter.active_energy_total);
+    TEST_ASSERT_EQUAL_INT(9, (int)(cmd.linky_meter.contracted_power + 0.5f));
+    TEST_ASSERT_EQUAL_INT(8123456, (int)cmd.linky_meter.total_hp);
+    TEST_ASSERT_EQUAL_INT(7298947, (int)cmd.linky_meter.total_hc);
+}
+
+/*
+ * @feature MQTT Meter Parsing
+ * @req REQ-MQTT-046
+ * @scenario Linky telemetry with HP tariff and power overrun active
+ */
+void test_linky_meter_hp_overflow(void) {
+    uint8_t is_hp, is_hc, overflow;
+    float voltage, current, apparent, energy, contracted, total_hp, total_hc;
+    TEST_ASSERT_TRUE(mqtt_parse_linky_meter("1:0:1:235.0:28.0:6580.0:15500000.0:6.0:8200000.0:7300000.0",
+        &is_hp, &is_hc, &overflow, &voltage, &current, &apparent, &energy, &contracted,
+        &total_hp, &total_hc));
+    TEST_ASSERT_EQUAL_INT(1, is_hp);
+    TEST_ASSERT_EQUAL_INT(0, is_hc);
+    TEST_ASSERT_EQUAL_INT(1, overflow);
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-046
+ * @scenario Linky telemetry rejects simultaneous HP and HC tariff flags
+ * @given A payload claiming both is_hp=1 and is_hc=1
+ * @then Parsing returns false (mutually exclusive tariff states)
+ */
+void test_linky_meter_hp_and_hc_rejected(void) {
+    uint8_t is_hp, is_hc, overflow;
+    float voltage, current, apparent, energy, contracted, total_hp, total_hc;
+    TEST_ASSERT_FALSE(mqtt_parse_linky_meter("1:1:0:230.0:6.0:1400.0:15000000.0:9.0:8000000.0:7000000.0",
+        &is_hp, &is_hc, &overflow, &voltage, &current, &apparent, &energy, &contracted,
+        &total_hp, &total_hc));
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-046
+ * @scenario Linky telemetry rejects voltage out of plausible range (>300V)
+ */
+void test_linky_meter_voltage_out_of_range(void) {
+    uint8_t is_hp, is_hc, overflow;
+    float voltage, current, apparent, energy, contracted, total_hp, total_hc;
+    TEST_ASSERT_FALSE(mqtt_parse_linky_meter("0:1:0:301.0:6.0:1400.0:15000000.0:9.0:8000000.0:7000000.0",
+        &is_hp, &is_hc, &overflow, &voltage, &current, &apparent, &energy, &contracted,
+        &total_hp, &total_hc));
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-046
+ * @scenario Linky telemetry rejects negative apparent power
+ */
+void test_linky_meter_negative_apparent_power(void) {
+    uint8_t is_hp, is_hc, overflow;
+    float voltage, current, apparent, energy, contracted, total_hp, total_hc;
+    TEST_ASSERT_FALSE(mqtt_parse_linky_meter("0:1:0:230.0:6.0:-1.0:15000000.0:9.0:8000000.0:7000000.0",
+        &is_hp, &is_hc, &overflow, &voltage, &current, &apparent, &energy, &contracted,
+        &total_hp, &total_hc));
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-046
+ * @scenario Linky telemetry rejects missing fields
+ */
+void test_linky_meter_missing_fields(void) {
+    uint8_t is_hp, is_hc, overflow;
+    float voltage, current, apparent, energy, contracted, total_hp, total_hc;
+    TEST_ASSERT_FALSE(mqtt_parse_linky_meter("0:1:0:230.0:6.0",
+        &is_hp, &is_hc, &overflow, &voltage, &current, &apparent, &energy, &contracted,
+        &total_hp, &total_hc));
+}
+
+/*
+ * @feature MQTT Input Validation
+ * @req REQ-MQTT-046
+ * @scenario Linky telemetry rejects is_hp values other than 0/1
+ */
+void test_linky_meter_invalid_boolean(void) {
+    uint8_t is_hp, is_hc, overflow;
+    float voltage, current, apparent, energy, contracted, total_hp, total_hc;
+    TEST_ASSERT_FALSE(mqtt_parse_linky_meter("2:0:0:230.0:6.0:1400.0:15000000.0:9.0:8000000.0:7000000.0",
+        &is_hp, &is_hc, &overflow, &voltage, &current, &apparent, &energy, &contracted,
+        &total_hp, &total_hc));
+}
+
+// ---- Linky Meter MQTT staleness helper ----
+
+/*
+ * @feature MQTT Meter Parsing
+ * @req REQ-MQTT-047
+ * @scenario Linky-over-MQTT feed is fresh when just updated
+ * @given elapsed_s = 0
+ * @then mqtt_linky_meter_is_stale returns false
+ */
+void test_linky_meter_stale_fresh(void) {
+    TEST_ASSERT_FALSE(mqtt_linky_meter_is_stale(0));
+}
+
+/*
+ * @feature MQTT Meter Parsing
+ * @req REQ-MQTT-047
+ * @scenario Linky-over-MQTT feed just inside the staleness timeout is not stale
+ */
+void test_linky_meter_stale_boundary_fresh(void) {
+    TEST_ASSERT_FALSE(mqtt_linky_meter_is_stale(LINKY_MQTT_STALE_TIMEOUT_S));
+}
+
+/*
+ * @feature MQTT Meter Parsing
+ * @req REQ-MQTT-047
+ * @scenario Linky-over-MQTT feed past the staleness timeout is stale
+ */
+void test_linky_meter_stale_past_timeout(void) {
+    TEST_ASSERT_TRUE(mqtt_linky_meter_is_stale(LINKY_MQTT_STALE_TIMEOUT_S + 1));
+}
+
 // ---- Unrecognized topic ----
 
 /*
@@ -1629,6 +1771,18 @@ int main(void) {
     RUN_TEST(test_circuit_meter_negative);
     RUN_TEST(test_circuit_meter_out_of_range);
     RUN_TEST(test_circuit_meter_missing_fields);
+
+    // Linky Meter (external teleinfo-to-MQTT bridge feed)
+    RUN_TEST(test_linky_meter_command);
+    RUN_TEST(test_linky_meter_hp_overflow);
+    RUN_TEST(test_linky_meter_hp_and_hc_rejected);
+    RUN_TEST(test_linky_meter_voltage_out_of_range);
+    RUN_TEST(test_linky_meter_negative_apparent_power);
+    RUN_TEST(test_linky_meter_missing_fields);
+    RUN_TEST(test_linky_meter_invalid_boolean);
+    RUN_TEST(test_linky_meter_stale_fresh);
+    RUN_TEST(test_linky_meter_stale_boundary_fresh);
+    RUN_TEST(test_linky_meter_stale_past_timeout);
 
     // Unrecognized
     RUN_TEST(test_unrecognized_topic);

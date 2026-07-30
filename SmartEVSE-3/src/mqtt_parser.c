@@ -67,6 +67,37 @@ bool mqtt_parse_rgb(const char *payload, uint8_t *r, uint8_t *g, uint8_t *b) {
     return true;
 }
 
+bool mqtt_parse_linky_meter(const char *payload, uint8_t *is_hp, uint8_t *is_hc,
+                            uint8_t *is_power_overflow, float *voltage_l1, float *current_l1,
+                            float *apparent_power, float *active_energy_total,
+                            float *contracted_power, float *total_hp, float *total_hc) {
+    int hp, hc, overflow;
+    int n = sscanf(payload, "%d:%d:%d:%f:%f:%f:%f:%f:%f:%f", &hp, &hc, &overflow,
+                   voltage_l1, current_l1, apparent_power, active_energy_total,
+                   contracted_power, total_hp, total_hc);
+    if (n != 10)
+        return false;
+    if (hp < 0 || hp > 1) return false;
+    if (hc < 0 || hc > 1) return false;
+    if (hp && hc) return false;                    /* can't be HP and HC simultaneously */
+    if (overflow < 0 || overflow > 1) return false;
+    if (*voltage_l1 < 0 || *voltage_l1 > 300) return false;
+    if (*current_l1 < -200 || *current_l1 > 200) return false;
+    if (*apparent_power < 0 || *apparent_power > 100000) return false;
+    if (*active_energy_total < 0 || *active_energy_total > 2000000000.0f) return false;
+    if (*contracted_power < 0 || *contracted_power > 100) return false;
+    if (*total_hp < 0 || *total_hp > 2000000000.0f) return false;
+    if (*total_hc < 0 || *total_hc > 2000000000.0f) return false;
+    *is_hp = (uint8_t)hp;
+    *is_hc = (uint8_t)hc;
+    *is_power_overflow = (uint8_t)overflow;
+    return true;
+}
+
+bool mqtt_linky_meter_is_stale(uint32_t elapsed_s) {
+    return elapsed_s > LINKY_MQTT_STALE_TIMEOUT_S;
+}
+
 /*
  * mqtt_parse_command — Parse an MQTT topic+payload into a typed command struct.
  *
@@ -79,7 +110,10 @@ bool mqtt_parse_rgb(const char *payload, uint8_t *r, uint8_t *g, uint8_t *b) {
  * Command groups handled:
  *   - Mode control:     /Set/Mode, /Set/CustomButton
  *   - Current limits:   /Set/CurrentOverride, /Set/CurrentMaxSumMains, /Set/CPPWMOverride
- *   - Meter feeds:      /Set/MainsMeter (L1:L2:L3), /Set/EVMeter (L1:L2:L3:W:Wh)
+ *   - Meter feeds:      /Set/MainsMeter (L1:L2:L3), /Set/EVMeter (L1:L2:L3:W:Wh),
+ *                       /Set/LinkyMeter (is_hp:is_hc:is_power_overflow:voltage_l1:
+ *                       current_l1:apparent_power:active_energy_total:contracted_power:
+ *                       total_hp:total_hc)
  *   - Home battery:     /Set/HomeBatteryCurrent
  *   - Vehicle ID:       /Set/RequiredEVCCID
  *   - LED colors:       /Set/Color{Off,Normal,Smart,Custom} (R,G,B)
@@ -150,6 +184,17 @@ bool mqtt_parse_command(const char *prefix, const char *topic,
         out->cmd = MQTT_CMD_EV_METER;
         return mqtt_parse_ev_meter(payload, &out->ev_meter.L1, &out->ev_meter.L2,
                                    &out->ev_meter.L3, &out->ev_meter.W, &out->ev_meter.Wh);
+    }
+
+    /* Linky telemetry feed from an external teleinfo-to-MQTT bridge: HP/HC tariff,
+     * power-reference overrun, voltage/current/apparent power, energy totals. */
+    if (match_topic(prefix, topic, "/Set/LinkyMeter")) {
+        out->cmd = MQTT_CMD_LINKY_METER;
+        return mqtt_parse_linky_meter(payload, &out->linky_meter.is_hp, &out->linky_meter.is_hc,
+                                      &out->linky_meter.is_power_overflow, &out->linky_meter.voltage_l1,
+                                      &out->linky_meter.current_l1, &out->linky_meter.apparent_power,
+                                      &out->linky_meter.active_energy_total, &out->linky_meter.contracted_power,
+                                      &out->linky_meter.total_hp, &out->linky_meter.total_hc);
     }
 
     /* API mains meter staleness timeout: 0=disabled, 10-3600 seconds */

@@ -278,6 +278,7 @@ bool phasesLastUpdateFlag = false;
 int16_t IrmsOriginal[3]={0, 0, 0};
 int16_t homeBatteryCurrent = 0;
 time_t homeBatteryLastUpdate = 0; // Time in seconds since epoch
+time_t linkyMqttLastUpdate = 0;   // Time in seconds since epoch; 0 = never fed via MQTT /Set/LinkyMeter
 // set by EXTERNAL logic through MQTT/REST to indicate cheap tariffs ahead until unix time indicated
 uint8_t ColorOff[3] = {0, 0, 0};          // off
 uint8_t ColorNormal[3] = {0, 255, 0};   // Green
