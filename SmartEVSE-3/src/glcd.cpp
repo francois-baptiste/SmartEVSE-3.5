@@ -601,59 +601,52 @@ void GLCD(void) {
         GLCD_sendbuf(0, 1);
         glcd_clrln(1, 0x04);                                                    // horizontal line
 
-        // Row 2/3: LCDToggle ("Toggle display between two values") alternates
-        // every ~4s between the EV target/actual current and the session
-        // energy — the current session while charging, otherwise the last
-        // completed one. Only toggles in when there's a session to show, so
-        // a never-charged device keeps the plain EV SET/NOW view.
-        bool showSession = LCDToggle && (session_is_active() || session_get_last() != NULL);
+        // Row 2: EV target -> actual current, one fixed line, no alternating.
         GLCD_buffer_clr();
-        if (showSession) {
-            snprintf(Str, sizeof(Str), "SESSION   %s", session_is_active() ? "LIVE" : "LAST");
-        } else {
-            snprintf(Str, sizeof(Str), "EV   SET  %u.%uA", Balanced[0] / 10, Balanced[0] % 10);
-        }
+        if (EVMeter.Type)
+            snprintf(Str, sizeof(Str), "EV   %u.%uA->%u.%uA", Balanced[0] / 10, Balanced[0] % 10,
+                    EVMeter.Irms[0] / 10, EVMeter.Irms[0] % 10);
+        else
+            snprintf(Str, sizeof(Str), "EV SET %u.%uA", Balanced[0] / 10, Balanced[0] % 10);
         GLCD_write_buf_str(0, 0, Str, GLCD_ALIGN_LEFT);
         GLCD_sendbuf(2, 1);
 
+        // Row 3: configured mains cap -> actual mains current (signed — negative means exporting).
         GLCD_buffer_clr();
-        if (showSession) {
-            int32_t energy_wh = session_is_active() ? EVMeter.EnergyCharged
-                                                     : session_get_last()->energy_charged_wh;
-            sprintfl(Str, sizeof(Str), "%d.%02d kWh", energy_wh, 3, 2);
-        } else if (EVMeter.Type) {
-            snprintf(Str, sizeof(Str), "EV   NOW  %u.%uA", EVMeter.Irms[0] / 10, EVMeter.Irms[0] % 10);
-        } else {
-            snprintf(Str, sizeof(Str), "EV   NOW  N/A");
+        {
+            int16_t isum_abs = Isum < 0 ? (int16_t)(-Isum) : Isum;
+            snprintf(Str, sizeof(Str), "MAIN %uA->%s%d.%uA", MaxMains, Isum < 0 ? "-" : "",
+                    isum_abs / 10, isum_abs % 10);
         }
         GLCD_write_buf_str(0, 0, Str, GLCD_ALIGN_LEFT);
         GLCD_sendbuf(3, 1);
 
-        // Row 4/5: same LCDToggle alternates configured mains cap/actual current
-        // (amps) with the Linky subscribed ("souscrite") power vs. apparent
-        // power draw, shown as a ratio — only when Linky telemetry with a
-        // usable contracted power is actually available.
-        bool showGrid = LCDToggle && MainsMeter.linky.available && MainsMeter.linky.contracted_power > 0.0f;
+        // Row 4: Linky subscribed ("souscrite") power -> actual apparent power draw,
+        // plus the ratio between them. N/A when Linky telemetry isn't available.
         GLCD_buffer_clr();
-        if (showGrid) {
-            snprintf(Str, sizeof(Str), "GRID CAP  %.1fkVA", (double)MainsMeter.linky.contracted_power);
+        if (MainsMeter.linky.available && MainsMeter.linky.contracted_power > 0.0f) {
+            int32_t va = meter_apparent_power_va(MainsMeter.Irms[0], MainsMeter.linky.apparent_power,
+                                                 MainsMeter.linky.available);
+            int16_t pct = meter_grid_power_ratio_pct(va, MainsMeter.linky.contracted_power);
+            char vaStr[10];
+            sprintfl(vaStr, sizeof(vaStr), "%d.%01d", va, 3, 1);
+            snprintf(Str, sizeof(Str), "GRID %.1f->%skVA %d%%", (double)MainsMeter.linky.contracted_power,
+                    vaStr, pct);
         } else {
-            snprintf(Str, sizeof(Str), "MAIN CAP  %uA", MaxMains);
+            snprintf(Str, sizeof(Str), "GRID N/A");
         }
         GLCD_write_buf_str(0, 0, Str, GLCD_ALIGN_LEFT);
         GLCD_sendbuf(4, 1);
 
+        // Row 5: session energy — live while charging, otherwise the last
+        // completed session from session_log. N/A if neither exists yet.
         GLCD_buffer_clr();
-        if (showGrid) {
-            int32_t va = meter_apparent_power_va(MainsMeter.Irms[0], MainsMeter.linky.apparent_power,
-                                                 MainsMeter.linky.available);
-            int16_t pct = meter_grid_power_ratio_pct(va, MainsMeter.linky.contracted_power);
-            char vaStr[12];
-            sprintfl(vaStr, sizeof(vaStr), "%d.%01dkVA", va, 3, 1);
-            snprintf(Str, sizeof(Str), "GRID NOW %d%% %s", pct, vaStr);
+        if (session_is_active()) {
+            sprintfl(Str, sizeof(Str), "SESSION LIVE %d.%02d kWh", EVMeter.EnergyCharged, 3, 2);
+        } else if (session_get_last() != NULL) {
+            sprintfl(Str, sizeof(Str), "SESSION LAST %d.%02d kWh", session_get_last()->energy_charged_wh, 3, 2);
         } else {
-            int16_t isum_abs = Isum < 0 ? (int16_t)(-Isum) : Isum;
-            snprintf(Str, sizeof(Str), "MAIN NOW  %s%d.%uA", Isum < 0 ? "-" : "", isum_abs / 10, isum_abs % 10);
+            snprintf(Str, sizeof(Str), "SESSION N/A");
         }
         GLCD_write_buf_str(0, 0, Str, GLCD_ALIGN_LEFT);
         GLCD_sendbuf(5, 1);
