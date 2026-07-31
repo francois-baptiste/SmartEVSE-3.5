@@ -1,6 +1,6 @@
 # SmartEVSE-3 Traceability Report
 
-**76 features** | **1114 scenarios** | **1114 with requirement IDs** | **100% coverage**
+**76 features** | **1120 scenarios** | **1120 with requirement IDs** | **100% coverage**
 
 ---
 
@@ -41,7 +41,7 @@
 | LED Color Configuration | 4 | 4 | 100% |
 | LED Color — Public Scheme | 14 | 14 | 100% |
 | Load Balancing | 18 | 18 | 100% |
-| Meter Decoding | 46 | 46 | 100% |
+| Meter Decoding | 52 | 52 | 100% |
 | Meter Timeout & Recovery | 12 | 12 | 100% |
 | Meter Telemetry | 13 | 13 | 100% |
 | Metering Diagnostics | 7 | 7 | 100% |
@@ -84,7 +84,7 @@
 | IEC 61851-1 State Transitions | 29 | 29 | 100% |
 | 10ms Tick Processing | 20 | 20 | 100% |
 | 1-Second Tick Processing | 17 | 17 | 100% |
-| **TOTAL** | **1114** | **1114** | **100%** |
+| **TOTAL** | **1120** | **1120** | **100%** |
 
 ## API Mains Staleness Detection
 
@@ -3664,15 +3664,21 @@
 | `REQ-MTR-101` | HomeWizard P1 phase count follows the meter's own report | `test_mains_phase_count_homewizard` | `test_meter_decode.c:689` |
 | `REQ-MTR-102` | Apparent power uses the Linky SINSTS reading when available | `test_apparent_power_from_linky` | `test_meter_decode.c:703` |
 | `REQ-MTR-103` | Apparent power falls back to a 230 V estimate without Linky data | `test_apparent_power_estimate` | `test_meter_decode.c:718` |
-| `REQ-MTR-174` | Acrel ADL400-D Phase B (L2) current decodes correctly from a single INT16 register | `test_acrel_ev_l2_current_decode` | `test_meter_decode.c:734` |
-| `REQ-MTR-175` | Acrel Phase B power register is 32-bit despite the profile's base INT16 datatype | `test_acrel_power_mixed_width_override` | `test_meter_decode.c:751` |
-| `REQ-MTR-176` | Acrel Phase B energy register decodes as 32-bit kWh converted to Wh | `test_acrel_ev_l2_energy_decode` | `test_meter_decode.c:778` |
-| `REQ-MTR-177` | Acrel Mains 3-phase current registers (100/101/102) decode independently | `test_acrel_mains_current_decode` | `test_meter_decode.c:795` |
-| `REQ-MTR-178` | Acrel Mains per-phase power block (Pa/Pb/Pc/Total) decodes as 4 independent INT32s | `test_acrel_mains_power_block_decode` | `test_meter_decode.c:818` |
-| `REQ-MTR-179` | Negative (export) power on the Acrel per-phase power block preserves sign | `test_acrel_negative_power_sign` | `test_meter_decode.c:845` |
+| `REQ-MTR-180` | Apparent power at a fraction of the subscribed power | `test_grid_power_ratio_normal` | `test_meter_decode.c:734` |
+| `REQ-MTR-180` | Apparent power exactly at the subscribed power reads 100% | `test_grid_power_ratio_at_limit` | `test_meter_decode.c:746` |
+| `REQ-MTR-180` | Apparent power overrunning the subscribed power reads >100% | `test_grid_power_ratio_overrun` | `test_meter_decode.c:755` |
+| `REQ-MTR-180` | Ratio uses the magnitude of apparent power (export doesn't go negative) | `test_grid_power_ratio_negative_apparent_power` | `test_meter_decode.c:764` |
+| `REQ-MTR-180` | Extreme overrun is clamped to 999% | `test_grid_power_ratio_clamped` | `test_meter_decode.c:773` |
+| `REQ-MTR-181` | Zero, negative, or NaN contracted power is unusable | `test_grid_power_ratio_no_contracted_power` | `test_meter_decode.c:782` |
+| `REQ-MTR-174` | Acrel ADL400-D Phase B (L2) current decodes correctly from a single INT16 register | `test_acrel_ev_l2_current_decode` | `test_meter_decode.c:797` |
+| `REQ-MTR-175` | Acrel Phase B power register is 32-bit despite the profile's base INT16 datatype | `test_acrel_power_mixed_width_override` | `test_meter_decode.c:814` |
+| `REQ-MTR-176` | Acrel Phase B energy register decodes as 32-bit kWh converted to Wh | `test_acrel_ev_l2_energy_decode` | `test_meter_decode.c:841` |
+| `REQ-MTR-177` | Acrel Mains 3-phase current registers (100/101/102) decode independently | `test_acrel_mains_current_decode` | `test_meter_decode.c:858` |
+| `REQ-MTR-178` | Acrel Mains per-phase power block (Pa/Pb/Pc/Total) decodes as 4 independent INT32s | `test_acrel_mains_power_block_decode` | `test_meter_decode.c:881` |
+| `REQ-MTR-179` | Negative (export) power on the Acrel per-phase power block preserves sign | `test_acrel_negative_power_sign` | `test_meter_decode.c:908` |
 
 <details>
-<summary>Detailed steps (46 scenarios)</summary>
+<summary>Detailed steps (52 scenarios)</summary>
 
 ### Register size returns correct byte count per data type
 **Requirement:** `REQ-MTR-040`
@@ -3953,6 +3959,35 @@
 - **Given** No Linky telemetry and an L1 current of 16.0 A (160 dA), or -16.0 A when exporting
 - **When** meter_apparent_power_va is called
 - **Then** It returns |I| * 230 = 3680 VA in both directions
+
+### Apparent power at a fraction of the subscribed power
+**Requirement:** `REQ-MTR-180`
+
+- **Given** apparent_power=1420 VA, contracted_power=6.0 kVA
+- **When** meter_grid_power_ratio_pct is called
+- **Then** It returns 24 (1420 / 6000 = 23.67%, rounded to 24)
+
+### Apparent power exactly at the subscribed power reads 100%
+**Requirement:** `REQ-MTR-180`
+
+
+### Apparent power overrunning the subscribed power reads >100%
+**Requirement:** `REQ-MTR-180`
+
+
+### Ratio uses the magnitude of apparent power (export doesn't go negative)
+**Requirement:** `REQ-MTR-180`
+
+
+### Extreme overrun is clamped to 999%
+**Requirement:** `REQ-MTR-180`
+
+
+### Zero, negative, or NaN contracted power is unusable
+**Requirement:** `REQ-MTR-181`
+
+- **Given** No valid Linky subscribed-power reading
+- **Then** meter_grid_power_ratio_pct returns -1 (caller should not display a ratio)
 
 ### Acrel ADL400-D Phase B (L2) current decodes correctly from a single INT16 register
 **Requirement:** `REQ-MTR-174`

@@ -1,6 +1,6 @@
 # SmartEVSE-3 Test Specification
 
-**76 features** | **1114 scenarios** | **1114 with requirement IDs**
+**76 features** | **1120 scenarios** | **1120 with requirement IDs**
 
 ---
 
@@ -4577,6 +4577,53 @@
 
 > Test: `test_apparent_power_estimate` in `test_meter_decode.c:718`
 
+### Apparent power at a fraction of the subscribed power
+
+**Requirement:** `REQ-MTR-180`
+
+- **Given** apparent_power=1420 VA, contracted_power=6.0 kVA
+- **When** meter_grid_power_ratio_pct is called
+- **Then** It returns 24 (1420 / 6000 = 23.67%, rounded to 24)
+
+> Test: `test_grid_power_ratio_normal` in `test_meter_decode.c:734`
+
+### Apparent power exactly at the subscribed power reads 100%
+
+**Requirement:** `REQ-MTR-180`
+
+
+> Test: `test_grid_power_ratio_at_limit` in `test_meter_decode.c:746`
+
+### Apparent power overrunning the subscribed power reads >100%
+
+**Requirement:** `REQ-MTR-180`
+
+
+> Test: `test_grid_power_ratio_overrun` in `test_meter_decode.c:755`
+
+### Ratio uses the magnitude of apparent power (export doesn't go negative)
+
+**Requirement:** `REQ-MTR-180`
+
+
+> Test: `test_grid_power_ratio_negative_apparent_power` in `test_meter_decode.c:764`
+
+### Extreme overrun is clamped to 999%
+
+**Requirement:** `REQ-MTR-180`
+
+
+> Test: `test_grid_power_ratio_clamped` in `test_meter_decode.c:773`
+
+### Zero, negative, or NaN contracted power is unusable
+
+**Requirement:** `REQ-MTR-181`
+
+- **Given** No valid Linky subscribed-power reading
+- **Then** meter_grid_power_ratio_pct returns -1 (caller should not display a ratio)
+
+> Test: `test_grid_power_ratio_no_contracted_power` in `test_meter_decode.c:782`
+
 ### Acrel ADL400-D Phase B (L2) current decodes correctly from a single INT16 register
 
 **Requirement:** `REQ-MTR-174`
@@ -4585,7 +4632,7 @@
 - **When** meter_decode_value is called with divisor=-1 (IDivisor=2 minus the firmware's -3 mA shift)
 - **Then** Result value is 16500 (mA), matching the firmware's Irms pipeline (mA / 100 = deciAmps)
 
-> Test: `test_acrel_ev_l2_current_decode` in `test_meter_decode.c:734`
+> Test: `test_acrel_ev_l2_current_decode` in `test_meter_decode.c:797`
 
 ### Acrel Phase B power register is 32-bit despite the profile's base INT16 datatype
 
@@ -4595,7 +4642,7 @@
 - **When** the same raw bytes are decoded once as INT16 (the profile's declared base DataType,
 - **Then** The INT16 decode silently truncates to the high half (0, garbage relative to the real
 
-> Test: `test_acrel_power_mixed_width_override` in `test_meter_decode.c:751`
+> Test: `test_acrel_power_mixed_width_override` in `test_meter_decode.c:814`
 
 ### Acrel Phase B energy register decodes as 32-bit kWh converted to Wh
 
@@ -4605,7 +4652,7 @@
 - **When** meter_decode_value is called with divisor=-1 (EDivisor=2 minus the firmware's -3 Wh shift)
 - **Then** Result value is 567890 (Wh)
 
-> Test: `test_acrel_ev_l2_energy_decode` in `test_meter_decode.c:778`
+> Test: `test_acrel_ev_l2_energy_decode` in `test_meter_decode.c:841`
 
 ### Acrel Mains 3-phase current registers (100/101/102) decode independently
 
@@ -4615,7 +4662,7 @@
 - **When** meter_decode_value is called for indices 0, 1, 2 with divisor=-1
 - **Then** Returns 16000, 8000, 4000 (mA) respectively, matching the L1/L2/L3 offset convention
 
-> Test: `test_acrel_mains_current_decode` in `test_meter_decode.c:795`
+> Test: `test_acrel_mains_current_decode` in `test_meter_decode.c:858`
 
 ### Acrel Mains per-phase power block (Pa/Pb/Pc/Total) decodes as 4 independent INT32s
 
@@ -4625,7 +4672,7 @@
 - **When** meter_decode_value is called for indices 0-3 with divisor=0
 - **Then** Returns 1000, 1200, 900, 3100 respectively, with no overlap between phases
 
-> Test: `test_acrel_mains_power_block_decode` in `test_meter_decode.c:818`
+> Test: `test_acrel_mains_power_block_decode` in `test_meter_decode.c:881`
 
 ### Negative (export) power on the Acrel per-phase power block preserves sign
 
@@ -4635,7 +4682,7 @@
 - **When** meter_decode_value is called with the INT32 override and divisor=0
 - **Then** Result value is -450, so the firmware's cached-sign correction
 
-> Test: `test_acrel_negative_power_sign` in `test_meter_decode.c:845`
+> Test: `test_acrel_negative_power_sign` in `test_meter_decode.c:908`
 
 ---
 
