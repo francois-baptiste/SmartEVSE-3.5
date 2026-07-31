@@ -899,8 +899,16 @@ void evse_calc_balanced_current(evse_ctx_t *ctx, int mod) {
                 }
             }
 
-            // Issue #17: NoCurrent threshold triggers LESS_6A
-            if (ctx->NoCurrent >= ctx->NoCurrentThreshold) {
+            // Issue #17: NoCurrent threshold triggers LESS_6A, giving a grace
+            // period (default 10 ticks, ~20s at the real ~2s tick cadence)
+            // before a soft shortage actually stops the car, instead of
+            // reacting to the first tick a transient dip is seen. MODE_NORMAL
+            // is exempt: it always requests ChargeCurrent regardless of live
+            // meter feedback, so it shouldn't be stopped by this counter
+            // (the CircuitMeter hard-shortage source is the one path that can
+            // still reach here from MODE_NORMAL — subpanel breaker
+            // protection intentionally isn't Mode-gated above).
+            if (ctx->NoCurrent >= ctx->NoCurrentThreshold && ctx->Mode != MODE_NORMAL) {
                 evse_set_error_flags(ctx, LESS_6A);
             }
 

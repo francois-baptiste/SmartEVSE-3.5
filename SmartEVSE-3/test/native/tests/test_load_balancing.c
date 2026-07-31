@@ -559,6 +559,129 @@ void test_nocurrent_saturates_at_255(void) {
     TEST_ASSERT_EQUAL_INT(255, ctx.NoCurrent);
 }
 
+// ---- Shortage grace period (prevent immediate stop when dropping near MinCurrent) ----
+//
+// evse_calc_balanced_current() is invoked roughly once every ~2s in real
+// deployments without a Modbus-polled meter (e.g. an API/MQTT-fed mains
+// meter — one call per ModbusRequestLoop() cycle, itself gated to every
+// other 1s Timer1S tick). NoCurrentThreshold=10 ticks therefore gives
+// ~20s of grace before a soft shortage actually stops the car, instead of
+// cutting it the instant the setpoint would dip under MinCurrent (6A) —
+// which most EVs treat as "no valid offer" and stop charging on. A
+// transient dip (e.g. a cloud passing over solar, a washing machine
+// cycling) recovers within the grace window instead of ending the session.
+
+static void setup_standalone_shortage(void) {
+    evse_init(&ctx, NULL);
+    ctx.AccessStatus = ON;
+    ctx.Mode = MODE_SMART;
+    ctx.LoadBl = 0;  // Standalone
+    ctx.MaxCurrent = 16;
+    ctx.MaxCapacity = 16;
+    ctx.MinCurrent = 6;
+    ctx.MaxCircuit = 32;
+    ctx.ChargeCurrent = 160;
+    ctx.MainsMeterType = 1;  // Enable mains meter for hardShortage detection
+    ctx.BalancedState[0] = STATE_C;
+    ctx.BalancedMax[0] = 160;
+    ctx.Balanced[0] = 60;
+    ctx.State = STATE_C;
+    // Hard shortage: IsetBalanced (after being clamped to MinCurrent) will
+    // exceed MaxMains*10 - Baseload.
+    ctx.MaxMains = 1;
+    ctx.MainsMeterImeasured = 100;
+    ctx.IsetBalanced = 60;
+}
+
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-186
+ * @scenario Sustained shortage under the grace window doesn't trip LESS_6A
+ * @given A standalone EVSE in MODE_SMART with a persistent hard shortage
+ * @when evse_calc_balanced_current is called for NoCurrentThreshold-1 (9) ticks
+ * @then LESS_6A stays clear and Balanced[0] is still offering MinCurrent (60 dA),
+ *       not a sub-6A or zero setpoint — the car keeps charging
+ */
+void test_shortage_grace_period_holds_below_threshold(void) {
+    setup_standalone_shortage();
+    TEST_ASSERT_EQUAL_INT(10, ctx.NoCurrentThreshold);  // default grace window
+
+    for (int i = 0; i < ctx.NoCurrentThreshold - 1; i++) {
+        ctx.BalancedState[0] = STATE_C;
+        ctx.Balanced[0] = 60;
+        ctx.phasesLastUpdateFlag = true;
+        evse_calc_balanced_current(&ctx, 0);
+    }
+
+    TEST_ASSERT_EQUAL_INT(0, ctx.ErrorFlags & LESS_6A);
+    TEST_ASSERT_EQUAL_INT(60, ctx.Balanced[0]);
+}
+
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-186
+ * @scenario Shortage sustained for the full grace window trips LESS_6A
+ * @given A standalone EVSE in MODE_SMART with a persistent hard shortage
+ * @when evse_calc_balanced_current is called for NoCurrentThreshold (10) ticks
+ * @then LESS_6A is set — a genuinely sustained shortage still stops the car
+ */
+void test_shortage_grace_period_expires_sets_less6a(void) {
+    setup_standalone_shortage();
+
+    for (int i = 0; i < ctx.NoCurrentThreshold; i++) {
+        ctx.BalancedState[0] = STATE_C;
+        ctx.Balanced[0] = 60;
+        ctx.phasesLastUpdateFlag = true;
+        evse_calc_balanced_current(&ctx, 0);
+    }
+
+    TEST_ASSERT_TRUE(ctx.ErrorFlags & LESS_6A);
+}
+
+/*
+ * @feature Load Balancing
+ * @req REQ-LB-187
+ * @scenario MODE_NORMAL stays exempt from the NoCurrent-driven LESS_6A trip
+ * @given A standalone EVSE in MODE_NORMAL with a persistent CircuitMeter
+ *        subpanel overload (the one hard-shortage source not itself gated
+ *        on Mode — Plan 14 breaker protection applies in every mode)
+ * @when evse_calc_balanced_current is called well beyond NoCurrentThreshold ticks
+ * @then LESS_6A is still never set via this path, matching the pre-existing
+ *       "Normal mode ignores live meter feedback" behavior
+ */
+void test_shortage_normal_mode_never_trips_less6a(void) {
+    evse_init(&ctx, NULL);
+    ctx.AccessStatus = ON;
+    ctx.Mode = MODE_NORMAL;
+    ctx.LoadBl = 0;
+    // Normal mode always sets IsetBalanced = ChargeCurrent = MaxCurrent*10,
+    // ignoring live meters — MaxCurrent must itself be below MinCurrent to
+    // enter the shortage branch at all (this is what makes Normal mode
+    // shortages rare in practice, but not impossible to configure).
+    ctx.MaxCurrent = 4;
+    ctx.MaxCapacity = 16;
+    ctx.MinCurrent = 6;
+    ctx.MaxCircuit = 32;
+    ctx.MaxMains = 32;
+    ctx.BalancedState[0] = STATE_C;
+    ctx.BalancedMax[0] = 160;
+    ctx.Balanced[0] = 60;
+    ctx.State = STATE_C;
+    // CircuitMeter subpanel overload — not Mode-gated, so this is the one
+    // hard-shortage source reachable from MODE_NORMAL.
+    ctx.MaxCircuitMains = 20;
+    ctx.CircuitMeterImeasured = 300;
+
+    for (int i = 0; i < 20; i++) {
+        ctx.BalancedState[0] = STATE_C;
+        ctx.Balanced[0] = 60;
+        ctx.phasesLastUpdateFlag = true;
+        evse_calc_balanced_current(&ctx, 0);
+    }
+
+    TEST_ASSERT_EQUAL_INT(0, ctx.ErrorFlags & LESS_6A);
+}
+
 // ---- Main ----
 int main(void) {
     TEST_SUITE_BEGIN("Load Balancing");
@@ -582,6 +705,9 @@ int main(void) {
     RUN_TEST(test_handout_surplus_zero_uncapped_no_crash);
     RUN_TEST(test_balanced_current_zero_active_no_crash);
     RUN_TEST(test_nocurrent_saturates_at_255);
+    RUN_TEST(test_shortage_grace_period_holds_below_threshold);
+    RUN_TEST(test_shortage_grace_period_expires_sets_less6a);
+    RUN_TEST(test_shortage_normal_mode_never_trips_less6a);
 
     TEST_SUITE_RESULTS();
 }

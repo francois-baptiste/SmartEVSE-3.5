@@ -2075,8 +2075,13 @@ void ModbusRequestLoop() {
                 // slave never gets here
                 // what about normal mode with no meters attached?
                 CalcBalancedCurrent(0);
-                // No current left, or Overload (2x Maxmains)?
-                if (Mode && (NoCurrent > 2 || MainsMeter.Imeasured > (MaxMains * 20))) { // I guess we don't want to set this flag in Normal mode, we just want to charge ChargeCurrent
+                // Hard overload (2x Maxmains)? This is an immediate trip, independent of
+                // the soft "not enough current" shortage grace period (NoCurrentThreshold,
+                // ~20s by default) that CalcBalancedCurrent()/evse_calc_balanced_current()
+                // already applies above. A hardcoded "NoCurrent > 2" check used to live
+                // here too, pre-empting that grace period after only ~4-6s — removed so
+                // the configured threshold is actually the one in effect (Issue #17).
+                if (Mode && MainsMeter.Imeasured > (MaxMains * 20)) { // I guess we don't want to set this flag in Normal mode, we just want to charge ChargeCurrent
                     // STOP charging for all EVSE's
                     // Display error message
                     setErrorFlags(LESS_6A); //NOCURRENT;
