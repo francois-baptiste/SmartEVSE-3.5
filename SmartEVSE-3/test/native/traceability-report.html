@@ -125,8 +125,8 @@ footer {
 <h1>SmartEVSE-3 Traceability Report</h1>
 <div class="summary">
 <div class="stat"><div class="number">76</div><div class="label">Features</div></div>
-<div class="stat"><div class="number">1120</div><div class="label">Test Scenarios</div></div>
-<div class="stat"><div class="number">1120</div><div class="label">With Requirements</div></div>
+<div class="stat"><div class="number">1123</div><div class="label">Test Scenarios</div></div>
+<div class="stat"><div class="number">1123</div><div class="label">With Requirements</div></div>
 <div class="stat"><div class="number">100%</div><div class="label">Requirement Coverage</div></div>
 </div>
 <div class="feature-section">
@@ -3265,7 +3265,7 @@ footer {
 </tbody></table>
 </div>
 <div class="feature-section">
-<div class="feature-title">Load Balancing (18 scenarios)</div>
+<div class="feature-title">Load Balancing (21 scenarios)</div>
 <div class="coverage-bar">
 <div class="coverage-fill" style="width:100.0%"></div>
 </div>
@@ -3399,6 +3399,27 @@ footer {
 <td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> NoCurrent is at 254, standalone EVSE in shortage</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current detects shortage twice</li><li class="step-then"><span class="step-keyword">Then</span> NoCurrent reaches 255 and stays there (does not wrap to 0)</li></ul></td>
 <td><code>test_nocurrent_saturates_at_255</code></td>
 <td><span class="file-ref">test_load_balancing.c:512</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LB-186</span></td>
+<td>Sustained shortage under the grace window doesn&#x27;t trip LESS_6A</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A standalone EVSE in MODE_SMART with a persistent hard shortage</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called for NoCurrentThreshold-1 (9) ticks</li><li class="step-then"><span class="step-keyword">Then</span> LESS_6A stays clear and Balanced[0] is still offering MinCurrent (60 dA),</li></ul></td>
+<td><code>test_shortage_grace_period_holds_below_threshold</code></td>
+<td><span class="file-ref">test_load_balancing.c:596</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LB-186</span></td>
+<td>Shortage sustained for the full grace window trips LESS_6A</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A standalone EVSE in MODE_SMART with a persistent hard shortage</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called for NoCurrentThreshold (10) ticks</li><li class="step-then"><span class="step-keyword">Then</span> LESS_6A is set — a genuinely sustained shortage still stops the car</li></ul></td>
+<td><code>test_shortage_grace_period_expires_sets_less6a</code></td>
+<td><span class="file-ref">test_load_balancing.c:620</span></td>
+</tr>
+<tr>
+<td><span class="req-tag">REQ-LB-187</span></td>
+<td>MODE_NORMAL stays exempt from the NoCurrent-driven LESS_6A trip</td>
+<td><ul class="scenario-steps"><li class="step-given"><span class="step-keyword">Given</span> A standalone EVSE in MODE_NORMAL with a persistent CircuitMeter</li><li class="step-when"><span class="step-keyword">When</span> evse_calc_balanced_current is called well beyond NoCurrentThreshold ticks</li><li class="step-then"><span class="step-keyword">Then</span> LESS_6A is still never set via this path, matching the pre-existing</li></ul></td>
+<td><code>test_shortage_normal_mode_never_trips_less6a</code></td>
+<td><span class="file-ref">test_load_balancing.c:641</span></td>
 </tr>
 </tbody></table>
 </div>

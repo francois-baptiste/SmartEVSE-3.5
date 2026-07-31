@@ -1,6 +1,6 @@
 # SmartEVSE-3 Test Specification
 
-**76 features** | **1120 scenarios** | **1120 with requirement IDs**
+**76 features** | **1123 scenarios** | **1123 with requirement IDs**
 
 ---
 
@@ -4172,6 +4172,36 @@
 - **Then** NoCurrent reaches 255 and stays there (does not wrap to 0)
 
 > Test: `test_nocurrent_saturates_at_255` in `test_load_balancing.c:512`
+
+### Sustained shortage under the grace window doesn't trip LESS_6A
+
+**Requirement:** `REQ-LB-186`
+
+- **Given** A standalone EVSE in MODE_SMART with a persistent hard shortage
+- **When** evse_calc_balanced_current is called for NoCurrentThreshold-1 (9) ticks
+- **Then** LESS_6A stays clear and Balanced[0] is still offering MinCurrent (60 dA),
+
+> Test: `test_shortage_grace_period_holds_below_threshold` in `test_load_balancing.c:596`
+
+### Shortage sustained for the full grace window trips LESS_6A
+
+**Requirement:** `REQ-LB-186`
+
+- **Given** A standalone EVSE in MODE_SMART with a persistent hard shortage
+- **When** evse_calc_balanced_current is called for NoCurrentThreshold (10) ticks
+- **Then** LESS_6A is set — a genuinely sustained shortage still stops the car
+
+> Test: `test_shortage_grace_period_expires_sets_less6a` in `test_load_balancing.c:620`
+
+### MODE_NORMAL stays exempt from the NoCurrent-driven LESS_6A trip
+
+**Requirement:** `REQ-LB-187`
+
+- **Given** A standalone EVSE in MODE_NORMAL with a persistent CircuitMeter
+- **When** evse_calc_balanced_current is called well beyond NoCurrentThreshold ticks
+- **Then** LESS_6A is still never set via this path, matching the pre-existing
+
+> Test: `test_shortage_normal_mode_never_trips_less6a` in `test_load_balancing.c:641`
 
 ---
 

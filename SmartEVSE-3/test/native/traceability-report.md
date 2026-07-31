@@ -1,6 +1,6 @@
 # SmartEVSE-3 Traceability Report
 
-**76 features** | **1120 scenarios** | **1120 with requirement IDs** | **100% coverage**
+**76 features** | **1123 scenarios** | **1123 with requirement IDs** | **100% coverage**
 
 ---
 
@@ -40,7 +40,7 @@
 | LED Status Indication | 14 | 14 | 100% |
 | LED Color Configuration | 4 | 4 | 100% |
 | LED Color — Public Scheme | 14 | 14 | 100% |
-| Load Balancing | 18 | 18 | 100% |
+| Load Balancing | 21 | 21 | 100% |
 | Meter Decoding | 52 | 52 | 100% |
 | Meter Timeout & Recovery | 12 | 12 | 100% |
 | Meter Telemetry | 13 | 13 | 100% |
@@ -84,7 +84,7 @@
 | IEC 61851-1 State Transitions | 29 | 29 | 100% |
 | 10ms Tick Processing | 20 | 20 | 100% |
 | 1-Second Tick Processing | 17 | 17 | 100% |
-| **TOTAL** | **1120** | **1120** | **100%** |
+| **TOTAL** | **1123** | **1123** | **100%** |
 
 ## API Mains Staleness Detection
 
@@ -3483,9 +3483,12 @@
 | `REQ-LB-080` | Surplus handout with zero uncapped EVSEs does not crash | `test_handout_surplus_zero_uncapped_no_crash` | `test_load_balancing.c:435` |
 | `REQ-LB-081` | Balanced current with zero active EVSEs does not divide by zero | `test_balanced_current_zero_active_no_crash` | `test_load_balancing.c:475` |
 | `REQ-LB-082` | NoCurrent counter saturates at 255 instead of wrapping to 0 | `test_nocurrent_saturates_at_255` | `test_load_balancing.c:512` |
+| `REQ-LB-186` | Sustained shortage under the grace window doesn't trip LESS_6A | `test_shortage_grace_period_holds_below_threshold` | `test_load_balancing.c:596` |
+| `REQ-LB-186` | Shortage sustained for the full grace window trips LESS_6A | `test_shortage_grace_period_expires_sets_less6a` | `test_load_balancing.c:620` |
+| `REQ-LB-187` | MODE_NORMAL stays exempt from the NoCurrent-driven LESS_6A trip | `test_shortage_normal_mode_never_trips_less6a` | `test_load_balancing.c:641` |
 
 <details>
-<summary>Detailed steps (18 scenarios)</summary>
+<summary>Detailed steps (21 scenarios)</summary>
 
 ### Single standalone EVSE receives full MaxCurrent allocation
 **Requirement:** `REQ-LB-001`
@@ -3615,6 +3618,27 @@
 - **Given** NoCurrent is at 254, standalone EVSE in shortage
 - **When** evse_calc_balanced_current detects shortage twice
 - **Then** NoCurrent reaches 255 and stays there (does not wrap to 0)
+
+### Sustained shortage under the grace window doesn't trip LESS_6A
+**Requirement:** `REQ-LB-186`
+
+- **Given** A standalone EVSE in MODE_SMART with a persistent hard shortage
+- **When** evse_calc_balanced_current is called for NoCurrentThreshold-1 (9) ticks
+- **Then** LESS_6A stays clear and Balanced[0] is still offering MinCurrent (60 dA),
+
+### Shortage sustained for the full grace window trips LESS_6A
+**Requirement:** `REQ-LB-186`
+
+- **Given** A standalone EVSE in MODE_SMART with a persistent hard shortage
+- **When** evse_calc_balanced_current is called for NoCurrentThreshold (10) ticks
+- **Then** LESS_6A is set — a genuinely sustained shortage still stops the car
+
+### MODE_NORMAL stays exempt from the NoCurrent-driven LESS_6A trip
+**Requirement:** `REQ-LB-187`
+
+- **Given** A standalone EVSE in MODE_NORMAL with a persistent CircuitMeter
+- **When** evse_calc_balanced_current is called well beyond NoCurrentThreshold ticks
+- **Then** LESS_6A is still never set via this path, matching the pre-existing
 
 </details>
 
