@@ -104,6 +104,17 @@ uint8_t meter_mains_phase_count(uint8_t meter_type, uint8_t p1_phases);
 int32_t meter_apparent_power_va(int16_t irms_da, float linky_va,
                                 uint8_t linky_available);
 
+/*
+ * Apparent power used as a percentage of the Linky subscribed/contracted
+ * power ("puissance de reference souscrite"), for LCD/UI ratio displays.
+ *
+ * @param apparent_power_va   Apparent power in VA (see meter_apparent_power_va)
+ * @param contracted_power_kva Subscribed power in kVA (Linky PREF register)
+ * @return  0-999 (percentage, rounded, clamped), or -1 if contracted_power_kva
+ *          is not a usable positive value (e.g. Linky data unavailable)
+ */
+int16_t meter_grid_power_ratio_pct(int32_t apparent_power_va, float contracted_power_kva);
+
 #ifdef __cplusplus
 }
 #endif

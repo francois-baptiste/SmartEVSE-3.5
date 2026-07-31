@@ -729,6 +729,69 @@ void test_apparent_power_estimate(void) {
     TEST_ASSERT_EQUAL_INT(0, (int)meter_apparent_power_va(0, 0.0f, 0));
 }
 
+/* ---- Grid power ratio (apparent power as % of subscribed/contracted power) ---- */
+
+/*
+ * @feature Meter Decoding
+ * @req REQ-MTR-180
+ * @scenario Apparent power at a fraction of the subscribed power
+ * @given apparent_power=1420 VA, contracted_power=6.0 kVA
+ * @when meter_grid_power_ratio_pct is called
+ * @then It returns 24 (1420 / 6000 = 23.67%, rounded to 24)
+ */
+void test_grid_power_ratio_normal(void) {
+    TEST_ASSERT_EQUAL_INT(24, meter_grid_power_ratio_pct(1420, 6.0f));
+}
+
+/*
+ * @feature Meter Decoding
+ * @req REQ-MTR-180
+ * @scenario Apparent power exactly at the subscribed power reads 100%
+ */
+void test_grid_power_ratio_at_limit(void) {
+    TEST_ASSERT_EQUAL_INT(100, meter_grid_power_ratio_pct(6000, 6.0f));
+}
+
+/*
+ * @feature Meter Decoding
+ * @req REQ-MTR-180
+ * @scenario Apparent power overrunning the subscribed power reads >100%
+ */
+void test_grid_power_ratio_overrun(void) {
+    TEST_ASSERT_EQUAL_INT(123, meter_grid_power_ratio_pct(7380, 6.0f));
+}
+
+/*
+ * @feature Meter Decoding
+ * @req REQ-MTR-180
+ * @scenario Ratio uses the magnitude of apparent power (export doesn't go negative)
+ */
+void test_grid_power_ratio_negative_apparent_power(void) {
+    TEST_ASSERT_EQUAL_INT(24, meter_grid_power_ratio_pct(-1420, 6.0f));
+}
+
+/*
+ * @feature Meter Decoding
+ * @req REQ-MTR-180
+ * @scenario Extreme overrun is clamped to 999%
+ */
+void test_grid_power_ratio_clamped(void) {
+    TEST_ASSERT_EQUAL_INT(999, meter_grid_power_ratio_pct(100000, 1.0f));
+}
+
+/*
+ * @feature Meter Decoding
+ * @req REQ-MTR-181
+ * @scenario Zero, negative, or NaN contracted power is unusable
+ * @given No valid Linky subscribed-power reading
+ * @then meter_grid_power_ratio_pct returns -1 (caller should not display a ratio)
+ */
+void test_grid_power_ratio_no_contracted_power(void) {
+    TEST_ASSERT_EQUAL_INT(-1, meter_grid_power_ratio_pct(1420, 0.0f));
+    TEST_ASSERT_EQUAL_INT(-1, meter_grid_power_ratio_pct(1420, -6.0f));
+    TEST_ASSERT_EQUAL_INT(-1, meter_grid_power_ratio_pct(1420, NAN));
+}
+
 /* ---- Real-world meter scenario: Acrel ADL400-D (mixed 16-bit/32-bit registers) ---- */
 
 /*
@@ -908,6 +971,12 @@ int main(void) {
     RUN_TEST(test_mains_phase_count_homewizard);
     RUN_TEST(test_apparent_power_from_linky);
     RUN_TEST(test_apparent_power_estimate);
+    RUN_TEST(test_grid_power_ratio_normal);
+    RUN_TEST(test_grid_power_ratio_at_limit);
+    RUN_TEST(test_grid_power_ratio_overrun);
+    RUN_TEST(test_grid_power_ratio_negative_apparent_power);
+    RUN_TEST(test_grid_power_ratio_clamped);
+    RUN_TEST(test_grid_power_ratio_no_contracted_power);
 
     // Acrel ADL400-D: mixed 16-bit/32-bit register profiles
     RUN_TEST(test_acrel_ev_l2_current_decode);

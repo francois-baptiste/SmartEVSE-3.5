@@ -141,3 +141,15 @@ int32_t meter_apparent_power_va(int16_t irms_da, float linky_va,
     int32_t abs_da = (irms_da >= 0) ? irms_da : -(int32_t)irms_da;
     return abs_da * 23;
 }
+
+int16_t meter_grid_power_ratio_pct(int32_t apparent_power_va, float contracted_power_kva)
+{
+    if (isnan(contracted_power_kva) || isinf(contracted_power_kva) || contracted_power_kva <= 0.0f)
+        return -1;
+
+    float abs_va = (apparent_power_va >= 0) ? (float)apparent_power_va : -(float)apparent_power_va;
+    float pct = (abs_va / (contracted_power_kva * 1000.0f)) * 100.0f;
+    if (pct > 999.0f)
+        pct = 999.0f;
+    return (int16_t)(pct + 0.5f);
+}
